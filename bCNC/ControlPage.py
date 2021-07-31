@@ -179,20 +179,20 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Pause running program and soft reset controller to empty the buffer."))
 
-		#b = Ribbon.LabelButton(self.frame, self, "<ButtonPress>",
-		#                   text=_("Update"),
-		#                   compound=TOP,
-		#                   background=Ribbon._BACKGROUND)
-		#b.pack(side=LEFT, fill=BOTH)
-		#self.addWidget(b)
-		#b.bind("<ButtonPress>", self.updateLineNumber)
 		b = Ribbon.LabelButton(self.frame, self, "<ButtonPress>",
-		                   text=_("Find Line"),
+		                   text=_("Update"),
 		                   compound=TOP,
 		                   background=Ribbon._BACKGROUND)
 		b.pack(side=LEFT, fill=BOTH)
 		self.addWidget(b)
-		b.bind("<ButtonPress>", self.findCurrentLine)
+		b.bind("<ButtonPress>", self.updateLineNumber)
+		#b = Ribbon.LabelButton(self.frame, self, "<ButtonPress>",
+		#                   text=_("Find Line"),
+		#                   compound=TOP,
+		#                   background=Ribbon._BACKGROUND)
+		#b.pack(side=LEFT, fill=BOTH)
+		#self.addWidget(b)
+		#b.bind("<ButtonPress>", self.findCurrentLine)
 
 #===============================================================================
 # DRO Frame
@@ -247,17 +247,17 @@ class DROFrame(CNCRibbon.PageFrame):
 
 		# ---
 		col += 1
-		self.ywork = Entry(self, font=DROFrame.dro_wpos,
+		self.bwork = Entry(frame, font=abcDROFrame.dro_wpos,
 					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+					width=8,
 					relief=FLAT,
 					borderwidth=0,
 					justify=RIGHT)
-		self.ywork.grid(row=row,column=col,padx=1,sticky=EW)
-		tkExtra.Balloon.set(self.ywork, _("Y work position (click to set)"))
-		self.ywork.bind('<FocusIn>',  self.workFocus)
-		self.ywork.bind('<Return>',   self.setY)
-		self.ywork.bind('<KP_Enter>', self.setY)
-
+		self.bwork.grid(row=row,column=col,sticky=EW)
+		tkExtra.Balloon.set(self.bwork, _("B work position (click to set)"))
+		self.bwork.bind('<FocusIn>',  self.workFocus)
+		self.bwork.bind('<Return>',   self.setB)
+		self.bwork.bind('<KP_Enter>', self.setB)
 		# ---
 		col += 1
 		self.zwork = Entry(self, font=DROFrame.dro_wpos,
@@ -281,8 +281,8 @@ class DROFrame(CNCRibbon.PageFrame):
 		self.xmachine.grid(row=row,column=col,padx=1,sticky=EW)
 
 		col += 1
-		self.ymachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,anchor=E)
-		self.ymachine.grid(row=row,column=col,padx=1,sticky=EW)
+		self.bmachine = Label(frame, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,anchor=E)
+		self.bmachine.grid(row=row,column=col,padx=1,sticky=EW)
 
 		col += 1
 		self.zmachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, anchor=E)
@@ -301,13 +301,13 @@ class DROFrame(CNCRibbon.PageFrame):
 		self.addWidget(self.xzero)
 
 		col += 1
-		self.yzero = Button(self, text=_("Y=0"),
-				command=self.setY0,
+		self.bzero = Button(frame, text=_("B=0"),
+				command=self.setB0,
 				activebackground="LightYellow",
 				padx=2, pady=1)
-		self.yzero.grid(row=row, column=col, pady=0, sticky=EW)
-		tkExtra.Balloon.set(self.yzero, _("Set Y coordinate to zero (or to typed coordinate in WPos)"))
-		self.addWidget(self.yzero)
+		self.bzero.grid(row=row, column=col, pady=0, sticky=EW)
+		tkExtra.Balloon.set(self.bzero, _("Set B coordinate to zero (or to typed coordinate in WPos)"))
+		self.addWidget(self.bzero)
 
 		col += 1
 		self.zzero = Button(self, text=_("Z=0"),
@@ -321,22 +321,22 @@ class DROFrame(CNCRibbon.PageFrame):
 		# Set buttons
 		row += 1
 		col = 1
-		self.xyzero = Button(self, text=_("XY=0"),
-				command=self.setXY0,
+		self.xbzero = Button(self, text=_("XB=0"),
+				command=self.setXB0,
 				activebackground="LightYellow",
 				padx=2, pady=1)
-		self.xyzero.grid(row=row, column=col, pady=0, sticky=EW)
-		tkExtra.Balloon.set(self.xyzero, _("Set XY coordinate to zero (or to typed coordinate in WPos)"))
-		self.addWidget(self.xyzero)
+		self.xbzero.grid(row=row, column=col, pady=0, sticky=EW)
+		tkExtra.Balloon.set(self.xbzero, _("Set XB coordinate to zero (or to typed coordinate in WPos)"))
+		self.addWidget(self.xbzero)
 
 		col += 1
-		self.xyzzero = Button(self, text=_("XYZ=0"),
-				command=self.setXYZ0,
+		self.xbzzero = Button(self, text=_("XBZ=0"),
+				command=self.setXBZ0,
 				activebackground="LightYellow",
 				padx=2, pady=1)
-		self.xyzzero.grid(row=row, column=col, pady=0, sticky=EW, columnspan=2)
-		tkExtra.Balloon.set(self.xyzzero, _("Set XYZ coordinate to zero (or to typed coordinate in WPos)"))
-		self.addWidget(self.xyzzero)
+		self.xbzzero.grid(row=row, column=col, pady=0, sticky=EW, columnspan=2)
+		tkExtra.Balloon.set(self.xbzzero, _("Set XBZ coordinate to zero (or to typed coordinate in WPos)"))
+		self.addWidget(self.xbzzero)
 
 		# Set buttons
 		row += 1
@@ -403,15 +403,15 @@ class DROFrame(CNCRibbon.PageFrame):
 		if focus is not self.xwork:
 			self.xwork.delete(0,END)
 			self.xwork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wx"]))
-		if focus is not self.ywork:
-			self.ywork.delete(0,END)
-			self.ywork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wy"]))
+		if focus is not self.bwork:
+			self.bwork.delete(0,END)
+			self.bwork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wb"]))
 		if focus is not self.zwork:
 			self.zwork.delete(0,END)
 			self.zwork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wz"]))
 
 		self.xmachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["mx"])
-		self.ymachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["my"])
+		self.bmachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["mb"])
 		self.zmachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["mz"])
 		self.app.abcdro.updateCoords()
 	#----------------------------------------------------------------------
@@ -433,20 +433,20 @@ class DROFrame(CNCRibbon.PageFrame):
 		self.app.mcontrol._wcsSet("0",None,None,None,None,None)
 
 	#----------------------------------------------------------------------
-	def setY0(self, event=None):
-		self.app.mcontrol._wcsSet(None,"0",None,None,None,None)
+	def setB0(self, event=None):
+		self.app.mcontrol._wcsSet(None,None,None,None,"0",None)
 
 	#----------------------------------------------------------------------
 	def setZ0(self, event=None):
 		self.app.mcontrol._wcsSet(None,None,"0",None,None,None)
 
 	#----------------------------------------------------------------------
-	def setXY0(self, event=None):
-		self.app.mcontrol._wcsSet("0","0",None,None,None,None)
+	def setXB0(self, event=None):
+		self.app.mcontrol._wcsSet("0",None,None,None,"0",None)
 
 	#----------------------------------------------------------------------
-	def setXYZ0(self, event=None):
-		self.app.mcontrol._wcsSet("0","0","0",None,None,None)
+	def setXBZ0(self, event=None):
+		self.app.mcontrol._wcsSet("0",None,"0",None,"0",None)
 
 	#----------------------------------------------------------------------
 	def setX(self, event=None):
@@ -458,11 +458,11 @@ class DROFrame(CNCRibbon.PageFrame):
 			pass
 
 	#----------------------------------------------------------------------
-	def setY(self, event=None):
+	def setB(self, event=None):
 		if self.app.running: return
 		try:
-			value = round(eval(self.ywork.get(), None, CNC.vars), 3)
-			self.app.mcontrol._wcsSet(None,value,None,None,None,None)
+			value = round(eval(self.bwork.get(), None, CNC.vars), 3)
+			self.app.mcontrol._wcsSet(None,None,None,None,value,None)
 		except:
 			pass
 
