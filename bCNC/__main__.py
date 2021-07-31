@@ -408,20 +408,14 @@ class Application(Toplevel,Sender):
 			self.bind(',',                  self.abccontrol.moveAup)
 			self.bind('.',			self.abccontrol.moveAdown)
 		else:
-			self.bind('<Right>',		self.control.moveXup)
-			self.bind('<Left>',		self.control.moveXdown)
-			self.bind('<Up>',		self.control.moveYup)
-			self.bind('<Down>',		self.control.moveYdown)
-			self.bind('.',                  self.abccontrol.moveAup)
-			self.bind(',',			self.abccontrol.moveAdown)
-			self.bind('l',          self.abccontrol.moveBup)
-			self.bind('k',			self.abccontrol.moveBdown)
-			self.bind('o',			self.abccontrol.moveCup)
-			self.bind('i',			self.abccontrol.moveCdown)
+			self.bind('<Up>',		self.control.moveXup)
+			self.bind('<Down>',		self.control.moveXdown)
+			self.bind('<.>',		self.abccontrol.moveBup)
+			self.bind('<,>',		self.abccontrol.moveBdown)
 
 		try:
-			self.bind('9',		self.control.moveZup)
-			self.bind('8',		self.control.moveZdown)
+			self.bind('<Right>',		self.control.moveZup)
+			self.bind('<Left>',		self.control.moveZdown)
 
 			if self._swapKeyboard==1:
 				self.bind('<KP_Right>',	self.control.moveYup)
