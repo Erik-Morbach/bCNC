@@ -2310,7 +2310,7 @@ class Application(Toplevel,Sender):
 			#		print ">>>",line
 			#self._paths = self.gcode.compile(MyQueue(), self.checkStop)
 			#return
-			self._paths = self.gcode.compile(self.queue, self.checkStop, doNotUploadQueue=fromSD, fromSD=fromSD, line_to_start=CNC.vars["line_number_to_start"])
+			self._paths = self.gcode.compile(self.queue, self.checkStop, doNotUploadQueue=fromSD, fromSD=fromSD, lineToStart=CNC.vars["line_number_to_start"])
 			
 			if self._paths is None:
 				self.emptyQueue()
