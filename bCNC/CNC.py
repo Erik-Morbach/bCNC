@@ -761,6 +761,7 @@ class CNC:
 			"controller" : "",
 			"running"    : False,
 			"M48Times"	 : 0,
+			"line_number_to_start": 0,
 			#"enable6axisopt" : 0,
 		}
 
@@ -4635,7 +4636,7 @@ class GCode:
 	#----------------------------------------------------------------------
 	# Use probe information to modify the g-code to autolevel
 	#----------------------------------------------------------------------
-	def compile(self, queue, stopFunc=None,doNotUploadQueue:bool=False, fromSD:bool=False):
+	def compile(self, queue, stopFunc=None, doNotUploadQueue:bool = False, fromSD:bool = False, lineToStart:int = 0):
 		#lines  = [self.cnc.startup]
 		paths   = []
 		self.repeatEngine.fromSD = fromSD
@@ -4657,11 +4658,15 @@ class GCode:
 			add(line, None)
 
 		every = 1
-		for (i,block) in enumerate(self.blocks):
-			if not block.enable: continue
-			for j,line in enumerate(block):
+		totalNumberOfLines = 0
+		for (i, block) in enumerate(self.blocks):
+			if not block.enable:
+				totalNumberOfLines += len(block)
+				continue
+			for j, line in enumerate(block):
+				totalNumberOfLines += 1
 				every -= 1
-				if every<=0:
+				if every <= 0:
 					if stopFunc is not None and stopFunc():
 						return None
 					every = 50
@@ -4681,7 +4686,7 @@ class GCode:
 						add(cmds, (i,j))
 					continue
 
-				skip   = self.repeatEngine.isRepeatCommand(line) 
+				skip   = self.repeatEngine.isRepeatCommand(line) or (totalNumberOfLines < lineToStart)
 				expand = None
 				self.cnc.motionStart(cmds)
 			

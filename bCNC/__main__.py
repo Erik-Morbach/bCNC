@@ -297,12 +297,12 @@ class Application(Toplevel,Sender):
 		self.bind('<<AlarmClear>>',	self.alarmClear)
 		self.bind('<<Help>>',		self.help)
 						# Do not send the event otherwise it will skip the feedHold/resume
-		self.bind('<<FeedHold>>',	lambda e,s=self: s.feedHold())
+		self.bind('<<FeedHold>>',	lambda e,s=self: s.feedHoldLayer())
 		self.bind('<<Resume>>',		lambda e,s=self: s.resume())
 		self.bind('<<Run>>',		lambda e,s=self: s.run())
 		self.bind('<<RunFromSD>>',	lambda e,s=self: s.run(fromSD=True))
-		self.bind('<<Stop>>',		self.stopRun)
-		self.bind('<<Pause>>',		self.pause)
+		self.bind('<<Stop>>',		self.stopRunLayer)
+		self.bind('<<Pause>>',		self.pauseLayer)
 #		self.bind('<<TabAdded>>',	self.tabAdded)
 
 		tkExtra.bindEventData(self, "<<Status>>",	self.updateStatus)
@@ -2238,8 +2238,25 @@ class Application(Toplevel,Sender):
 	#-----------------------------------------------------------------------
 	# Send enabled gcode file to the CNC machine
 	#-----------------------------------------------------------------------
-	
-	
+
+	def pauseLayer(self, event=None):
+		line_number = CNC.vars["line_number_to_start"] + self._gcount - 20 - len(CNC.startup.split('\n'))
+		print("Pause Layer lineNumbe = {}".format(line_number))
+		self.pause(event)
+		CNC.vars["line_number_to_start"] = line_number
+
+	def stopRunLayer(self, event=None):
+		line_number = CNC.vars["line_number_to_start"] + self._gcount - 20 - len(CNC.startup.split('\n'))
+		print("Pause Layer lineNumbe = {}".format(line_number))
+		self.stopRun(event)
+		CNC.vars["line_number_to_start"] = line_number
+
+	def feedHoldLayer(self, event=None):
+		line_number = CNC.vars["line_number_to_start"] + self._gcount - 20 - len(CNC.startup.split('\n'))
+		print("Pause Layer lineNumbe = {}".format(line_number))
+		self.feedHold()
+		CNC.vars["line_number_to_start"] = line_number
+
 	def run(self, lines=None, fromSD:bool=False):
 		self.cleanAfter = True	#Clean when this operation stops
 		print("Will clean after this operation")
@@ -2293,7 +2310,7 @@ class Application(Toplevel,Sender):
 			#		print ">>>",line
 			#self._paths = self.gcode.compile(MyQueue(), self.checkStop)
 			#return
-			self._paths = self.gcode.compile(self.queue, self.checkStop,doNotUploadQueue=fromSD,fromSD=fromSD)
+			self._paths = self.gcode.compile(self.queue, self.checkStop, doNotUploadQueue=fromSD, fromSD=fromSD, line_to_start=CNC.vars["line_number_to_start"])
 			
 			if self._paths is None:
 				self.emptyQueue()
@@ -2328,7 +2345,7 @@ class Application(Toplevel,Sender):
 				self._gcount = 0
 			else:
 				# the buffer of the machine should be empty?
-				self._runLines = len(self._paths) + 1	# plus the wait
+				self._runLines = CNC.vars["line_number_to_start"] + len(self._paths) + 1	# plus the wait
 		else:
 			n = 1		# including one wait command
 			for line in CNC.compile(lines):

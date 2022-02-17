@@ -30,6 +30,8 @@ import CNCRibbon
 from Sender import ERROR_CODES
 from CNC import WCS, DISTANCE_MODE, FEED_MODE, UNITS, PLANE
 
+from BjmUtils import find_line
+
 _LOWSTEP   = 0.0001
 _HIGHSTEP  = 1000.0
 _HIGHZSTEP = 10.0
@@ -124,6 +126,22 @@ class UserGroup(CNCRibbon.ButtonGroup):
 # Run Group
 #===============================================================================
 class RunGroup(CNCRibbon.ButtonGroup):
+	def set_line_number(self, event=None):
+		line = self.line_number_entry.get()
+		value = int(line) if line.isdigit() else 0
+		CNC.vars["line_number_to_start"] = value
+
+	def update_line_number(self, event=None):
+		new_line_number = CNC.vars["line_number_to_start"]
+		self.line_number_entry.delete(0,'end')
+		self.line_number_entry.insert(0,str(new_line_number))
+
+	def find_current_line(self, event=None):
+		current_x, current_y = CNC.vars["line_number_to_start"]
+		line = find_line(self.app, current_x, current_y)
+		CNC.vars["line_number_to_start"] = line
+		self.update_line_number()
+
 	def __init__(self, master, app):
 		CNCRibbon.ButtonGroup.__init__(self, master, "Run", app)
 
@@ -161,34 +179,19 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Run g-code commands from SD to controller"))
 
-		self.m48MaxRepeatNumber = Entry(self, font=DROFrame.dro_wpos,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					relief=FLAT,
-					borderwidth=0,
-					justify=RIGHT)
-		self.m48MaxRepeatNumber.pack(side=BOTTOM, fill=BOTH)
-		tkExtra.Balloon.set(self.m48MaxRepeatNumber, _("Number of times wich a m48 command will repeat"))
-
-		self.m48StringVar =StringVar()
-		self.m48AlreadyRepeatLabel = Label(self,textvariable=self.m48StringVar,background=Ribbon._BACKGROUND)
-		self.m48AlreadyRepeatLabel.pack(side=RIGHT,fill=NONE)
-		tkExtra.Balloon.set(self.m48AlreadyRepeatLabel, _("Number of times already reapeated by a m48 command"))
-		self.m48StringVar.set("0")
+		b = Ribbon.LabelButton(self.frame, self, "<buttonPress>",
+							   text = _("Find Line"),
+							   compound=TOP,
+							   background=Ribbon._BACKGROUND)
+		b.pack(side=LEFT, fill=BOTH)
+		self.addWidget(b)
+		b.bind("<ButtonPress", self.find_current_line)
 
 	def getM48Max(self):
-		try:
-			return int(self.m48MaxRepeatNumber.get())
-		except:
-			self.m48MaxRepeatNumber.delete(0)
-			self.m48MaxRepeatNumber.insert(0,"0")
-			return 0	
+		return 0
 
 	def setM48RepeatNumber(self, number):
-		try:
-			self.m48StringVar.set(str(int(number)))
-		except:
-			self.m48StringVar.set("-1")
-
+		return
 
 
 #===============================================================================
