@@ -154,6 +154,16 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		tkExtra.Balloon.set(b, _("Run g-code commands from editor to controller"))
 		self.addWidget(b)
 
+		self.line_number_entry = Entry(self,
+									   background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+									   relief=FLAT,
+									   borderwidth=0,
+									   justify=RIGHT)
+		self.line_number_entry.pack(side=BOTTOM, fill=BOTH)
+		tkExtra.Balloon.set(self.line_number_entry, _("Line numbeto Start"))
+		self.addWidget(self.line_number_entry)
+		self.line_number_entry.bind("<Return>", self.set_line_number)
+
 		b = Ribbon.LabelButton(self.frame, self, "<<Pause>>",
 				image=Utils.icons["pause32"],
 				text=_("Pause"),
