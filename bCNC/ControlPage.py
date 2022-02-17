@@ -160,7 +160,7 @@ class RunGroup(CNCRibbon.ButtonGroup):
 									   borderwidth=0,
 									   justify=RIGHT)
 		self.line_number_entry.pack(side=BOTTOM, fill=BOTH)
-		tkExtra.Balloon.set(self.line_number_entry, _("Line numbeto Start"))
+		tkExtra.Balloon.set(self.line_number_entry, _("Line number to Start"))
 		self.addWidget(self.line_number_entry)
 		self.line_number_entry.bind("<Return>", self.set_line_number)
 
@@ -189,7 +189,7 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Run g-code commands from SD to controller"))
 
-		b = Ribbon.LabelButton(self.frame, self, "<buttonPress>",
+		b = Ribbon.LabelButton(self.frame, self, "<ButtonPress>",
 							   text = _("Find Line"),
 							   compound=TOP,
 							   background=Ribbon._BACKGROUND)
