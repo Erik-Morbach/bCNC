@@ -185,7 +185,7 @@ class RunGroup(CNCRibbon.ButtonGroup):
 							   background=Ribbon._BACKGROUND)
 		b.pack(side=LEFT, fill=BOTH)
 		self.addWidget(b)
-		b.bind("<ButtonPress", self.find_current_line)
+		b.bind("<ButtonPress>", self.find_current_line)
 
 	def getM48Max(self):
 		return 0
