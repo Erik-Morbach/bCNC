@@ -137,7 +137,7 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		self.line_number_entry.insert(0,str(new_line_number))
 
 	def find_current_line(self, event=None):
-		current_x, current_y = CNC.vars["line_number_to_start"]
+		current_x, current_y = CNC.vars["wx"], CNC.vars["wy"]
 		line = find_line(self.app, current_x, current_y)
 		CNC.vars["line_number_to_start"] = line
 		self.update_line_number()
