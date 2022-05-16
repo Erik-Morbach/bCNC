@@ -1887,7 +1887,7 @@ class CNCCanvas(Canvas, object):
 		if self.view == VIEW_XY:
 			coords = [(p[0]*self.zoom,-p[1]*self.zoom) for p in xyz]
 		elif self.view == VIEW_ZX:
-			coords = [(p[2]*self.zoom,-p[0]*self.zoom) for p in xyz]
+			coords = [(p[2]*self.zoom,p[0]*self.zoom) for p in xyz]
 		elif self.view == VIEW_XZ:
 			coords = [(p[0]*self.zoom,-p[2]*self.zoom) for p in xyz]
 		elif self.view == VIEW_YZ:
@@ -1925,7 +1925,7 @@ class CNCCanvas(Canvas, object):
 			z = 0
 
 		elif self.view == VIEW_ZX:
-			x =  -j / self.zoom
+			x = j / self.zoom
 			y = 0
 			z = i / self.zoom
 
