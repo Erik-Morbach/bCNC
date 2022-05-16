@@ -45,10 +45,10 @@ from RepeatEngine import RepeatEngine
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = 0.125	# s
-SERIAL_TIMEOUT = 0.10	# s
+SERIAL_POLL    = 0.025	# s
+SERIAL_TIMEOUT = 0.06	# s
 G_POLL	       = 10	# s
-RX_BUFFER_SIZE = 128
+RX_BUFFER_SIZE = 512
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")
@@ -502,7 +502,8 @@ class Sender:
 						rtscts=False)
 		# Toggle DTR to reset Arduino
 		try:
-			self.serial.setDTR(0)
+			pass
+			#self.serial.setDTR(0)
 		except IOError:
 			pass
 		time.sleep(1)
@@ -703,6 +704,8 @@ class Sender:
 		tr = tg = time.time()		# last time a ? or $G was send to grbl
 
 		while self.thread:
+			if CNC.vars["Sending"]:
+				continue
 			t = time.time()
 			# refresh machine position?
 			if t-tr > SERIAL_POLL:
