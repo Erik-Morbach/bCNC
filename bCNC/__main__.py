@@ -2168,18 +2168,11 @@ class Application(Toplevel, Sender):
         ftp.quit()
 
     def sendWithYModem(self, sdFileName, fileName):
-        oldTimeOut = self.serial.timeout
-        def getc(size, timeout=5):
-            self.serial.timeout = timeout
-            return self.serial.read(size)
-        def putc(data, timeout=5):
-            self.serial.writeTimeout = timeout
-            return self.serial.write(data)
         CNC.vars["Sending"] = True
         while self.serial.read(100):
             pass
         time.sleep(0.2)
-        ymodem = Modem(getc, putc)
+        ymodem = Modem(self.serial)
         file_info = {"name" : sdFileName,
                      "length": os.path.getsize(fileName)}
         try:
@@ -2218,7 +2211,7 @@ class Application(Toplevel, Sender):
                                 val = ""
                         myfile.write(val + '\n')
 
-            sdFileName = "TmpFile"
+            sdFileName = "TmpFile.nc"
             tmpFileName = "TmpFilePre"
             try:
                 computeFile(tmpFileName)

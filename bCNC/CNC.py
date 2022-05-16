@@ -4647,7 +4647,7 @@ class GCode:
 		self.repeatEngine.fromSD = fromSD
 
 		if fromSD and doNotUploadQueue:
-			fileName = "TmpFile"
+			fileName = "TmpFile.nc"
 			if Utils.getStr('CNC', 'firmware') == 'Grbl_HAL':
 				queue.put("$F="+fileName+"\n")
 			else:
