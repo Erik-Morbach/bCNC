@@ -2169,12 +2169,14 @@ class Application(Toplevel, Sender):
 
     def sendWithYModem(self, sdFileName, fileName):
         CNC.vars["Sending"] = True
-        while self.serial.read(100):
+        controllerSerial = self.serial
+        self.serial = None
+
+        while controllerSerial.read(1024):
             pass
         time.sleep(0.2)
-        ymodem = Modem(self.serial)
-        file_info = {"name" : sdFileName,
-                     "length": os.path.getsize(fileName)}
+        ymodem = Modem(controllerSerial)
+        file_info = {"name" : sdFileName}
         try:
             ymodem.send(open(fileName), info=file_info)
         except BaseException as err:
@@ -2182,6 +2184,7 @@ class Application(Toplevel, Sender):
             self.setStatus("Error while sending! Check your connection and try again")
         finally:
             time.sleep(0.2)
+            self.serial = controllerSerial
             CNC.vars["Sending"] = False
 
     def sendWithHttp(self, sdFileName, fileName):
