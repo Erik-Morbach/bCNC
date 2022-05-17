@@ -502,6 +502,7 @@ class Sender:
 						rtscts=False)
 		# Toggle DTR to reset Arduino
 		try:
+			pass
 			#self.serial.setDTR(0)
 		except IOError:
 			pass
