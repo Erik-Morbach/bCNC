@@ -502,7 +502,6 @@ class Sender:
 						rtscts=False)
 		# Toggle DTR to reset Arduino
 		try:
-			pass
 			#self.serial.setDTR(0)
 		except IOError:
 			pass
@@ -705,6 +704,8 @@ class Sender:
 
 		while self.thread:
 			if CNC.vars["Sending"]:
+				self.sio_wait = False
+				self.sio_status = False
 				continue
 			t = time.time()
 			# refresh machine position?

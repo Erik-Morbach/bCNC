@@ -2185,6 +2185,7 @@ class Application(Toplevel, Sender):
         finally:
             time.sleep(0.2)
             self.serial = controllerSerial
+            self.serial.write('?')
             CNC.vars["Sending"] = False
 
     def sendWithHttp(self, sdFileName, fileName):
