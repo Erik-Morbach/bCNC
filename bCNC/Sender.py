@@ -704,10 +704,6 @@ class Sender:
 		tr = tg = time.time()		# last time a ? or $G was send to grbl
 
 		while self.thread:
-			if CNC.vars["Sending"]:
-				self.sio_wait = False
-				self.sio_status = False
-				continue
 			t = time.time()
 			# refresh machine position?
 			if t-tr > SERIAL_POLL:

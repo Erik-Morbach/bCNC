@@ -2168,14 +2168,21 @@ class Application(Toplevel, Sender):
         ftp.quit()
 
     def sendWithYModem(self, sdFileName, fileName):
-        CNC.vars["Sending"] = True
-        controllerSerial = self.serial
-        self.serial = None
-
-        while controllerSerial.read(1024):
-            pass
-        time.sleep(0.2)
-        ymodem = Modem(controllerSerial)
+        self.close()
+        serialPage = Page.frames["Serial"]
+        device = _device or serialPage.portCombo.get()  # .split("\t")[0]
+        baudrate = _baud or serialPage.baudCombo.get()
+        mySerial = serial.serial_for_url(
+            device.replace('\\', '\\\\'),  # Escape for windows
+            baudrate,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=1,
+            xonxoff=False,
+            rtscts=False)
+        time.sleep(0.4)
+        ymodem = Modem(mySerial)
         file_info = {"name" : sdFileName}
         try:
             ymodem.send(open(fileName), info=file_info)
@@ -2184,9 +2191,7 @@ class Application(Toplevel, Sender):
             self.setStatus("Error while sending! Check your connection and try again")
         finally:
             time.sleep(0.2)
-            self.serial = controllerSerial
-            self.serial.write('?')
-            CNC.vars["Sending"] = False
+            self.openClose()
 
     def sendWithHttp(self, sdFileName, fileName):
         postArgs = {}
