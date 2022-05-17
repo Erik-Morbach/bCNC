@@ -704,6 +704,7 @@ class Sender:
 		tr = tg = time.time()		# last time a ? or $G was send to grbl
 
 		while self.thread:
+			time.sleep(0.001)
 			t = time.time()
 			# refresh machine position?
 			if t-tr > SERIAL_POLL:

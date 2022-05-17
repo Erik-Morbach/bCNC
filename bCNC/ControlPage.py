@@ -161,25 +161,21 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Run g-code commands from SD to controller"))
 
-		self.m30CounterLimitSt = StringVar()
-		self.m30CounterLimit = Entry(self, textvariable=self.m30CounterLimitSt,
-					font=DROFrame.dro_wpos,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					relief=FLAT,
-					borderwidth=0,
-					justify=RIGHT)
-		self.m30CounterLimit.pack(side=BOTTOM, fill=BOTH)
-		tkExtra.Balloon.set(self.m30CounterLimit, _("Number of times wich a m48 command will repeat"))
-
-		self.m30CounterLimitSt.trace('w', self.updateM30State)
-		self.m30CounterLimit.bind("<Return>", lambda x: self.focus_set())
-		self.m30CounterLimit.bind("<KP_Enter>", lambda x: self.focus_set())
-
+		f = Frame(self)
 		self.m30CounterSt = StringVar()
-		self.m30CounterLabel = Label(self,textvariable=self.m30CounterSt,background=Ribbon._BACKGROUND)
-		self.m30CounterLabel.pack(side=RIGHT,fill=NONE)
+		self.m30CounterLabel = Label(f,textvariable=self.m30CounterSt,background=Ribbon._BACKGROUND)
+		self.m30CounterLabel.pack(side=TOP,fill=BOTH)
 		tkExtra.Balloon.set(self.m30CounterLabel, _("Number of times already reapeated by a m48 command"))
 		self.m30CounterSt.set("0")
+
+		self.m30CounterLimitSt = StringVar()
+		self.m30CounterLimit = Label(f, textvariable=self.m30CounterLimitSt,
+									 background=Ribbon._BACKGROUND,
+									 justify=RIGHT)
+		self.m30CounterLimit.pack(side=TOP, fill=BOTH)
+		tkExtra.Balloon.set(self.m30CounterLimit, _("Number of times wich a m48 command will repeat"))
+		self.m30CounterLimitSt.set("0")
+		f.pack(side=RIGHT, fill=BOTH)
 
 
 	def updateM30State(self, *args):
@@ -367,16 +363,6 @@ class DROFrame(CNCRibbon.PageFrame):
 		col = 1
 		f = Frame(self)
 		f.grid(row=row, column=col, columnspan=3, pady=0, sticky=EW)
-
-		b = Button(f, text=_("Move Gantry"),
-				image=Utils.icons["gantry"],
-				compound=LEFT,
-				activebackground="LightYellow",
-				command=lambda s=self: s.event_generate("<<MoveGantry>>"),
-				padx=2, pady=1)
-		b.pack(side=RIGHT,fill=X,expand=YES)
-		tkExtra.Balloon.set(b, _("Move gantry to mouse location [g]"))
-		self.addWidget(b)
 
 		self.grid_columnconfigure(1, weight=1)
 		self.grid_columnconfigure(2, weight=1)

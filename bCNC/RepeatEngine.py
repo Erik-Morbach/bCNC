@@ -5,11 +5,11 @@ from CNCRibbon    import Page
 class RepeatEngine:
 	TYPE_NONE = 0
 	TYPE_M47 = 1
-	TYPE_M48 = 2
+	TYPE_M47P = 2
 	TIMEOUT_TO_REPEAT = 0.5
 	repeatType: int
-	m48MaxTimes: int
-	m48CurrentTime: int
+	m30CounterLimit: int
+	m30Counter: int
 	app: any
 	fromSD: bool
 	def __init__(self, CNCRef):
@@ -20,43 +20,38 @@ class RepeatEngine:
 		if self.repeatType == self.TYPE_M47:
 			return True
 		self.updateState()
-		if self.repeatType == self.TYPE_M48 and self.m48MaxTimes - self.m48CurrentTime > 0:
+		if self.repeatType == self.TYPE_M47P and self.m30CounterLimit - self.m30Counter > 0:
 			return True
 		return False
 
 	def countRepetition(self):
-		self.m48CurrentTime += 1
+		self.m30Counter += 1
 		self.updateState()
 	
 	def updateState(self):
 		try:
 			if not self.fromSD:
-				self.m48MaxTimes = self.CNCRef.vars["M30CounterLimit"]
-			Page.groups["Run"].setM30Counter(self.m48CurrentTime)
+				self.m30CounterLimit = self.CNCRef.vars["M30CounterLimit"]
+			Page.groups["Run"].setM30Counter(self.m30Counter)
 		except:
 			pass
 	
 	def cleanState(self):
-		self.m48CurrentTime = 0
-		self.m48MaxTimes = 0
+		self.m30Counter = 0
+		self.m30CounterLimit = 0
 		self.repeatType = self.TYPE_NONE
 		self.fromSD = False
 		self.updateState()
-		
 
 	def isRepeatCommand(self, line:str):
 		lin = line[:]
-		lin = lin.upper().replace(' ','')
-		if lin.find('M47')!=-1:
+		lin = lin.upper().replace(' ', '')
+		if lin.find('M47') != -1:
 			self.repeatType = self.TYPE_M47
-			return True and not self.fromSD
-		if lin.find('M48')!=-1:
-			self.repeatType = self.TYPE_M48
-			try:
-				self.m48MaxTimes = int(lin[lin.find('P')+1:])
-				Page.groups["Run"].setM30CounterLimit(self.m48MaxTimes)
-				self.CNCRef.vars["M30CounterLimit"] = self.m48MaxTimes
-			except:
-				pass
+			if lin.find('P') != -1:
+				self.repeatType = self.TYPE_M47P
+				self.m30CounterLimit = int(lin[lin.find('P') + 1:])
+				Page.groups["Run"].setM30CounterLimit(self.m30CounterLimit)
+				self.CNCRef.vars["M30CounterLimit"] = self.m30CounterLimit
 			return True and not self.fromSD
 		return 0
