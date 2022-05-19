@@ -2181,6 +2181,8 @@ class Application(Toplevel, Sender):
             timeout=1,
             xonxoff=False,
             rtscts=False)
+        while mySerial.read(1024):
+            pass
         time.sleep(0.4)
         ymodem = Modem(mySerial)
         file_info = {"name" : sdFileName}
