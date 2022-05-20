@@ -1,17 +1,10 @@
 import threading
 import time
-
-try:
-    import wiringpi as wp
-except BaseException as be:
-    print(be)
+import wiringpi as wp
 
 class Panel:
     def __init__(self, app, keys):
-        try:
-            wp.wiringPiSetup()
-        except BaseException as be:
-            print(be)
+        wp.wiringPiSetup()
 
         self.jogLastTime = time.time()
         self.jogPeriod = 0.1
@@ -26,13 +19,10 @@ class Panel:
         self.spPeriod = 0.2
         self.spPin = [25]
 
-        try:
-            for w in self.axisPin: wp.pinMode(w, wp.INPUT)
-            for w in self.directionPin: wp.pinMode(w, wp.INPUT)
-            for w in self.selectorPin: wp.pinMode(w, wp.INPUT)
-            for w in self.spPin: wp.pinMode(w, wp.INPUT)
-        except BaseException as be:
-            print(be)
+        for w in self.axisPin: wp.pinMode(w, wp.INPUT)
+        for w in self.directionPin: wp.pinMode(w, wp.INPUT)
+        for w in self.selectorPin: wp.pinMode(w, wp.INPUT)
+        for w in self.spPin: wp.pinMode(w, wp.INPUT)
 
         self.app = app
         self.keys = keys
@@ -41,10 +31,8 @@ class Panel:
         self.axisMap = {1:"X", 2:"B", 3:"Z"}
         self.directionMap = {0:"+", 1:"-"}
 
-
         self.monitor = threading.Thread(target=self.monitorTask)
         self.monitor.start()
-
 
     def __del__(self):
         self.lock.acquire()
@@ -52,6 +40,7 @@ class Panel:
 
     def jog(self, axis, direction):
         con = self.axisMap[axis] + self.directionMap[direction]
+        print("Joging to", con)
         self.keys[con]()
 
     def selector(self, selector):
@@ -66,13 +55,8 @@ class Panel:
         self.app.pause()
 
     def monitorJog(self, t):
-        try:
-            axis = wp.digitalRead(self.axisPin[0])*2 + wp.digitalRead(self.axisPin[1])
-            direction = wp.digitalRead(self.directionPin[0])
-        except BaseException as be:
-            print(be)
-            axis = 0
-            direction = 0
+        axis = wp.digitalRead(self.axisPin[0])*2 + wp.digitalRead(self.axisPin[1])
+        direction = wp.digitalRead(self.directionPin[0])
         if axis == 0:
             return
         if t > self.jogLastTime + self.jogPeriod:
@@ -80,11 +64,7 @@ class Panel:
             self.jog(axis, direction)
 
     def monitorSp(self, t):
-        try:
-            sp = wp.digitalRead(self.spPin[0])
-        except BaseException as be:
-            print(be)
-            sp = 0
+        sp = wp.digitalRead(self.spPin[0])
         if not sp:
             return
         if t > self.spLastTime + self.spPeriod:
@@ -92,11 +72,7 @@ class Panel:
             self.startPause()
 
     def monitorSelector(self, t):
-        try:
-            selector = wp.digitalRead(self.selectorPin[0])*2 + wp.digitalRead(self.selectorPin[1])
-        except BaseException as be:
-            print(be)
-            selector = 0
+        selector = wp.digitalRead(self.selectorPin[0])*2 + wp.digitalRead(self.selectorPin[1])
         if t > self.selectorLastTime + self.selectorPeriod:
             self.selectorLastTime = t
             self.selector(selector)
@@ -106,8 +82,9 @@ class Panel:
             time.sleep(0.05)
             if self.lock.locked():
                 return
-            self.monitorJog()
-            self.monitorSp()
-            self.monitorSelector()
+            t = time.time()
+            self.monitorJog(t)
+            self.monitorSp(t)
+            self.monitorSelector(t)
 
 
