@@ -426,9 +426,12 @@ class Application(Toplevel, Sender):
             self.gstate.overrideCombo.set('Feed')
             self.gstate.override.set(velocity)
             self.gstate.overrideChange()
+        def stopJog(*args):
+            for _ in range(5):
+                self.sendHex(0x85)
 
         self.bind('<<AdjustSelector>>', selectorAdjust)
-
+        self.bind('<<JogStop>>', stopJog)
 
         # up, down
         keys = {'X+': self.control.moveXup,

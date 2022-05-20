@@ -81,9 +81,12 @@ class Panel:
         self.monitor.join()
 
     def jog(self, axis, direction):
+        if axis == 0:
+            self.app.event_generate('<<JogStop>>', when="tail")
+            return
         for w in range(0, 3):
             ax = 2 ** w
-            if axis and ax:
+            if axis & ax == ax:
                 con = self.axisMap[ax] + self.directionMap[direction]
                 self.app.event_generate("<<"+con+">>", when="tail")
 
