@@ -3,6 +3,8 @@ import time
 import wiringpi as wp
 import Utils
 
+from CNC import CNC
+
 def debounce(pin, timeout, function):
     def waitTime():
         val = wp.digitalRead(pin)
@@ -32,7 +34,7 @@ class Panel:
 
         self.jogLastState = 2
         self.jogLastTime = time.time()
-        self.jogPeriod = 0.1
+        self.jogPeriod = 0.05
         self.jogDebounce = 0.01
         self.axisPin = [2, 3, 4]
         self.directionPin = [21]
@@ -45,8 +47,8 @@ class Panel:
         self.currentVelocity = 100
 
         self.spLastTime = time.time()
-        self.spPeriod = 0.2
-        self.spDebounce = 0.5
+        self.spPeriod = 0.4
+        self.spDebounce = 0.3
         self.spPin = [25]
 
         for w in self.axisPin + self.directionPin + self.selectorPin + self.spPin:
@@ -70,6 +72,8 @@ class Panel:
             self.monitor.join()
 
     def jog(self, axis, direction):
+        if self.app.running:
+            return
         if axis == 0:
             if self.jogLastState == 2:
                 self.app.event_generate('<<JogStop>>', when="tail")
@@ -121,7 +125,7 @@ class Panel:
 
     def monitorTask(self):
         while 1:
-            time.sleep(0.05)
+            time.sleep(0.02)
             if self.lock.locked():
                 return
             t = time.time()
