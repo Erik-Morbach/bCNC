@@ -1,21 +1,7 @@
 import threading
 import time
 import wiringpi as wp
-#class A:
-#    def __init__(self):
-#        self.INPUT = 1
-#        self.PUD_DOWN = 2
-#        pass
-#    def pullUpDnControl(self, *args):
-#        pass
-#    def digitalRead(self, data):
-#        return 1
-#    def pinMode(self, *args):
-#        pass
-#    def wiringPiSetup(self):
-#        pass
-#
-#wp = A()
+import Utils
 
 def debounce(pin, timeout, function):
     def waitTime():
@@ -60,7 +46,7 @@ class Panel:
 
         self.spLastTime = time.time()
         self.spPeriod = 0.2
-        self.spDebounce = 0.1
+        self.spDebounce = 0.5
         self.spPin = [25]
 
         for w in self.axisPin + self.directionPin + self.selectorPin + self.spPin:
@@ -75,7 +61,8 @@ class Panel:
         self.directionMap = {0:"Up", 1:"Down"}
 
         self.monitor = threading.Thread(target=self.monitorTask)
-        self.monitor.start()
+        if Utils.getBool("CNC", "Panel", False):
+            self.monitor.start()
 
     def close(self):
         self.lock.acquire()
