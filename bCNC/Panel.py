@@ -66,7 +66,8 @@ class Panel:
 
     def close(self):
         self.lock.acquire()
-        self.monitor.join()
+        if self.monitor.isAlive():
+            self.monitor.join()
 
     def jog(self, axis, direction):
         if axis == 0:
