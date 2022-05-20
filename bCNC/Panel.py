@@ -21,10 +21,9 @@ class Panel:
         self.spPeriod = 0.2
         self.spPin = [25]
 
-        for w in self.axisPin: wp.pinMode(w, wp.INPUT)
-        for w in self.directionPin: wp.pinMode(w, wp.INPUT)
-        for w in self.selectorPin: wp.pinMode(w, wp.INPUT)
-        for w in self.spPin: wp.pinMode(w, wp.INPUT)
+        for w in self.axisPin + self.directionPin + self.selectorPin + self.spPin:
+            wp.pinMode(w, wp.INPUT)
+            wp.pullUpDnControl(w, wp.PUD_DOWN)
 
         self.app = app
         self.keys = keys
