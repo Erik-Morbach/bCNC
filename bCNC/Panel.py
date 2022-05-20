@@ -1,6 +1,44 @@
 import threading
 import time
 import wiringpi as wp
+#class A:
+#    def __init__(self):
+#        self.INPUT = 1
+#        self.PUD_DOWN = 2
+#        pass
+#    def pullUpDnControl(self, *args):
+#        pass
+#    def digitalRead(self, data):
+#        return 1
+#    def pinMode(self, *args):
+#        pass
+#    def wiringPiSetup(self):
+#        pass
+#
+#wp = A()
+
+def debounce(pin, timeout, function):
+    def waitTime():
+        val = wp.digitalRead(pin)
+        time.sleep(timeout)
+        if val == wp.digitalRead(pin):
+            function()
+    threading.Thread(target=waitTime).start()
+
+
+def deboucePins(pins, timeout):
+    old_value = [wp.digitalRead(w) for w in pins]
+    time.sleep(timeout)
+    current_value = [wp.digitalRead(w) for w in pins]
+    return [i and j for (i, j) in zip(old_value, current_value)]
+
+
+def executeDelayed(timeout, function):
+    def foo():
+        time.sleep(timeout)
+        function()
+    threading.Thread(target=foo).start()
+
 
 class Panel:
     def __init__(self, app, keys):
@@ -8,17 +46,20 @@ class Panel:
 
         self.jogLastTime = time.time()
         self.jogPeriod = 0.1
+        self.jogDebounce = 0.01
         self.axisPin = [2, 3, 4]
         self.directionPin = [21]
 
         self.selectorLastTime = time.time()
         self.selectorPeriod = 0.2
+        self.selectorDebounce = 0.1
         self.selectorPin = [22, 26, 23, 27]
         self.currentStep = 0.01
         self.currentVelocity = 100
 
         self.spLastTime = time.time()
         self.spPeriod = 0.2
+        self.spDebounce = 0.1
         self.spPin = [25]
 
         for w in self.axisPin + self.directionPin + self.selectorPin + self.spPin:
@@ -39,32 +80,16 @@ class Panel:
         self.lock.acquire()
         self.monitor.join()
 
-    def executeDelayed(self, timeout, function):
-        def exec(timeoutt, functionn):
-            time.sleep(timeoutt)
-            functionn()
-        threading.Thread(target=exec, args=(timeout, function)).start()
-
-    def deboucePins(self, pins, timeout):
-        time.sleep(timeout)
-        value = [wp.digitalRead(w) for w in pins]
-        return value
-
-    def debounce(self, pin, timeout, function):
-        def waitTime(pin_to_wait, time_to_wait, func):
-            time.sleep(time_to_wait)
-            if wp.digitalRead(pin_to_wait):
-                func()
-        threading.Thread(target=waitTime, args=(pin, timeout, function)).start()
-
     def jog(self, axis, direction):
-        con = self.axisMap[axis] + self.directionMap[direction]
-        print("Joging to", con)
-        self.app.event_generate("<<"+con+">>", when="tail")
+        for w in range(0, 3):
+            ax = 2 ** w
+            if axis and ax:
+                con = self.axisMap[ax] + self.directionMap[direction]
+                self.app.event_generate("<<"+con+">>", when="tail")
 
     def selector(self, selector):
-        step = [0.01, 0.1, 1, 1][selector]
-        velocity = [5, 25, 50, 100][selector]
+        step = [0.01, 0.1, 1, 1][min(selector,3)]
+        velocity = [5, 25, 50, 100][min(selector,3)]
         self.currentStep = step
         self.currentVelocity = velocity
         self.app.event_generate("<<AdjustSelector>>", when="tail")
@@ -73,51 +98,29 @@ class Panel:
         self.app.pause()
 
     def monitorJog(self, t):
-        axis = 0
-        power = 1
-        pins = [wp.digitalRead(w) for w in self.axisPin]
-        for w in pins:
-            axis += w*power
-            power *= 2
-        direction = wp.digitalRead(self.directionPin[0])
-        if axis == 0:
-            return
         if t > self.jogLastTime + self.jogPeriod:
-            self.jogLastTime = t
             def fun():
-                pins2 = self.deboucePins(self.axisPin + self.directionPin, 0.01)
-                direction2 = pins2[-1]
-                del pins2[-1]
-                if pins2 == pins and direction2 == direction:
-                    self.jog(axis, direction)
+                pin_values = deboucePins(self.axisPin + self.directionPin, self.jogDebounce)
+                axis = sum([w * 2 ** index for (index, w) in enumerate(pin_values[:-1])])
+                direction = pin_values[-1]
+                self.jogLastTime = time.time()
+                self.jog(axis, direction)
             threading.Thread(target=fun).start()
 
     def monitorSp(self, t):
-        sp = 0
-        sp = wp.digitalRead(self.spPin[0])
-        if not sp:
-            return
         if t > self.spLastTime + self.spPeriod:
-            self.spLastTime = t
-            self.debounce(self.spPin[0], self.spPeriod, self.startPause)
+            def fun():
+                self.spLastTime = time.time()
+                self.startPause()
+            debounce(self.spPin[0], self.spDebounce, fun)
 
     def monitorSelector(self, t):
-        selector = 0
-        power = 1
-        for w in self.selectorPin:
-            selector += wp.digitalRead(w)*power
-            power *= 2
         if t > self.selectorLastTime + self.selectorPeriod:
-            self.selectorLastTime = t
             def fun():
-                selector2 = self.deboucePins(self.selectorPin, 0.01)
-                power = 1
-                s2 = 0
-                for w in selector2:
-                    s2 += w*power
-                    power*=2
-                if s2 == selector:
-                    self.selector(selector)
+                selector = deboucePins(self.selectorPin, self.selectorDebounce)
+                selector = sum([w * index for (index, w) in enumerate(selector)])
+                self.selectorLastTime = time.time()
+                self.selector(selector)
             threading.Thread(target=fun).start()
 
     def monitorTask(self):
