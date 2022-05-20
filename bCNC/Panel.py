@@ -21,7 +21,7 @@ def debounce(pin, timeout, function):
     def waitTime():
         val = wp.digitalRead(pin)
         time.sleep(timeout)
-        if val == wp.digitalRead(pin):
+        if val == wp.digitalRead(pin) and val:
             function()
     threading.Thread(target=waitTime).start()
 
