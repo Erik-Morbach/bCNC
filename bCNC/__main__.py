@@ -72,6 +72,7 @@ from Sender import Sender, NOT_CONNECTED, STATECOLOR, STATECOLORDEF
 import CNCCanvas
 import webbrowser
 
+from Panel import Panel
 from JogController import JogController
 from CNCRibbon import Page
 from ToolsPage import Tools, ToolsPage
@@ -424,6 +425,7 @@ class Application(Toplevel, Sender):
                 'C-': self.abccontrol.moveCdown}
 
         self.jogController = JogController(self, keys)
+        self.panel = Panel(self, keys)
 
         self.bind('<Key-plus>', self.control.incStep)
         self.bind('<Key-equal>', self.control.incStep)
