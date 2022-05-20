@@ -14,6 +14,8 @@ class Panel:
         self.selectorLastTime = time.time()
         self.selectorPeriod = 0.2
         self.selectorPin = [23, 27]
+        self.currentStep = 0.01
+        self.currentVelocity = 100
 
         self.spLastTime = time.time()
         self.spPeriod = 0.2
@@ -29,7 +31,7 @@ class Panel:
         self.lock = threading.Lock()
 
         self.axisMap = {1:"X", 2:"B", 3:"Z"}
-        self.directionMap = {0:"+", 1:"-"}
+        self.directionMap = {0:"Up", 1:"Down"}
 
         self.monitor = threading.Thread(target=self.monitorTask)
         self.monitor.start()
@@ -41,15 +43,14 @@ class Panel:
     def jog(self, axis, direction):
         con = self.axisMap[axis] + self.directionMap[direction]
         print("Joging to", con)
-        self.keys[con]()
+        self.app.event_generate("<<"+con+">>", when="tail")
 
     def selector(self, selector):
         step = [0.01, 0.1, 1, 1][selector]
         velocity = [5, 25, 50, 100][selector]
-        self.app.control.setStep(step)
-        self.app.gstate.overrideCombo('Feed')
-        self.app.gstate.override.set(velocity)
-        self.app.gstate.overrideChange()
+        self.currentStep = step
+        self.currentVelocity = velocity
+        self.app.event_generate("<<AdjustSelector>>", when="tail")
 
     def startPause(self):
         self.app.pause()
@@ -64,6 +65,7 @@ class Panel:
             self.jog(axis, direction)
 
     def monitorSp(self, t):
+        sp = 0
         sp = wp.digitalRead(self.spPin[0])
         if not sp:
             return
@@ -79,12 +81,17 @@ class Panel:
 
     def monitorTask(self):
         while 1:
-            time.sleep(0.05)
+            time.sleep(0.5)
             if self.lock.locked():
                 return
             t = time.time()
-            self.monitorJog(t)
-            self.monitorSp(t)
-            self.monitorSelector(t)
+            try:
+                self.monitorJog(t)
+                self.monitorSp(t)
+                self.monitorSelector(t)
+            except BaseException as be:
+                print(be)
+                time.sleep(3)
+                pass
 
 

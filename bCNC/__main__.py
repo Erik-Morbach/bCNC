@@ -410,6 +410,26 @@ class Application(Toplevel, Sender):
         self.bind('<<ToolClone>>', tools.clone)
         self.bind('<<ToolRename>>', tools.rename)
 
+        self.bind('<<XUp>>', self.control.moveXup)
+        self.bind('<<XDown>>', self.control.moveXdown)
+        self.bind('<<YUp>>', self.control.moveYup)
+        self.bind('<<YDown>>', self.control.moveYdown)
+        self.bind('<<ZUp>>', self.control.moveZup)
+        self.bind('<<ZDown>>', self.control.moveZdown)
+        self.bind('<<BUp>>', self.control.moveBup)
+        self.bind('<<BDown>>', self.control.moveBdown)
+
+        def selectorAdjust(*args):
+            step = self.panel.currentStep
+            velocity = self.panel.currentVelocity
+            self.control.setStep(step)
+            self.gstate.overrideCombo.set('Feed')
+            self.gstate.override.set(velocity)
+            self.gstate.overrideChange()
+
+        self.bind('<<AdjustSelector>>', selectorAdjust)
+
+
         # up, down
         keys = {'X+': self.control.moveXup,
                 'X-': self.control.moveXdown,
