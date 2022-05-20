@@ -2363,6 +2363,7 @@ class Application(Toplevel, Sender):
     # -----------------------------------------------------------------------
     def close(self):
         Sender.close(self)
+        self.panel.close()
         try:
             self.dro.updateState()
         except TclError:

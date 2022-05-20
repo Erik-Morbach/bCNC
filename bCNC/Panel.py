@@ -44,6 +44,7 @@ class Panel:
     def __init__(self, app, keys):
         wp.wiringPiSetup()
 
+        self.jogLastState = 2
         self.jogLastTime = time.time()
         self.jogPeriod = 0.1
         self.jogDebounce = 0.01
@@ -76,26 +77,30 @@ class Panel:
         self.monitor = threading.Thread(target=self.monitorTask)
         self.monitor.start()
 
-    def __del__(self):
+    def close(self):
         self.lock.acquire()
         self.monitor.join()
 
     def jog(self, axis, direction):
         if axis == 0:
-            self.app.event_generate('<<JogStop>>', when="tail")
+            if self.jogLastState == 2:
+                self.app.event_generate('<<JogStop>>', when="tail")
+            self.jogLastState = 1
             return
         for w in range(0, 3):
             ax = 2 ** w
             if axis & ax == ax:
                 con = self.axisMap[ax] + self.directionMap[direction]
                 self.app.event_generate("<<"+con+">>", when="tail")
+                self.jogLastState = 2
 
     def selector(self, selector):
         step = [0.01, 0.1, 1, 1][min(selector,3)]
         velocity = [5, 25, 50, 100][min(selector,3)]
-        self.currentStep = step
-        self.currentVelocity = velocity
-        self.app.event_generate("<<AdjustSelector>>", when="tail")
+        if step != self.currentStep or velocity != self.currentVelocity:
+            self.currentStep = step
+            self.currentVelocity = velocity
+            self.app.event_generate("<<AdjustSelector>>", when="tail")
 
     def startPause(self):
         self.app.pause()
@@ -128,7 +133,7 @@ class Panel:
 
     def monitorTask(self):
         while 1:
-            time.sleep(0.5)
+            time.sleep(0.05)
             if self.lock.locked():
                 return
             t = time.time()
