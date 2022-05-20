@@ -917,18 +917,7 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 		self.addWidget(self.step)
 
 		# -- Separate zstep --
-		try:
-			zstep = Utils.config.get("Control","zstep")
-			self.zstep = tkExtra.Combobox(frame, width=4, background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-			self.zstep.grid(row=row, column=0, columnspan=1, sticky=EW)
-			self.zstep.set(zstep)
-			zsl = [_NOZSTEP]
-			zsl.extend(map(float, Utils.config.get("Control","zsteplist").split()))
-			self.zstep.fill(zsl)
-			tkExtra.Balloon.set(self.zstep, _("Step for Z move operation"))
-			self.addWidget(self.zstep)
-		except:
-			self.zstep = self.step
+		self.zstep = self.step
 
 		# Default steppings
 		try:
