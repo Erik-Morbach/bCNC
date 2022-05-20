@@ -66,7 +66,7 @@ class Panel:
 
     def close(self):
         self.lock.acquire()
-        if self.monitor.isAlive():
+        if Utils.getBool("CNC", "panel", False):
             self.monitor.join()
 
     def jog(self, axis, direction):
