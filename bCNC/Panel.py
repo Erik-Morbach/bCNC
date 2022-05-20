@@ -61,7 +61,7 @@ class Panel:
         self.directionMap = {0:"Up", 1:"Down"}
 
         self.monitor = threading.Thread(target=self.monitorTask)
-        if Utils.getBool("CNC", "Panel", False):
+        if Utils.getBool("CNC", "panel", False):
             self.monitor.start()
 
     def close(self):
