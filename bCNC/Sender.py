@@ -669,8 +669,10 @@ class Sender:
 
 	def repeatProgram(self,thread):
 		time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT)
-		if CNC.vars["state"].lower() not in "idle":
+		if CNC.vars["state"].lower() not in ["idle","Hold","Hold:0", "Hold:1", "Run"]:
 			return
+		while CNC.vars["state"].lower() != "idle":
+			time.sleep(0.1)
 		self.gcode.repeatEngine.countRepetition()
 		if self.gcode.repeatEngine.fromSD:
 			pass
