@@ -27,7 +27,6 @@ import requests
 from ftplib import FTP
 from externalLib.ymodem.Modem import Modem
 
-
 from datetime import datetime
 
 try:
@@ -90,7 +89,6 @@ GRBL_ESP32 = 2
 firmware = GRBL_HAL if Utils.getStr('CNC', 'firmware', 'Grbl_Esp32') == 'Grbl_HAL' else GRBL_ESP32
 print("FIRMWARE =", firmware)
 grblIPAddress = '192.168.5.1' if firmware == GRBL_HAL else 'http://192.168.0.1'
-
 
 MONITOR_AFTER = 200  # ms
 DRAW_AFTER = 300  # ms
@@ -426,6 +424,7 @@ class Application(Toplevel, Sender):
             self.gstate.overrideCombo.set('Feed')
             self.gstate.override.set(velocity)
             self.gstate.overrideChange()
+
         def stopJog(*args):
             for _ in range(5):
                 self.sendHex('0x85')
@@ -446,7 +445,9 @@ class Application(Toplevel, Sender):
                 'B-': self.abccontrol.moveBdown,
                 'C+': self.abccontrol.moveCup,
                 'C-': self.abccontrol.moveCdown}
-
+        if Utils.getBool("CNC", "lathe", 0):
+            keys['B+'] = self.control.moveBup
+            keys['B-'] = self.control.moveBdown
         self.jogController = JogController(self, keys)
         self.panel = Panel(self, keys)
 
@@ -2210,7 +2211,7 @@ class Application(Toplevel, Sender):
             pass
         time.sleep(0.4)
         ymodem = Modem(mySerial)
-        file_info = {"name" : sdFileName}
+        file_info = {"name": sdFileName}
         try:
             ymodem.send(open(fileName), info=file_info)
         except BaseException as err:
@@ -2385,7 +2386,7 @@ class Application(Toplevel, Sender):
     # Send enabled gcode file to the CNC machine
     # -----------------------------------------------------------------------
 
-    def run(self, lines=None, fromSD: bool = False, cleanRepeat = False):
+    def run(self, lines=None, fromSD: bool = False, cleanRepeat=False):
         if cleanRepeat:
             self.gcode.repeatEngine.cleanState()
         self.cleanAfter = True  # Clean when this operation stops
