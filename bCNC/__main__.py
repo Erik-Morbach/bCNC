@@ -424,6 +424,9 @@ class Application(Toplevel, Sender):
             self.gstate.overrideCombo.set('Feed')
             self.gstate.override.set(velocity)
             self.gstate.overrideChange()
+            self.gstate.overrideCombo.set('Rapid')
+            self.gstate.override.set(velocity)
+            self.gstate.overrideChange()
 
         def stopJog(*args):
             for _ in range(5):
