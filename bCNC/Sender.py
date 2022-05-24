@@ -49,6 +49,7 @@ SERIAL_POLL    = 0.025	# s
 SERIAL_TIMEOUT = 0.06	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
+GCODE_POLL = 0.1
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")
@@ -706,6 +707,7 @@ class Sender:
 		sline  = []			# pipeline commands
 		tosend = None			# next string to send
 		tr = tg = time.time()		# last time a ? or $G was send to grbl
+		gcodeViewUpdateTime = tr
 
 		while self.thread:
 			time.sleep(0.001)
@@ -718,6 +720,8 @@ class Sender:
 				#If Override change, attach feed
 				if CNC.vars["_OvChanged"]:
 					self.mcontrol.overrideSet()
+			if t-gcodeViewUpdateTime > GCODE_POLL:
+				self.gcodeViewFrame.update()
 
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:

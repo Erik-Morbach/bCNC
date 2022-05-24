@@ -183,6 +183,8 @@ class Controller(_GenericGRBL):
 					CNC.vars["state"] = "Garbage receive %s: %s"%(word[0],line)
 					self.master.log.put((self.master.MSG_RECEIVE, CNC.vars["state"]))
 					break
+			elif word[0] == "Ln":
+				CNC.vars["line"] = int(word[1])
 			elif word[0] == "Pn":
 				try:
 					CNC.vars["pins"] = word[1]

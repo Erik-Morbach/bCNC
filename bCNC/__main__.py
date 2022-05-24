@@ -34,6 +34,8 @@ try:
 except:
     serial = None
 
+import tkinter.ttk as ttk
+
 try:
     import Tkinter
     from Queue import *
@@ -80,6 +82,9 @@ from ControlPage import ControlPage
 from TerminalPage import TerminalPage
 from ProbePage import ProbePage
 from EditorPage import EditorPage
+
+import GCodeViewer
+
 
 _openserial = True  # override ini parameters
 _device = None
@@ -195,8 +200,18 @@ class Application(Toplevel, Sender):
         self.paned.add(frame)
 
         # --- Canvas ---
-        self.canvasFrame = CNCCanvas.CanvasFrame(frame, self)
+        self.notebook = ttk.Notebook(frame)
+        self.notebook.pack(side=TOP, expand=YES, fill=BOTH)
+
+        self.gcodeViewFrame = GCodeViewer.GCodeViewer(self.notebook, self)
+        self.gcodeViewFrame.pack(side=TOP, fill=BOTH, expand=YES)
+
+        self.canvasFrame = CNCCanvas.CanvasFrame(self.notebook, self)
         self.canvasFrame.pack(side=TOP, fill=BOTH, expand=YES)
+
+        self.notebook.add(self.gcodeViewFrame.lb, text = "GCode")
+        self.notebook.add(self.canvasFrame, text = "Graph")
+
         # self.paned.add(self.canvasFrame)
         # XXX FIXME do I need the self.canvas?
         self.canvas = self.canvasFrame.canvas
@@ -2173,6 +2188,7 @@ class Application(Toplevel, Sender):
         else:
             self.setStatus(_("'%s' loaded") % (filename))
         self.title("%s %s: %s %s" % (Utils.__prg__, __version__, self.gcode.filename, __platform_fingerprint__))
+        self.gcodeViewFrame.reload()
 
     # -----------------------------------------------------------------------
     def save(self, filename):

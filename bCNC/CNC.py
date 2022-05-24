@@ -729,6 +729,7 @@ class CNC:
 			"spindle"    : "M5",
 			"coolant"    : "M9",
 			"radius"     : "G8",
+			"line"		 : 0,
 
 			"tool"       : 0,
 			"feed"       : 0.0,
@@ -4665,6 +4666,7 @@ class GCode:
 		for line in CNC.compile(self.cnc.startup.splitlines()):
 			add(line, None)
 
+		lineNumber = 1
 		every = 1
 		for (i,block) in enumerate(self.blocks):
 			if not block.enable: continue
@@ -4676,6 +4678,16 @@ class GCode:
 					every = 50
 
 				newcmd = []
+				line = str(line).strip()
+				if line.find('N')!=-1:
+					beginLineNumber = line.find('N')+1
+					endLineNumber = beginLineNumber
+					while line[beginLineNumber:endLineNumber+1].isdecimal():
+						endLineNumber += 1
+					line = line[:beginLineNumber-1] + line[endLineNumber:]
+
+				line = "N{}".format(lineNumber) + line
+				lineNumber += 1
 				cmds = CNC.compileLine(line)
 				if cmds is None:
 					continue
