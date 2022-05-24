@@ -469,7 +469,7 @@ class CNCCanvas(Canvas, object):
 	# ----------------------------------------------------------------------
 	def actionGantry(self, x, y):
 		u,v,w = self.image2Machine(x,y)
-		self.app.goto(u,v,w)
+		#self.app.goto(u,v,w)
 		self.setAction(ACTION_SELECT)
 
 	# ----------------------------------------------------------------------
@@ -477,7 +477,7 @@ class CNCCanvas(Canvas, object):
 	# ----------------------------------------------------------------------
 	def actionWPOS(self, x, y):
 		u,v,w = self.image2Machine(x,y)
-		self.app.mcontrol._wcsSet(u,v,w)
+		#self.app.mcontrol._wcsSet(u,v,w)
 		self.setAction(ACTION_SELECT)
 
 	# ----------------------------------------------------------------------
@@ -573,7 +573,7 @@ class CNCCanvas(Canvas, object):
 			i = self.canvasx(event.x)
 			j = self.canvasy(event.y)
 			x,y,z = self.canvas2xyz(i,j)
-			self.app.insertCommand(_("origin %g %g %g")%(x,y,z),True)
+			#self.app.insertCommand(_("origin %g %g %g")%(x,y,z),True)
 			self.setActionSelect()
 
 		elif self.action == ACTION_PAN:
@@ -685,8 +685,8 @@ class CNCCanvas(Canvas, object):
 			dx=self._vx1-self._vx0
 			dy=self._vy1-self._vy0
 			dz=self._vz1-self._vz0
-			self.status(_("Move by %g, %g, %g")%(dx,dy,dz))
-			self.app.insertCommand(("move %g %g %g")%(dx,dy,dz),True)
+			#self.status(_("Move by %g, %g, %g")%(dx,dy,dz))
+			#self.app.insertCommand(("move %g %g %g")%(dx,dy,dz),True)
 
 		elif self._mouseAction == ACTION_PAN:
 			self.panRelease(event)
