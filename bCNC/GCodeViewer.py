@@ -26,9 +26,14 @@ class GCodeViewer:
         if self.app.running:
             self.lb.activate(lineNumber)
             self.lb.see(lineNumber)
+        alreadySelected = False
         for w in self.lb.curselection():
-            self.lb.selection_clear(w)
-        self.lb.selection_set(lineNumber)
+            if w != lineNumber:
+                self.lb.selection_clear(w)
+            else:
+                alreadySelected = True
+        if not alreadySelected:
+            self.lb.selection_set(lineNumber)
 
 
     def reload(self):
@@ -37,5 +42,5 @@ class GCodeViewer:
         index = 0
         for block in blocks:
             for line in block:
-                self.lb.insert(index, line)
+                self.lb.insert(index, str(index+1) + ": " + line)
                 index+=1
