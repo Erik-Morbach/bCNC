@@ -722,6 +722,7 @@ class Sender:
 					self.mcontrol.overrideSet()
 			if t-gcodeViewUpdateTime > GCODE_POLL:
 				self.gcodeViewFrame.update()
+				gcodeViewUpdateTime = t
 
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:
