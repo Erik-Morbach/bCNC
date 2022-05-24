@@ -4669,7 +4669,6 @@ class GCode:
 		lineNumber = 1
 		every = 1
 		for (i,block) in enumerate(self.blocks):
-			if not block.enable: continue
 			for j,line in enumerate(block):
 				every -= 1
 				if every<=0:
