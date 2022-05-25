@@ -23,6 +23,7 @@ class GCodeViewer:
 
     def update(self):
         lineNumber = max(0, CNC.vars["line"]-1)
+        lastFocus = self.app.focus_get()
         if self.app.running:
             self.lb.activate(lineNumber)
             self.lb.see(lineNumber)
@@ -34,6 +35,8 @@ class GCodeViewer:
                 alreadySelected = True
         if not alreadySelected:
             self.lb.selection_set(lineNumber)
+        if lastFocus is not None:
+            lastFocus.focus_set()
 
 
     def reload(self):

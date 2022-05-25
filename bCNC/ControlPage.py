@@ -161,7 +161,7 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Run g-code commands from SD to controller"))
 
-		f = Frame(self)
+		f = Frame(self.frame)
 		self.m30CounterSt = StringVar()
 		self.m30CounterLabel = Label(f,textvariable=self.m30CounterSt,background=Ribbon._BACKGROUND)
 		self.m30CounterLabel.pack(side=TOP,fill=BOTH)
@@ -177,6 +177,31 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		self.m30CounterLimitSt.set("0")
 		f.pack(side=RIGHT, fill=BOTH)
 
+		self.lineNumber = Entry(self, font=DROFrame.dro_wpos,
+								background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+								relief=FLAT,
+								borderwidth=0,
+								justify=RIGHT)
+		self.lineNumber.pack(side=BOTTOM, fill=BOTH)
+		tkExtra.Balloon.set(self.lineNumber, _("Line Number to begin"))
+		self.lineNumber.bind('<FocusIn>',  self.workFocus)
+		self.lineNumber.bind('<Return>',   self.setLineNumber)
+		self.lineNumber.bind('<KP_Enter>', self.setLineNumber)
+		self.addWidget(self.lineNumber)
+
+	def workFocus(self, event=None):
+		if self.app.running:
+			self.app.focus_set()
+
+	def setLineNumber(self, event=None):
+		line = 0
+		try:
+			line = int(self.lineNumber.get())
+		except BaseException as be:
+			print(be)
+			line = 0
+		CNC.vars["beginLine"] = line
+		self.app.focus_set()
 
 	def updateM30State(self, *args):
 		try:
@@ -205,7 +230,6 @@ class RunGroup(CNCRibbon.ButtonGroup):
 			self.m30CounterSt.set(str(int(number)))
 		except:
 			self.m30CounterSt.set("-1")
-
 
 
 #===============================================================================
@@ -792,6 +816,15 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 		bName = "Z" if self.isLathe else "X"
 		cName = "X" if self.isLathe else "Y"
 
+		def focu(event = None):
+			self.app.focus_set()
+		col += 2
+		b = Button(frame, text="Ativa teclado",
+				   command=focu,
+				   activebackground="LightYellow")
+		b.grid(row=row, column=col, columnspan=2, sticky=EW)
+		tkExtra.Balloon.set(b, _("Focus"))
+
 		row+=1
 		col = 0
 		Label(frame, text=_(aName)).grid(row=row, column=col)
@@ -915,6 +948,7 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 		self.step.fill(map(float, Utils.config.get("Control","steplist").split()))
 		tkExtra.Balloon.set(self.step, _("Step for every move operation"))
 		self.addWidget(self.step)
+
 
 		# -- Separate zstep --
 		self.zstep = self.step
@@ -1756,7 +1790,16 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 		self.g92.grid(row=row, column=col, columnspan=3, sticky=EW)
 		tkExtra.Balloon.set(self.g92, _("Set position [G92 X# Y# Z#]"))
 		self.addWidget(self.g92)
+		col = 0
+		row += 1
 
+		Label(f, text=_("Radius Mode:")).grid(row=row, column=col, sticky=E)
+		col += 1
+		self.radiusSt = StringVar()
+		self.radiusSt.set(CNC.vars["radius"])
+		self.radius = Label(f, textvariable=self.radiusSt)
+		self.radius.grid(row=row, column=col, columnspan=3, sticky=EW)
+		self.addWidget(self.radius)
 
 		# ---
 		f.grid_columnconfigure(1, weight=1)
@@ -1998,6 +2041,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 			focus = None
 
 		try:
+			self.radiusSt.set(CNC.vars["radius"])
 			wcsvar.set(WCS.index(CNC.vars["WCS"]))
 			self.feedRate.set(str(CNC.vars["feed"]))
 			self.feedMode.set(FEED_MODE[CNC.vars["feedmode"]])
