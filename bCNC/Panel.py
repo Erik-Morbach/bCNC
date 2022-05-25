@@ -80,6 +80,7 @@ class Panel:
             self.jogLastState = 1
             return
         for w in range(0, 3):
+            self.app.focus_set()
             ax = 2 ** w
             if axis & ax == ax:
                 con = self.axisMap[ax] + self.directionMap[direction]
@@ -95,7 +96,7 @@ class Panel:
             self.app.event_generate("<<AdjustSelector>>", when="tail")
 
     def startPause(self):
-        if CNC.vars["State"] == "Idle" and not self.app.running:
+        if CNC.vars["state"] == "Idle" and not self.app.running:
             self.app.event_generate("<<Run>>", when="tail")
         else:
             self.app.pause()
