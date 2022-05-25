@@ -79,6 +79,8 @@ class Panel:
                 self.app.event_generate('<<JogStop>>', when="tail")
             self.jogLastState = 1
             return
+        if CNC.vars["state"] == 'Jog':
+            return
         for w in range(0, 3):
             self.app.focus_set()
             ax = 2 ** w
