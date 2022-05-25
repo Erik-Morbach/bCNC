@@ -20,7 +20,7 @@ class RepeatEngine:
 		if self.repeatType == self.TYPE_M47:
 			return True
 		self.updateState()
-		if self.repeatType == self.TYPE_M47P and self.m30CounterLimit - self.m30Counter > 0:
+		if self.repeatType == self.TYPE_M47P and self.m30CounterLimit > self.m30Counter:
 			return True
 		return False
 
