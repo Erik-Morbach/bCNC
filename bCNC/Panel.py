@@ -95,7 +95,10 @@ class Panel:
             self.app.event_generate("<<AdjustSelector>>", when="tail")
 
     def startPause(self):
-        self.app.pause()
+        if CNC.vars["State"] == "Idle" and not self.app.running:
+            self.app.event_generate("<<Run>>", when="tail")
+        else:
+            self.app.pause()
 
     def monitorJog(self, t):
         if t > self.jogLastTime + self.jogPeriod:
@@ -135,7 +138,7 @@ class Panel:
                 self.monitorSelector(t)
             except BaseException as be:
                 print(be)
-                time.sleep(3)
+                time.sleep(0.1)
                 pass
 
 
