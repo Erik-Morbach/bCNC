@@ -45,7 +45,8 @@ from RepeatEngine import RepeatEngine
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = 0.025	# s
+SERIAL_POLL    = 0.05	# s
+OVERRIDE_POLL  = 0.1
 SERIAL_TIMEOUT = 0.06	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
@@ -645,6 +646,7 @@ class Sender:
 		self._pause    = False
 		self.running   = False
 		CNC.vars["running"] = False
+		CNC.vars["pgmEnd"] = False
 
 
 	#----------------------------------------------------------------------
@@ -706,8 +708,7 @@ class Sender:
 		cline  = []		# length of pipeline commands
 		sline  = []			# pipeline commands
 		tosend = None			# next string to send
-		tr = tg = time.time()		# last time a ? or $G was send to grbl
-		gcodeViewUpdateTime = tr
+		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
 
 		while self.thread:
 			time.sleep(0.001)
@@ -718,11 +719,10 @@ class Sender:
 				tr = t
 
 				#If Override change, attach feed
+			if t-to > OVERRIDE_POLL:
+				to = t
 				if CNC.vars["_OvChanged"]:
 					self.mcontrol.overrideSet()
-			if t-gcodeViewUpdateTime > GCODE_POLL:
-				self.gcodeViewFrame.update()
-				gcodeViewUpdateTime = t
 
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:

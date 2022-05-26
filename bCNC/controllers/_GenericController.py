@@ -77,7 +77,7 @@ class _GenericController:
 	#----------------------------------------------------------------------
 	def softReset(self, clearAlarm=True):
 		if self.master.serial:
-			self.master.serial_write(b"\030")
+			self.master.serial_write(b"\x18")
 		self.master.stopProbe()
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
@@ -98,7 +98,7 @@ class _GenericController:
 		self.master.sendGCode("$H")
 
 	def viewStatusReport(self):
-		self.master.serial_write(b"?")
+		self.master.serial_write(b'\x80')
 		self.master.sio_status = True
 
 	def viewConfiguration(self):
@@ -191,7 +191,7 @@ class _GenericController:
 		self.master.sendGCode(currentMode)
 
 	def viewState(self): #Maybe rename to viewParserState() ???
-		self.master.sendGCode("$G")
+		self.master.serial_write(b'\x83')
 
 	#----------------------------------------------------------------------
 	def jog(self, dir):
@@ -265,7 +265,7 @@ class _GenericController:
 	def feedHold(self, event=None):
 		if event is not None and not self.master.acceptKey(True): return
 		if self.master.serial is None: return
-		self.master.serial_write(b"!")
+		self.master.serial_write(b'\x82')
 		self.master.serial.flush()
 		self.master._pause = True
 
@@ -273,7 +273,7 @@ class _GenericController:
 	def resume(self, event=None):
 		if event is not None and not self.master.acceptKey(True): return
 		if self.master.serial is None: return
-		self.master.serial_write(b"~")
+		self.master.serial_write(b'\x81')
 		self.master.serial.flush()
 		self.master._msg   = None
 		self.master._alarm = False
@@ -292,7 +292,7 @@ class _GenericController:
 	# a reset to clear the buffer of the controller
 	#---------------------------------------------------------------------
 	def purgeController(self):
-		self.master.serial_write(b"!")
+		self.master.serial_write(b'\x82')
 		self.master.serial.flush()
 		time.sleep(1)
 		# remember and send all G commands
@@ -334,7 +334,10 @@ class _GenericController:
 			else:
 				self.parseBracketAngle(line, cline)
 
-		elif line[0]=="[" and not "Pgm End" in line:
+		elif "pgm end" in line.lower():
+			CNC.vars["pgmEnd"] = True
+
+		elif line[0]=="[":
 			self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.parseBracketSquare(line)
 
@@ -379,17 +382,6 @@ class _GenericController:
 				self.master.controllerSet("GRBL%d"%(int(CNC.vars["version"][0])))
 
 		else:
-			if "SD print done!" in line or "Pgm End" in line:
-				CNC.vars['M30Counter']+=1
-				Page.groups["Run"].setM30Counter(CNC.vars['M30Counter'])
-				self.master.gcode.repeatEngine.countRepetition()
-				if self.master.gcode.repeatEngine.isRepeatable():
-					self.master._gcount = 0
-				else:
-					self.master.gcode.repeatEngine.cleanState()
-					CNC.vars['M30Counter'] = 0
-					Page.groups["Run"].setM30Counter(CNC.vars['M30Counter'])
-					self.master._gcount = self.master._runLines
 			#We return false in order to tell that we can't parse this line
 			#Sender will log the line in such case
 			return False

@@ -95,8 +95,8 @@ firmware = GRBL_HAL if Utils.getStr('CNC', 'firmware', 'Grbl_Esp32') == 'Grbl_HA
 print("FIRMWARE =", firmware)
 grblIPAddress = '192.168.5.1' if firmware == GRBL_HAL else 'http://192.168.0.1'
 
-MONITOR_AFTER = 200  # ms
-DRAW_AFTER = 300  # ms
+MONITOR_AFTER = 40  # ms
+DRAW_AFTER = 500  # ms
 
 RX_BUFFER_SIZE = 512
 
@@ -442,10 +442,10 @@ class Application(Toplevel, Sender):
             self.gstate.overrideCombo.set('Rapid')
             self.gstate.override.set(velocity)
             self.gstate.overrideChange()
+            self.gstate.overrideCombo.set('Feed')
 
         def stopJog(*args):
-            for _ in range(5):
-                self.sendHex('0x85')
+            self.sendHex('0x85')
 
         self.bind('<<AdjustSelector>>', selectorAdjust)
         self.bind('<<JogStop>>', stopJog)
@@ -2383,7 +2383,6 @@ class Application(Toplevel, Sender):
     # -----------------------------------------------------------------------
     def close(self):
         Sender.close(self)
-        self.panel.close()
         try:
             self.dro.updateState()
         except TclError:
@@ -2650,6 +2649,7 @@ class Application(Toplevel, Sender):
             self._pause = ("Hold" in state)
             self.dro.updateState()
             self.dro.updateCoords()
+            self.gcodeViewFrame.update()
             self.canvas.gantry(CNC.vars["wx"],
                                CNC.vars["wy"],
                                CNC.vars["wz"],
@@ -2680,6 +2680,8 @@ class Application(Toplevel, Sender):
             elif self._update == "TLO":
                 Page.frames["ProbeCommon"].updateTlo()
             self._update = None
+
+        self.panel.update()
 
         if self.running:
             self.statusbar.setProgress(self._runLines - self.queue.qsize(),

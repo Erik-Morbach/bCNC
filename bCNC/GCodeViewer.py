@@ -23,7 +23,11 @@ class GCodeViewer:
 
     def update(self):
         lineNumber = max(0, CNC.vars["line"]-1)
-        lastFocus = self.app.focus_get()
+        lastFocus = None
+        try:
+            lastFocus = self.app.focus_get()
+        except BaseException as be:
+            print(be)
         if self.app.running:
             self.lb.activate(lineNumber)
             self.lb.see(lineNumber)

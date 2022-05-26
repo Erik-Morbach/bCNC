@@ -28,120 +28,101 @@ def executeDelayed(timeout, function):
     threading.Thread(target=foo).start()
 
 
+class Member:
+    def __init__(self, pins, debounce, callback):
+        self.pins = pins
+        self.debounce = debounce
+        self.callback = callback
+        self.mutex = threading.Lock()
+        for pin in pins:
+            wp.pinMode(pin, wp.INPUT)
+            wp.pullUpDnControl(pin, wp.PUD_DOWN)
+        self.lastTime = time.time()
+
+    def waitDebounce(self):
+        pinValues = [wp.digitalRead(pin) for pin in self.pins]
+        time.sleep(self.debounce)
+        pinValuesDebounced = [wp.digitalRead(pin) for pin in self.pins]
+
+        pinValues = [(a & b) for (a, b) in zip(pinValues, pinValuesDebounced)]
+
+        self.callback(pinValues)
+        self.mutex.release()
+
+    def check(self):
+        if self.mutex.locked():
+            return
+        if time.time() < self.lastTime + self.debounce:
+            return
+        self.lastTime = time.time()
+        self.mutex.acquire()
+        threading.Thread(target=self.waitDebounce).start()
+
 class Panel:
     def __init__(self, app, keys):
-        wp.wiringPiSetup()
+        self.period = 0.05
+        self.memberJog = Member([2, 3, 4, 21], 0.05, self.jog)
+        self.axisMap = {0: "X", 1: "B", 2: "Z"}
+        self.directionMap = {0: "Up", 1: "Down"}
+        self.JOGMOTION = 0
+        self.JOGSTOP = 1
+        self.jogLastAction = self.JOGMOTION
 
-        self.jogLastState = 2
-        self.jogLastTime = time.time()
-        self.jogPeriod = 0.05
-        self.jogDebounce = 0.01
-        self.axisPin = [2, 3, 4]
-        self.directionPin = [21]
-
-        self.selectorLastTime = time.time()
-        self.selectorPeriod = 0.2
-        self.selectorDebounce = 0.1
-        self.selectorPin = [22, 26, 23, 27]
+        self.memberSelector = Member([22, 26, 23, 27], 0.2, self.selector)
         self.currentStep = 0.01
         self.currentVelocity = 100
 
-        self.spLastTime = time.time()
-        self.spPeriod = 0.4
-        self.spDebounce = 0.3
-        self.spPin = [25]
+        self.memberStartPause = Member([25], 0.4, self.startPause)
+        self.lastStartPauseState = [0]
 
-        for w in self.axisPin + self.directionPin + self.selectorPin + self.spPin:
-            wp.pinMode(w, wp.INPUT)
-            wp.pullUpDnControl(w, wp.PUD_DOWN)
-
+        self.active = Utils.getBool("CNC", "panel", 0)
         self.app = app
-        self.keys = keys
-        self.lock = threading.Lock()
+        self.lastCheck = time.time()
 
-        self.axisMap = {1:"X", 2:"B", 4:"Z"}
-        self.directionMap = {0:"Up", 1:"Down"}
-
-        self.monitor = threading.Thread(target=self.monitorTask)
-        if Utils.getBool("CNC", "panel", False):
-            self.monitor.start()
-
-    def close(self):
-        self.lock.acquire()
-        if Utils.getBool("CNC", "panel", False):
-            self.monitor.join()
-
-    def jog(self, axis, direction):
+    def jog(self, pinValues):
         if self.app.running:
             return
-        if axis == 0:
-            if self.jogLastState == 2:
-                self.app.event_generate('<<JogStop>>', when="tail")
-            self.jogLastState = 1
-            return
-        if CNC.vars["state"] == 'Jog':
-            return
-        for w in range(0, 3):
+        axis = pinValues[:-1]
+        direction = pinValues[-1]
+        if max(axis) == 0 and self.jogLastAction != self.JOGSTOP:
             self.app.focus_set()
-            ax = 2 ** w
-            if axis & ax == ax:
-                con = self.axisMap[ax] + self.directionMap[direction]
+            self.app.event_generate('<<JogStop>>', when="tail")
+            self.jogLastAction = self.JOGSTOP
+            return
+        for id, ax in enumerate(axis):
+            if ax == 1:
+                con = self.axisMap[id] + self.directionMap[direction]
+                self.app.focus_set()
                 self.app.event_generate("<<"+con+">>", when="tail")
-                self.jogLastState = 2
+                self.jogLastAction = self.JOGMOTION
 
-    def selector(self, selector):
-        step = [0.01, 0.1, 1, 1][min(selector,3)]
-        velocity = [5, 25, 50, 100][min(selector,3)]
+    def selector(self, selector: list):
+        index = 0
+        for id, w in enumerate(selector):
+            if w == 1:
+                index = id
+        step = [0.01, 0.1, 1, 1][index]
+        velocity = [5, 25, 50, 100][index]
         if step != self.currentStep or velocity != self.currentVelocity:
             self.currentStep = step
             self.currentVelocity = velocity
             self.app.event_generate("<<AdjustSelector>>", when="tail")
 
-    def startPause(self):
+    def startPause(self, state):
+        if state == self.lastStartPauseState:
+            return
+        self.lastStartPauseState = state
         if CNC.vars["state"] == "Idle" and not self.app.running:
             self.app.event_generate("<<Run>>", when="tail")
         else:
             self.app.pause()
 
-    def monitorJog(self, t):
-        if t > self.jogLastTime + self.jogPeriod:
-            def fun():
-                pin_values = deboucePins(self.axisPin + self.directionPin, self.jogDebounce)
-                axis = sum([w * 2 ** index for (index, w) in enumerate(pin_values[:-1])])
-                direction = pin_values[-1]
-                self.jogLastTime = time.time()
-                self.jog(axis, direction)
-            threading.Thread(target=fun).start()
-
-    def monitorSp(self, t):
-        if t > self.spLastTime + self.spPeriod:
-            def fun():
-                self.spLastTime = time.time()
-                self.startPause()
-            debounce(self.spPin[0], self.spDebounce, fun)
-
-    def monitorSelector(self, t):
-        if t > self.selectorLastTime + self.selectorPeriod:
-            def fun():
-                selector = deboucePins(self.selectorPin, self.selectorDebounce)
-                selector = sum([w * index for (index, w) in enumerate(selector)])
-                self.selectorLastTime = time.time()
-                self.selector(selector)
-            threading.Thread(target=fun).start()
-
-    def monitorTask(self):
-        while 1:
-            time.sleep(0.02)
-            if self.lock.locked():
-                return
-            t = time.time()
-            try:
-                self.monitorJog(t)
-                self.monitorSp(t)
-                self.monitorSelector(t)
-            except BaseException as be:
-                print(be)
-                time.sleep(0.1)
-                pass
-
-
+    def update(self):
+        if not self.active:
+            return
+        t = time.time()
+        if t > self.lastCheck + self.period:
+            self.memberJog.check()
+            self.memberStartPause.check()
+            self.memberSelector.check()
+            self.lastCheck = t

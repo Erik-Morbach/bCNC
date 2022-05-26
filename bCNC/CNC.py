@@ -731,6 +731,7 @@ class CNC:
 			"radius"     : "G8",
 			"line"		 : 0,
 			"beginLine"	 : 0,
+			"pgmEnd"	 : False,
 
 			"tool"       : 0,
 			"feed"       : 0.0,
@@ -4687,10 +4688,7 @@ class GCode:
 					line = line[:beginLineNumber-1] + line[endLineNumber:]
 
 				line = "N{}".format(lineNumber) + line + '\n'
-				print(line)
-				skip = False
-				if lineNumber < CNC.vars["beginLine"]:
-					skip = True
+				skip = lineNumber < CNC.vars["beginLine"]
 				lineNumber += 1
 				cmds = CNC.compileLine(line)
 				if cmds is None:
