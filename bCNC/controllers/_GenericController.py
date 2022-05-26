@@ -115,6 +115,8 @@ class _GenericController:
 		settings = self.getSettings()
 		for settingsUnit in settings:
 			self.master.sendGCode(settingsUnit)
+			if "G7" in settingsUnit:
+				CNC.vars["radius"] = "G7"
 
 	def getSettings(self):
 		if not os.path.isfile("Settings.txt"):
