@@ -1,19 +1,32 @@
 import threading
 import time
-import wiringpi as wp
+#import wiringpi as wp
 import Utils
 
 from CNC import CNC
 
 
+class A:
+    def __init__(self):
+        self.INPUT = 0
+        self.OUTPUT = 0
+        self.PUD_DOWN = 0
+    def digitalRead(self, *args):
+        return 0
+    def digitalWrite(self, *args):
+        pass
+    def wiringPiSetup(self, *args):
+        pass
+    def pinMode(self, *args):
+        pass
+    def pullUpDnControl(self, *args):
+        pass
+    def wiringPiSetup(self):
+        pass
 
 
 
-def executeDelayed(timeout, function):
-    def foo():
-        time.sleep(timeout)
-        function()
-    threading.Thread(target=foo).start()
+wp = A()
 
 wp.wiringPiSetup()
 
@@ -100,9 +113,9 @@ class Panel:
     def startPause(self, state):
         if state == self.lastStartPauseState:
             return
+        self.lastStartPauseState = state
         if max(state) == 0:
             return
-        self.lastStartPauseState = state
         if CNC.vars["state"] == "Idle" and not self.app.running:
             self.app.event_generate("<<Run>>", when="tail")
         else:
