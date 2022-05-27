@@ -46,6 +46,16 @@ class RepeatEngine:
 	def isRepeatCommand(self, line:str):
 		lin = line[:]
 		lin = lin.upper().replace(' ', '')
+		outsideComents = ""
+		counter = 0
+		for w in lin:
+			if w == '(':
+				counter += 1
+			if counter == 0:
+				outsideComents += w
+			if w == ')':
+				counter -= 1
+		lin = outsideComents
 		if lin.find('M47') != -1:
 			self.repeatType = self.TYPE_M47
 			if lin.find('P') != -1:
