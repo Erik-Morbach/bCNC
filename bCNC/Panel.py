@@ -5,20 +5,8 @@ import Utils
 
 from CNC import CNC
 
-def debounce(pin, timeout, function):
-    def waitTime():
-        val = wp.digitalRead(pin)
-        time.sleep(timeout)
-        if val == wp.digitalRead(pin) and val:
-            function()
-    threading.Thread(target=waitTime).start()
 
 
-def deboucePins(pins, timeout):
-    old_value = [wp.digitalRead(w) for w in pins]
-    time.sleep(timeout)
-    current_value = [wp.digitalRead(w) for w in pins]
-    return [i and j for (i, j) in zip(old_value, current_value)]
 
 
 def executeDelayed(timeout, function):
@@ -27,6 +15,7 @@ def executeDelayed(timeout, function):
         function()
     threading.Thread(target=foo).start()
 
+wp.wiringPiSetup()
 
 class Member:
     def __init__(self, pins, debounce, callback):
@@ -110,6 +99,8 @@ class Panel:
 
     def startPause(self, state):
         if state == self.lastStartPauseState:
+            return
+        if max(state) == 0:
             return
         self.lastStartPauseState = state
         if CNC.vars["state"] == "Idle" and not self.app.running:
