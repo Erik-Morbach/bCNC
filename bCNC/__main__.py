@@ -445,7 +445,7 @@ class Application(Toplevel, Sender):
             self.gstate.overrideCombo.set('Feed')
 
         def stopJog(*args):
-            self.sendHex('0x85')
+            self.serial_write(chr(0x85))
 
         self.bind('<<AdjustSelector>>', selectorAdjust)
         self.bind('<<JogStop>>', stopJog)

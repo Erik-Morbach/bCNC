@@ -1,32 +1,9 @@
 import threading
 import time
-#import wiringpi as wp
+import wiringpi as wp
 import Utils
 
 from CNC import CNC
-
-
-class A:
-    def __init__(self):
-        self.INPUT = 0
-        self.OUTPUT = 0
-        self.PUD_DOWN = 0
-    def digitalRead(self, *args):
-        return 0
-    def digitalWrite(self, *args):
-        pass
-    def wiringPiSetup(self, *args):
-        pass
-    def pinMode(self, *args):
-        pass
-    def pullUpDnControl(self, *args):
-        pass
-    def wiringPiSetup(self):
-        pass
-
-
-
-wp = A()
 
 wp.wiringPiSetup()
 
@@ -74,7 +51,7 @@ class Panel:
         self.currentStep = 0.01
         self.currentVelocity = 100
 
-        self.memberStartPause = Member([25], 0.4, self.startPause)
+        self.memberStartPause = Member([25], 0.2, self.startPause)
         self.lastStartPauseState = [0]
 
         self.active = Utils.getBool("CNC", "panel", 0)
@@ -103,7 +80,7 @@ class Panel:
         for id, w in enumerate(selector):
             if w == 1:
                 index = id
-        step = [0.01, 0.1, 1, 1][index]
+        step = [0.01, 0.1, 1, 100][index]
         velocity = [5, 25, 50, 100][index]
         if step != self.currentStep or velocity != self.currentVelocity:
             self.currentStep = step
