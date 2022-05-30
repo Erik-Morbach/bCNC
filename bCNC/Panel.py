@@ -72,6 +72,7 @@ class Panel:
             self.jogLastAction = self.JOGSTOP
             mutex.acquire(blocking=True, timeout=2)
             self.app.jogMutex = None
+            time.sleep(1)
             return
         for id, ax in enumerate(axis):
             if ax == 1:
