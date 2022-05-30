@@ -429,28 +429,28 @@ class Application(Toplevel, Sender):
                 return
             if self.jogMutex.locked():
                 self.jogMutex.release()
-        def xUp():
+        def xUp(*args):
             self.control.moveXup()
             releaseJogMutex()
-        def xDown():
+        def xDown(*args):
             self.control.moveXdown()
             releaseJogMutex()
-        def yUp():
+        def yUp(*args):
             self.control.moveYup()
             releaseJogMutex()
-        def yDown():
+        def yDown(*args):
             self.control.moveYdown()
             releaseJogMutex()
-        def zUp():
+        def zUp(*args):
             self.control.moveZup()
             releaseJogMutex()
-        def zDown():
+        def zDown(*args):
             self.control.moveZdown()
             releaseJogMutex()
-        def bUp():
+        def bUp(*args):
             self.control.moveBup()
             releaseJogMutex()
-        def bDown():
+        def bDown(*args):
             self.control.moveBdown()
             releaseJogMutex()
 
