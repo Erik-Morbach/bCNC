@@ -85,7 +85,6 @@ from EditorPage import EditorPage
 
 import GCodeViewer
 
-
 _openserial = True  # override ini parameters
 _device = None
 _baud = None
@@ -209,8 +208,8 @@ class Application(Toplevel, Sender):
         self.canvasFrame = CNCCanvas.CanvasFrame(self.notebook, self)
         self.canvasFrame.pack(side=TOP, fill=BOTH, expand=YES)
 
-        self.notebook.add(self.gcodeViewFrame.lb, text = "GCode")
-        self.notebook.add(self.canvasFrame, text = "Graph")
+        self.notebook.add(self.gcodeViewFrame.lb, text="GCode")
+        self.notebook.add(self.canvasFrame, text="Graph")
 
         # self.paned.add(self.canvasFrame)
         # XXX FIXME do I need the self.canvas?
@@ -423,14 +422,46 @@ class Application(Toplevel, Sender):
         self.bind('<<ToolClone>>', tools.clone)
         self.bind('<<ToolRename>>', tools.rename)
 
-        self.bind('<<XUp>>', self.control.moveXup)
-        self.bind('<<XDown>>', self.control.moveXdown)
-        self.bind('<<YUp>>', self.control.moveYup)
-        self.bind('<<YDown>>', self.control.moveYdown)
-        self.bind('<<ZUp>>', self.control.moveZup)
-        self.bind('<<ZDown>>', self.control.moveZdown)
-        self.bind('<<BUp>>', self.control.moveBup)
-        self.bind('<<BDown>>', self.control.moveBdown)
+        self.jogMutex = None
+
+        def releaseJogMutex():
+            if self.jogMutex is None:
+                return
+            if self.jogMutex.locked():
+                self.jogMutex.release()
+        def xUp():
+            self.control.moveXup()
+            releaseJogMutex()
+        def xDown():
+            self.control.moveXdown()
+            releaseJogMutex()
+        def yUp():
+            self.control.moveYup()
+            releaseJogMutex()
+        def yDown():
+            self.control.moveYdown()
+            releaseJogMutex()
+        def zUp():
+            self.control.moveZup()
+            releaseJogMutex()
+        def zDown():
+            self.control.moveZdown()
+            releaseJogMutex()
+        def bUp():
+            self.control.moveBup()
+            releaseJogMutex()
+        def bDown():
+            self.control.moveBdown()
+            releaseJogMutex()
+
+        self.bind('<<XUp>>', xUp)
+        self.bind('<<XDown>>', xDown)
+        self.bind('<<YUp>>', yUp)
+        self.bind('<<YDown>>', yDown)
+        self.bind('<<ZUp>>', zUp)
+        self.bind('<<ZDown>>', zDown)
+        self.bind('<<BUp>>', bUp)
+        self.bind('<<BDown>>', bDown)
 
         def selectorAdjust(*args):
             step = self.panel.currentStep
@@ -446,6 +477,8 @@ class Application(Toplevel, Sender):
 
         def stopJog(*args):
             self.serial_write(chr(0x85))
+            self.serial.flush()
+            releaseJogMutex()
 
         self.bind('<<AdjustSelector>>', selectorAdjust)
         self.bind('<<JogStop>>', stopJog)

@@ -64,16 +64,27 @@ class Panel:
         axis = pinValues[:-1]
         direction = pinValues[-1]
         if max(axis) == 0 and self.jogLastAction != self.JOGSTOP:
+            mutex = threading.Lock()
+            mutex.acquire()
+            self.app.jogMutex = mutex
             self.app.focus_set()
-            self.app.event_generate('<<JogStop>>', when="tail")
+            self.app.event_generate("<<JogStop>>", when="tail")
             self.jogLastAction = self.JOGSTOP
+            mutex.acquire(blocking=True, timeout=2)
+            self.app.jogMutex = None
             return
         for id, ax in enumerate(axis):
             if ax == 1:
                 con = self.axisMap[id] + self.directionMap[direction]
+                mutex = threading.Lock()
+                mutex.acquire()
+                self.app.jogMutex = mutex
                 self.app.focus_set()
                 self.app.event_generate("<<"+con+">>", when="tail")
                 self.jogLastAction = self.JOGMOTION
+                mutex.acquire(blocking=True, timeout=2)
+                self.app.jogMutex = None
+                return
 
     def selector(self, selector: list):
         index = 0
@@ -86,6 +97,7 @@ class Panel:
             self.currentStep = step
             self.currentVelocity = velocity
             self.app.event_generate("<<AdjustSelector>>", when="tail")
+            time.sleep(0.5)
 
     def startPause(self, state):
         if state == self.lastStartPauseState:
@@ -97,6 +109,7 @@ class Panel:
             self.app.event_generate("<<Run>>", when="tail")
         else:
             self.app.pause()
+        time.sleep(0.5)
 
     def update(self):
         if not self.active:
