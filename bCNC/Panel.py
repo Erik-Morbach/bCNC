@@ -87,6 +87,7 @@ class Panel:
             selVels = Utils.getInt("Panel", "selectorVels",0)
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
+        self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", 0)
         self.memberSelector = Member(pins, 0.2, self.selector)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
@@ -136,9 +137,14 @@ class Panel:
 
     def selector(self, selector: list):
         index = 0
-        for id, w in enumerate(selector):
-            if w == 1:
-                index = id
+        if not self.selectorType:
+            for id, w in enumerate(selector):
+                if w == 1:
+                    index = id
+        else: 
+            for id, w in enumerate(selector):
+                if w == 1:
+                    index += 2 ** id
         step = self.steps[index]
         velocity = self.velocitys[index]
         if step != self.currentStep or velocity != self.currentVelocity:
