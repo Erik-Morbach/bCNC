@@ -65,7 +65,8 @@ class Panel:
     def __init__(self, app, keys):
         self.period = 0.05
         pins = []
-        if Utils.getBool("Panel", "jogPanel", 0):
+        self.jogActive = Utils.getBool("Panel", "jogPanel", 0)
+        if self.jogActive:
             pins = getArrayIntFromUtils("Panel", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
         self.memberJog = Member(pins, 0.05, self.jog)
         self.axisMap = {0: "X", 1: "B", 2: "Z"}
@@ -77,7 +78,8 @@ class Panel:
         pins = []
         self.steps = [0]
         self.velocitys = [0]
-        if Utils.getBool("Panel", "selectorPanel", 0):
+        self.selectorActive = Utils.getBool("Panel", "selectorPanel", 0)
+        if self.selectorActive:
             selPins = Utils.getInt("Panel", "selectorPins",0)
             pins = getArrayIntFromUtils("Panel", 
                                 ["selector{}".format(i) for i in range(0,selPins)])
@@ -92,7 +94,8 @@ class Panel:
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
 
-        if Utils.getBool("Panel", "spPanel"):
+        self.spPanelActive = Utils.getBool("Panel", "spPanel")
+        if self.spPanelActive:
             buttons = Utils.getInt("Panel", "spButtons", 0)
             if buttons==1:
                 pins = [Utils.getInt("Panel", "spButton", 0)]
@@ -170,7 +173,10 @@ class Panel:
             return
         t = time.time()
         if t > self.lastCheck + self.period:
-            self.memberJog.check()
-            self.memberStartPause.check()
-            self.memberSelector.check()
+            if self.jogActive:
+                self.memberJog.check()
+            if self.spPanelActive:
+                self.memberStartPause.check()
+            if self.selectorActive:
+                self.memberSelector.check()
             self.lastCheck = t
