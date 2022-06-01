@@ -22,7 +22,7 @@ class Member:
 
     def read(self, pin):
         if pin < 0:
-            return CNC.vars["inputs"] & (2 ** (-pin - 1))
+            return (CNC.vars["inputs"] & (2 ** (-pin - 1))) > 0
         return wp.digitalRead(pin)
 
     def waitDebounce(self):
