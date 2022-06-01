@@ -2124,7 +2124,7 @@ class Application(Toplevel, Sender):
         self.editor.fill()
         self.draw()
         self.title("%s %s %s" % (Utils.__prg__, __version__, __platform_fingerprint__))
-
+        self.gcodeViewFrame.reload()
     # -----------------------------------------------------------------------
     # load dialog
     # -----------------------------------------------------------------------

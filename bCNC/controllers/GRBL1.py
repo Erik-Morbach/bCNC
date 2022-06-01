@@ -196,6 +196,11 @@ class Controller(_GenericGRBL):
 							print("Ignoring machine stream request, because of state: ", CNC.vars["state"], self.master.running)
 				except (ValueError,IndexError):
 					break
+			elif word[0] == "Inps":
+				try:
+					CNC.vars["inputs"] = int(word[1])
+				except (ValueError,IndexError):
+					break
 			elif word[0] == "SD":
 				try:
 					self.hasSD = True

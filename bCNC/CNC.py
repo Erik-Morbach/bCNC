@@ -732,6 +732,7 @@ class CNC:
 			"line"		 : 0,
 			"beginLine"	 : 0,
 			"pgmEnd"	 : False,
+			"inputs"     : 0,
 
 			"tool"       : 0,
 			"feed"       : 0.0,

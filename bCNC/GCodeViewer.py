@@ -22,25 +22,25 @@ class GCodeViewer:
         self.lb.pack(*args, **kwargs)
 
     def update(self):
-        lineNumber = max(0, CNC.vars["line"]-1)
-        lastFocus = None
-        try:
-            lastFocus = self.app.focus_get()
-        except BaseException as be:
-            print(be)
         if self.app.running:
-            self.lb.activate(lineNumber)
-            self.lb.see(lineNumber)
-        alreadySelected = False
-        for w in self.lb.curselection():
-            if w != lineNumber:
-                self.lb.selection_clear(w)
-            else:
-                alreadySelected = True
-        if not alreadySelected:
-            self.lb.selection_set(lineNumber)
-        if lastFocus is not None:
-            lastFocus.focus_set()
+            lineNumber = max(0, CNC.vars["line"]-1)
+            lastFocus = None
+            try:
+                lastFocus = self.app.focus_get()
+            except BaseException as be:
+                print(be)
+                self.lb.activate(lineNumber)
+                self.lb.see(lineNumber)
+            alreadySelected = False
+            for w in self.lb.curselection():
+                if w != lineNumber:
+                    self.lb.selection_clear(w)
+                else:
+                    alreadySelected = True
+            if not alreadySelected:
+                self.lb.selection_set(lineNumber)
+            if lastFocus is not None:
+                lastFocus.focus_set()
 
 
     def reload(self):
