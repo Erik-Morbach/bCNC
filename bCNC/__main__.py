@@ -496,11 +496,11 @@ class Application(Toplevel, Sender):
                 'B-': self.abccontrol.moveBdown,
                 'C+': self.abccontrol.moveCup,
                 'C-': self.abccontrol.moveCdown}
-        if Utils.getBool("CNC", "lathe", 0):
+        if Utils.getBool("CNC", "lathe", False):
             keys['B+'] = self.control.moveBup
             keys['B-'] = self.control.moveBdown
         self.jogController = JogController(self, keys)
-        self.panel = Panel(self, keys)
+        self.panel = Panel(self)
 
         self.bind('<Key-plus>', self.control.incStep)
         self.bind('<Key-equal>', self.control.incStep)

@@ -62,10 +62,10 @@ def getArrayFloatFromUtils(section, array):
     return values
 
 class Panel:
-    def __init__(self, app, keys):
+    def __init__(self, app):
         self.period = 0.05
         pins = []
-        self.jogActive = Utils.getBool("Panel", "jogPanel", 0)
+        self.jogActive = Utils.getBool("Panel", "jogPanel", False)
         if self.jogActive:
             pins = getArrayIntFromUtils("Panel", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
         self.memberJog = Member(pins, 0.05, self.jog)
@@ -78,7 +78,7 @@ class Panel:
         pins = []
         self.steps = [0]
         self.velocitys = [0]
-        self.selectorActive = Utils.getBool("Panel", "selectorPanel", 0)
+        self.selectorActive = Utils.getBool("Panel", "selectorPanel", False)
         if self.selectorActive:
             selPins = Utils.getInt("Panel", "selectorPins",0)
             pins = getArrayIntFromUtils("Panel", 
@@ -89,7 +89,7 @@ class Panel:
             selVels = Utils.getInt("Panel", "selectorVels",0)
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
-        self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", 0)
+        self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
         self.memberSelector = Member(pins, 0.2, self.selector)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
@@ -99,11 +99,11 @@ class Panel:
             buttons = Utils.getInt("Panel", "spButtons", 0)
             if buttons==1:
                 pins = [Utils.getInt("Panel", "spButton", 0)]
-            else: pins = getArrayFromUtils("Panel", ["startButton", "pauseButton"])
+            else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
         self.memberStartPause = Member(pins, 0.2, self.startPause)
         self.lastStartPauseState = [0]
 
-        self.active = Utils.getBool("CNC", "panel", 0)
+        self.active = Utils.getBool("CNC", "panel", False)
         self.app = app
         self.lastCheck = time.time()
 
@@ -127,7 +127,7 @@ class Panel:
             return
         for id, (axe,dire) in enumerate(zip(axis,direction)):
             if axe == 1:
-                con = self.axisMap[axe] + self.directionMap[dire]
+                con = self.axisMap[id] + self.directionMap[dire]
                 mutex = threading.Lock()
                 mutex.acquire()
                 self.app.jogMutex = mutex
