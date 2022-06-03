@@ -486,7 +486,7 @@ class DROFrame(CNCRibbon.PageFrame):
 			self.app.mcontrol._wcsSet(value,None,None,None,None,None)
 		except:
 			pass
-
+		self.app.focus_set()
 	#----------------------------------------------------------------------
 	def setY(self, event=None):
 		if self.app.running: return
@@ -495,6 +495,7 @@ class DROFrame(CNCRibbon.PageFrame):
 			self.app.mcontrol._wcsSet(None,value,None,None,None,None)
 		except:
 			pass
+		self.app.focus_set()
 
 	#----------------------------------------------------------------------
 	def setB(self, event=None):
@@ -504,6 +505,7 @@ class DROFrame(CNCRibbon.PageFrame):
 			self.app.mcontrol._wcsSet(None,None,None,None,value,None)
 		except:
 			pass
+		self.app.focus_set()
 
 	#----------------------------------------------------------------------
 	def setZ(self, event=None):
@@ -513,6 +515,7 @@ class DROFrame(CNCRibbon.PageFrame):
 			self.app.mcontrol._wcsSet(None,None,value,None,None,None)
 		except:
 			pass
+		self.app.focus_set()
 
 	#----------------------------------------------------------------------
 	#def wcsSet(self, x, y, z): self.app.mcontrol._wcsSet(x, y, z)

@@ -401,11 +401,8 @@ class Application(Toplevel, Sender):
         #		self.bind('<Control-Key-f>',	self.find)
         #		self.bind('<Control-Key-g>',	self.findNext)
         #		self.bind('<Control-Key-h>',	self.replace)
-        self.bind('<Control-Key-e>', self.editor.toggleExpand)
         self.bind('<Control-Key-n>', self.showInfo)
         self.bind('<<ShowInfo>>', self.showInfo)
-        self.bind('<Control-Key-l>', self.editor.toggleEnable)
-        self.bind('<Control-Key-q>', self.quit)
         self.bind('<Control-Key-o>', self.loadDialog)
         self.bind('<Control-Key-r>', self.drawAfter)
         self.bind("<Control-Key-s>", self.saveAll)
@@ -501,22 +498,6 @@ class Application(Toplevel, Sender):
             keys['B-'] = self.control.moveBdown
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
-
-        self.bind('<Key-plus>', self.control.incStep)
-        self.bind('<Key-equal>', self.control.incStep)
-        self.bind('<KP_Add>', self.control.incStep)
-        self.bind('<Key-minus>', self.control.decStep)
-        self.bind('<Key-underscore>', self.control.decStep)
-        self.bind('<KP_Subtract>', self.control.decStep)
-
-        self.bind('<Key-asterisk>', self.control.mulStep)
-        self.bind('<KP_Multiply>', self.control.mulStep)
-        self.bind('<Key-slash>', self.control.divStep)
-        self.bind('<KP_Divide>', self.control.divStep)
-
-        self.bind('<Key-1>', self.control.setStep1)
-        self.bind('<Key-2>', self.control.setStep2)
-        self.bind('<Key-3>', self.control.setStep3)
 
         self.bind('<Key-exclam>', self.feedHold)
         self.bind('<Key-asciitilde>', self.resume)
@@ -2715,6 +2696,7 @@ class Application(Toplevel, Sender):
             self._update = None
 
         self.panel.update()
+        self.jogController.update()
 
         if self.running:
             self.statusbar.setProgress(self._runLines - self.queue.qsize(),

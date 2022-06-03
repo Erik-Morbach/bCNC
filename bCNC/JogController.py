@@ -20,24 +20,21 @@ class JogController:
 
         self.jog = {}
 		
+        self.period = 0.1
         self.lastTime = 0
         self.mutex = threading.Lock()
-        if Utils.getBool("Panel", "jogKeyboard", False):
+        self.active = Utils.getBool("Panel", "jogKeyboard", False)
+        if self.active:
             for (key,(code,sym)) in self.mapKeyToCode.items():
                 print("Bind {},{} to {}".format(code,sym,key))
                 self.app.bind("<"+str(sym)+">", functools.partial(self.jogEvent,key))
-            threading.Thread(target=self.waitToStop).start()
-    def waitToStop(self):
-        while 1:
-            self.mutex.acquire(blocking=True)
-            if self.app.running:
-                continue
-            time.sleep(0.1)
-            if time.time() - self.lastTime >= 0.1:
-                try:
-                    self.app.event_generate("<<JogStop>>", when="tail")
-                except:
-                    pass
+    def update(self):
+        if not self.active:
+            return
+        if self.app.running:
+            return
+        if time.time() - self.lastTime >= self.period:
+            self.app.event_generate("<<JogStop>>", when="tail")
 
     def jogEvent(self,key, data):
         if self.app.running:
