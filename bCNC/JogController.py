@@ -33,8 +33,11 @@ class JogController:
             return
         if self.app.running:
             return
+        if self.mutex.locked():
+            return
         if time.time() - self.lastTime >= self.period:
             self.app.event_generate("<<JogStop>>", when="tail")
+            self.mutex.acquire()
 
     def jogEvent(self,key, data):
         if self.app.running:
