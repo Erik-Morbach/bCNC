@@ -473,6 +473,7 @@ class Application(Toplevel, Sender):
             self.gstate.overrideCombo.set('Feed')
 
         def stopJog(*args):
+            if self.serial is None: return
             self.serial_write(chr(0x85))
             self.serial.flush()
             releaseJogMutex()
