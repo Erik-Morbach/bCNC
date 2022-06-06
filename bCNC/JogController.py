@@ -40,10 +40,12 @@ class JogController:
             self.mutex.acquire()
 
     def jogEvent(self,key, data):
-        if self.app.running:
+        if self.app.running or CNC.vars["state"] == "Run":
             return
         self.lastTime = time.time()
         if self.mutex.locked():
             self.mutex.release()
+        if CNC.vars["planner"] < 10:
+            return
         self.keys[key]()
 
