@@ -721,8 +721,7 @@ class Sender:
 				#If Override change, attach feed
 			if t-to > OVERRIDE_POLL:
 				to = t
-				if CNC.vars["_OvChanged"]:
-					self.mcontrol.overrideSet()
+				self.mcontrol.overrideSet()
 
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:

@@ -90,7 +90,7 @@ class Panel:
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
         self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.01, self.selector)
+        self.memberSelector = Member(pins, 0.001, self.selector)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
 

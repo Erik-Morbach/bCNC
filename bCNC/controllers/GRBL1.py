@@ -44,7 +44,6 @@ class Controller(_GenericGRBL):
 		self.master.sendGCode("$J=G91 %s F%s"%(dir,CNC.vars["JogSpeed"])) # XXX is F100000 correct?
 
 	def overrideSet(self):
-		CNC.vars["_OvChanged"] = False	# Temporary
 		# Check feed
 		diff = CNC.vars["_OvFeed"] - CNC.vars["OvFeed"]
 		direction = diff>0
@@ -54,14 +53,11 @@ class Controller(_GenericGRBL):
 				if direction: self.master.serial_write(OV_FEED_i10)
 				else: self.master.serial_write(OV_FEED_d10)
 				diff -= 10
-				CNC.vars["_OvChanged"] = True
 				continue
 			if diff >= 1:
 				if direction: self.master.serial_write(OV_FEED_i1)
 				else: self.master.serial_write(OV_FEED_d1)
 				diff -= 1
-				CNC.vars["_OvChanged"] = True
-		CNC.vars["OvFeed"] = CNC.vars["_OvFeed"]
 		# Check rapid
 		target  = CNC.vars["_OvRapid"]
 		current = CNC.vars["OvRapid"]
@@ -77,23 +73,18 @@ class Controller(_GenericGRBL):
 			self.master.serial_write(OV_RAPID_25)
 		# Check Spindle
 		diff = CNC.vars["_OvSpindle"] - CNC.vars["OvSpindle"]
-		if diff==0:
-			pass
-		elif CNC.vars["_OvSpindle"] == 100:
-			self.master.serial_write(OV_SPINDLE_100)
-		elif diff >= 10:
-			self.master.serial_write(OV_SPINDLE_i10)
-			CNC.vars["_OvChanged"] = diff>10
-		elif diff <= -10:
-			self.master.serial_write(OV_SPINDLE_d10)
-			CNC.vars["_OvChanged"] = diff<-10
-		elif diff >= 1:
-			self.master.serial_write(OV_SPINDLE_i1)
-			CNC.vars["_OvChanged"] = diff>1
-		elif diff <= -1:
-			self.master.serial_write(OV_SPINDLE_d1)
-			CNC.vars["_OvChanged"] = diff<-1
-
+		direction = diff>0
+		diff = abs(diff)
+		while diff > 0:
+			if diff >= 10:
+				if direction: self.master.serial_write(OV_SPINDLE_i10)
+				else: self.master.serial_write(OV_SPINDLE_d10)
+				diff -= 10
+				continue
+			if diff >= 1:
+				if direction: self.master.serial_write(OV_SPINDLE_i1)
+				else: self.master.serial_write(OV_SPINDLE_d1)
+				diff -= 1
 
 	def parseBracketAngle(self, line, cline):
 		self.master.sio_status = False
