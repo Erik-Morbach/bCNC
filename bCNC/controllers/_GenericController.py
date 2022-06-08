@@ -70,7 +70,7 @@ class _GenericController:
 		self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.master.notBusy()
-		self.sendConfiguration()
+		self.sendSettings()
 		self.sendParameters()
 		self.viewParameters()
 

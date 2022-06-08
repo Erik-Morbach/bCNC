@@ -1833,7 +1833,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 				variable=self.override,
 				showvalue=True,
 				orient=HORIZONTAL,
-				from_=0,
+				from_=1,
 				to_=200,
 				resolution=1)
 		self.overrideScale.bind("<Double-1>", self.resetOverride)

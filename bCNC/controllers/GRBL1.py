@@ -47,22 +47,21 @@ class Controller(_GenericGRBL):
 		CNC.vars["_OvChanged"] = False	# Temporary
 		# Check feed
 		diff = CNC.vars["_OvFeed"] - CNC.vars["OvFeed"]
-		if diff==0:
-			pass
-		elif CNC.vars["_OvFeed"] == 100:
-			self.master.serial_write(OV_FEED_100)
-		elif diff >= 10:
-			self.master.serial_write(OV_FEED_i10)
-			CNC.vars["_OvChanged"] = diff>10
-		elif diff <= -10:
-			self.master.serial_write(OV_FEED_d10)
-			CNC.vars["_OvChanged"] = diff<-10
-		elif diff >= 1:
-			self.master.serial_write(OV_FEED_i1)
-			CNC.vars["_OvChanged"] = diff>1
-		elif diff <= -1:
-			self.master.serial_write(OV_FEED_d1)
-			CNC.vars["_OvChanged"] = diff<-1
+		direction = diff>0
+		diff = abs(diff)
+		while diff > 0:
+			if diff >= 10:
+				if direction: self.master.serial_write(OV_FEED_i10)
+				else: self.master.serial_write(OV_FEED_d10)
+				diff -= 10
+				CNC.vars["_OvChanged"] = True
+				continue
+			if diff >= 1:
+				if direction: self.master.serial_write(OV_FEED_i1)
+				else: self.master.serial_write(OV_FEED_d1)
+				diff -= 1
+				CNC.vars["_OvChanged"] = True
+		CNC.vars["OvFeed"] = CNC.vars["_OvFeed"]
 		# Check rapid
 		target  = CNC.vars["_OvRapid"]
 		current = CNC.vars["OvRapid"]
