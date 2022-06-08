@@ -46,7 +46,7 @@ from RepeatEngine import RepeatEngine
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
 SERIAL_POLL    = 0.05	# s
-OVERRIDE_POLL  = 0.01
+OVERRIDE_POLL  = 0.06
 SERIAL_TIMEOUT = 0.06	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512

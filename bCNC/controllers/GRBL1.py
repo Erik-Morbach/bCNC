@@ -58,6 +58,7 @@ class Controller(_GenericGRBL):
 				if direction: self.master.serial_write(OV_FEED_i1)
 				else: self.master.serial_write(OV_FEED_d1)
 				diff -= 1
+		CNC.vars["OvFeed"] = CNC.vars["_OvFeed"]
 		# Check rapid
 		target  = CNC.vars["_OvRapid"]
 		current = CNC.vars["OvRapid"]
@@ -85,6 +86,7 @@ class Controller(_GenericGRBL):
 				if direction: self.master.serial_write(OV_SPINDLE_i1)
 				else: self.master.serial_write(OV_SPINDLE_d1)
 				diff -= 1
+		CNC.vars["OvSpindle"] = CNC.vars["_OvSpindle"]
 
 	def parseBracketAngle(self, line, cline):
 		self.master.sio_status = False
