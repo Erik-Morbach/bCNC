@@ -154,7 +154,6 @@ class Panel:
             self.currentStep = step
             self.currentVelocity = velocity
             self.app.event_generate("<<AdjustSelector>>", when="tail")
-            time.sleep(0.5)
 
     def startPause(self, state):
         if state == self.lastStartPauseState:
@@ -166,7 +165,6 @@ class Panel:
             self.app.event_generate("<<Run>>", when="tail")
         else:
             self.app.pause()
-        time.sleep(0.5)
 
     def update(self):
         if not self.active:
