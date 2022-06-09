@@ -87,6 +87,7 @@ class Controller(_GenericGRBL):
 				else: self.master.serial_write(OV_SPINDLE_d1)
 				diff -= 1
 		CNC.vars["OvSpindle"] = CNC.vars["_OvSpindle"]
+		self.master.serial.flush()
 
 	def parseBracketAngle(self, line, cline):
 		self.master.sio_status = False
@@ -188,6 +189,8 @@ class Controller(_GenericGRBL):
 							print("Ignoring machine stream request, because of state: ", CNC.vars["state"], self.master.running)
 				except (ValueError,IndexError):
 					break
+			elif word[0] == "In":
+				pass
 			elif word[0] == "Inps":
 				try:
 					CNC.vars["inputs"] = int(word[1])
