@@ -1885,40 +1885,25 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 
 		row += 1
 		col = 0
-		Label(f, text=_("Coolant:")).grid(row=row, column=col, sticky=E)
-		col += 1
+		Label(f, text=_("Coolant:")).grid(row=row, column=col, columnspan=2, sticky=E)
 
-		coolantDisable = Checkbutton(f, text=_("OFF"),
-				command=self.coolantOff,
-				indicatoron=False,
-				variable=self.coolant,
-				padx=1,
-				pady=0)
-		tkExtra.Balloon.set(coolantDisable, _("Stop cooling (M9)"))
-		coolantDisable.grid(row=row, column=col, pady=0, sticky=NSEW)
-		self.addWidget(coolantDisable)
-
-		col += 1
-		floodEnable = Checkbutton(f, text=_("Flood"),
+		col += 2
+		floodToogle = Button(f, text=_("Flood"),
 				command=self.coolantFlood,
-				indicatoron=False,
-				variable=self.flood,
 				padx=1,
 				pady=0)
-		tkExtra.Balloon.set(floodEnable, _("Start flood (M8)"))
-		floodEnable.grid(row=row, column=col, pady=0, sticky=NSEW)
-		self.addWidget(floodEnable)
+		tkExtra.Balloon.set(floodToogle, _("Start flood (M8)"))
+		floodToogle.grid(row=row, column=col, pady=0, sticky=NSEW)
+		self.addWidget(floodToogle)
 
 		col += 1
-		mistEnable = Checkbutton(f, text=_("Mist"),
+		mistToogle = Button(f, text=_("Mist"),
 				command=self.coolantMist,
-				indicatoron=False,
-				variable=self.mist,
 				padx=1,
 				pady=0)
-		tkExtra.Balloon.set(mistEnable, _("Start mist (M7)"))
-		mistEnable.grid(row=row, column=col, pady=0, sticky=NSEW)
-		self.addWidget(mistEnable)
+		tkExtra.Balloon.set(mistToogle, _("Start mist (M7)"))
+		mistToogle.grid(row=row, column=col, pady=0, sticky=NSEW)
+		self.addWidget(mistToogle)
 		f.grid_columnconfigure(1, weight=1)
 
 	#----------------------------------------------------------------------
@@ -2010,33 +1995,23 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 		if self._gUpdate: return
 		# Avoid sending commands before unlocking
 		if CNC.vars["state"] in (Sender.CONNECTED, Sender.NOT_CONNECTED):
-			self.mist.set(FALSE)
 			return
-		self.coolant.set(FALSE)
-		self.mist.set(TRUE)
-		self.sendGCode("M7")
+		self.app.sendHex("0xA1")
 
 	#----------------------------------------------------------------------
 	def coolantFlood(self, event=None):
 		if self._gUpdate: return
 		# Avoid sending commands before unlocking
 		if CNC.vars["state"] in (Sender.CONNECTED, Sender.NOT_CONNECTED):
-			self.flood.set(FALSE)
 			return
-		self.coolant.set(FALSE)
-		self.flood.set(TRUE)
-		self.sendGCode("M8")
+		self.app.sendHex("0xA0")
 
 	#----------------------------------------------------------------------
 	def coolantOff(self, event=None):
 		if self._gUpdate: return
 		# Avoid sending commands before unlocking
 		if CNC.vars["state"] in (Sender.CONNECTED, Sender.NOT_CONNECTED):
-			self.coolant.set(FALSE)
 			return
-		self.flood.set(FALSE)
-		self.mist.set(FALSE)
-		self.coolant.set(TRUE)
 		self.sendGCode("M9")
 
 	#----------------------------------------------------------------------

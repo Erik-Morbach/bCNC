@@ -65,7 +65,7 @@ class Panel:
     def __init__(self, app):
         self.period = 0.05
         pins = []
-        self.jogActive = Utils.getBool("Panel", "jogPanel", False)
+        self.jogActive = Utils.getBool("Panel", "jogPanel", False) and not Utils.getBool("Panel", "jogKeyboard", True)
         if self.jogActive:
             pins = getArrayIntFromUtils("Panel", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
         self.memberJog = Member(pins, 0.05, self.jog)
@@ -90,7 +90,7 @@ class Panel:
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
         self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.001, self.selector)
+        self.memberSelector = Member(pins, 0.05, self.selector)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
 
@@ -100,7 +100,7 @@ class Panel:
             if buttons==1:
                 pins = [Utils.getInt("Panel", "spButton", 0)]
             else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
-        self.memberStartPause = Member(pins, 0.2, self.startPause)
+        self.memberStartPause = Member(pins, 0.1, self.startPause)
         self.lastStartPauseState = [0]
 
         self.active = Utils.getBool("CNC", "panel", False)
