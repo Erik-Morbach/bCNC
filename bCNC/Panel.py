@@ -94,6 +94,7 @@ class Panel:
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
 
+        pins = []
         self.spPanelActive = Utils.getBool("Panel", "spPanel", False)
         if self.spPanelActive:
             buttons = Utils.getInt("Panel", "spButtons", 0)
@@ -108,6 +109,7 @@ class Panel:
         if self.clampActive:
             pins = [Utils.getInt("Panel", "clampButton", 0)]
         self.memberClamp = Member(pins, 0.1, self.clamp)
+        self.lastClampState = None
 
         self.active = Utils.getBool("CNC", "panel", False)
         self.app = app
@@ -146,6 +148,9 @@ class Panel:
     def clamp(self, pinValues):
         if max(pinValues) == 0:
             return
+        if pinValues == self.lastClampState:
+            return
+        self.lastClampState = pinValues
         self.app.event_generate("<<ClampToggle>>", when="tail")
 
     def selector(self, selector: list):
