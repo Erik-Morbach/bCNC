@@ -94,7 +94,7 @@ class Panel:
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
 
-        self.spPanelActive = Utils.getBool("Panel", "spPanel")
+        self.spPanelActive = Utils.getBool("Panel", "spPanel", False)
         if self.spPanelActive:
             buttons = Utils.getInt("Panel", "spButtons", 0)
             if buttons==1:
@@ -102,6 +102,12 @@ class Panel:
             else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
         self.memberStartPause = Member(pins, 0.1, self.startPause)
         self.lastStartPauseState = [0]
+
+        pins = []
+        self.clampActive = Utils.getBool("Panel", "clampPanel", False)
+        if self.clampActive:
+            pins = [Utils.getInt("Panel", "clampButton", 0)]
+        self.memberClamp = Member(pins, 0.1, self.clamp)
 
         self.active = Utils.getBool("CNC", "panel", False)
         self.app = app
@@ -137,6 +143,10 @@ class Panel:
                 mutex.acquire(blocking=True, timeout=2)
                 self.app.jogMutex = None
                 return
+    def clamp(self, pinValues):
+        if max(pinValues) == 0:
+            return
+        self.app.event_generate("<<ClampToggle>>", when="tail")
 
     def selector(self, selector: list):
         index = 0

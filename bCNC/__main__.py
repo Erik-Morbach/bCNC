@@ -478,8 +478,20 @@ class Application(Toplevel, Sender):
             self.serial.flush()
             releaseJogMutex()
 
+        global clampToggleCounter
+        clampToggleCounter = 0
+        def clampToggle(*args):
+            if self.serial is None: return
+            global clampToggleCounter
+            if clampToggleCounter % 2 == 0: self.serial_write(chr(0xA5))
+            else: self.serial_write(chr(0xA6))
+            self.serial.flush()
+            clampToggleCounter+=1
+
+
         self.bind('<<AdjustSelector>>', selectorAdjust)
         self.bind('<<JogStop>>', stopJog)
+        self.bind('<<ClampToggle>>', clampToggle)
 
         # up, down
         keys = {'X+': self.control.moveXup,
