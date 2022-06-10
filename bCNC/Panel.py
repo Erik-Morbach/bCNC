@@ -146,11 +146,11 @@ class Panel:
                 self.app.jogMutex = None
                 return
     def clamp(self, pinValues):
-        if max(pinValues) == 0:
-            return
         if pinValues == self.lastClampState:
             return
         self.lastClampState = pinValues
+        if max(pinValues) == 0:
+            return
         self.app.event_generate("<<ClampToggle>>", when="tail")
 
     def selector(self, selector: list):
