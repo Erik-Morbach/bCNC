@@ -192,4 +192,6 @@ class Panel:
                 self.memberStartPause.check()
             if self.selectorActive:
                 self.memberSelector.check()
+            if self.clampActive:
+                self.memberClamp.check()
             self.lastCheck = t
