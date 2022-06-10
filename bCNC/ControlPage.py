@@ -1795,7 +1795,12 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 		self.addWidget(self.g92)
 		col = 0
 		row += 1
+		Label(f, text=_("RealRpm:")).grid(row=row, column=col, sticky=E)
+		col += 1
+		self.realRpm = Label(f, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black", width=5)
+		self.realRpm.grid(row=row, column=col, sticky=EW)
 
+		col += 2
 		Label(f, text=_("Radius Mode:")).grid(row=row, column=col, sticky=E)
 		col += 1
 		self.radiusSt = StringVar()
@@ -2056,6 +2061,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 			self.plane.set(PLANE[CNC.vars["plane"]])
 			self.tlo.set(str(CNC.vars["TLO"]))
 			self.g92.config(text=str(CNC.vars["G92"]))
+			self.realRpm.config(text=str(CNC.vars["realRpm"]))
 		except KeyError:
 			pass
 

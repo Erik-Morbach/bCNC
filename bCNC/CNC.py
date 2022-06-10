@@ -737,6 +737,7 @@ class CNC:
 			"tool"       : 0,
 			"feed"       : 0.0,
 			"rpm"        : 0.0,
+			"realRpm"    : 0.0,
 			"JogSpeed"   : 3000.0,
 
 			"planner"    : 0,
@@ -4666,6 +4667,8 @@ class GCode:
 			paths.append(path)
 		autolevel = not self.probe.isEmpty()
 		self.initPath()
+
+		add('%', None) #program demarcation
 		for line in CNC.compile(self.cnc.startup.splitlines()):
 			add(line, None)
 
@@ -4688,8 +4691,9 @@ class GCode:
 						endLineNumber += 1
 					line = line[:beginLineNumber-1] + line[endLineNumber:]
 
+				skip = lineNumber < CNC.vars["beginLine"] or line=='%'
+				# Remove program demarcations if exist
 				line = "N{}".format(lineNumber) + line + '\n'
-				skip = lineNumber < CNC.vars["beginLine"]
 				lineNumber += 1
 				cmds = CNC.compileLine(line)
 				if cmds is None:
@@ -4787,7 +4791,7 @@ class GCode:
 						newcmd.append(cmd)
 
 				add("".join(newcmd), (i,j))
-
+		add("%", None) # Program demarcation
 		return paths
 
 #if __name__=="__main__":

@@ -139,6 +139,8 @@ class Controller(_GenericGRBL):
 				try:
 					CNC.vars["curfeed"]    = float(word[1])
 					CNC.vars["curspindle"] = float(word[2])
+					if len(word)>3:
+						CNC.vars["realRpm"] = float(word[3])
 				except (ValueError,IndexError):
 					CNC.vars["state"] = "Garbage receive %s: %s"%(word[0],line)
 					self.master.log.put((self.master.MSG_RECEIVE, CNC.vars["state"]))
