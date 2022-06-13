@@ -2697,6 +2697,7 @@ class Application(Toplevel, Sender):
             self._posUpdate = False
 
         # Update status string
+        self.gstate.updateRpm()
         if self._gUpdate:
             self.gstate.updateG()
             self._gUpdate = False

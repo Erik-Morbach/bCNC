@@ -2012,6 +2012,9 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 			return
 		self.sendGCode("M9")
 
+	def updateRpm(self):
+		self.realRpm.config(text=str(CNC.vars["realRpm"]))
+
 	#----------------------------------------------------------------------
 	def updateG(self):
 		global wcsvar
