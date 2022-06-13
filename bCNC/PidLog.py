@@ -26,7 +26,13 @@ class PidLogFrame(Frame, object):
 	def plotPid(self, data=None):
 		self.fig.clear(True)
 		ax = self.fig.add_subplot(111)
+		target = self.app.mcontrol.pidTarget[:]
+		actual = self.app.mcontrol.pidActual[:]
+		error = []
+		for (u,v) in zip(target, actual):
+			error += [u - v]
 		ax.plot(self.app.mcontrol.pidTarget, color='blue')
-		ax.plot(self.app.mcontrol.pidActual, color='red')
+		ax.plot(self.app.mcontrol.pidActual, color='green')
+		ax.plot(error, color='red')
 		self.canvas.draw()
 
