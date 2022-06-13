@@ -48,17 +48,13 @@ class Member:
 def getArrayIntFromUtils(section, array):
     values = []
     for w in array:
-        values += [Utils.getInt(section, w, -999)]
-        if values[-1] == -999:
-            del values[-1]
+        values += [Utils.getInt(section, w, -20)]
     return values
 
 def getArrayFloatFromUtils(section, array):
     values = []
     for w in array:
-        values += [Utils.getFloat(section, w, -999)]
-        if values[-1] == -999:
-            del values[-1]
+        values += [Utils.getFloat(section, w, 0)]
     return values
 
 class Panel:
@@ -99,7 +95,7 @@ class Panel:
         if self.spPanelActive:
             buttons = Utils.getInt("Panel", "spButtons", 0)
             if buttons==1:
-                pins = [Utils.getInt("Panel", "spButton", 0)]
+                pins = [Utils.getInt("Panel", "spButton", -20)]
             else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
         self.memberStartPause = Member(pins, 0.1, self.startPause)
         self.lastStartPauseState = [0]
@@ -107,7 +103,7 @@ class Panel:
         pins = []
         self.clampActive = Utils.getBool("Panel", "clampPanel", False)
         if self.clampActive:
-            pins = [Utils.getInt("Panel", "clampButton", 0)]
+            pins = [Utils.getInt("Panel", "clampButton", -20)]
         self.memberClamp = Member(pins, 0.1, self.clamp)
         self.lastClampState = None
 

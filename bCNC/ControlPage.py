@@ -1894,7 +1894,6 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 				pady=0)
 		tkExtra.Balloon.set(floodToogle, _("Start flood (M8)"))
 		floodToogle.grid(row=row, column=col, pady=0, sticky=NSEW)
-		self.addWidget(floodToogle)
 
 		col += 1
 		mistToogle = Button(f, text=_("Mist"),
@@ -1903,7 +1902,6 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 				pady=0)
 		tkExtra.Balloon.set(mistToogle, _("Start mist (M7)"))
 		mistToogle.grid(row=row, column=col, pady=0, sticky=NSEW)
-		self.addWidget(mistToogle)
 		f.grid_columnconfigure(1, weight=1)
 
 	#----------------------------------------------------------------------
