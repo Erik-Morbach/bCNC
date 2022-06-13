@@ -4674,7 +4674,10 @@ class GCode:
 
 		lineNumber = 1
 		every = 1
+		stopNext = False
 		for (i,block) in enumerate(self.blocks):
+			if stopNext:
+				break
 			for j,line in enumerate(block):
 				every -= 1
 				if every<=0:
@@ -4682,6 +4685,8 @@ class GCode:
 						return None
 					every = 50
 
+				if stopNext:
+					break
 				newcmd = []
 				line = str(line).strip()
 				if line.find('N')!=-1:
@@ -4691,6 +4696,8 @@ class GCode:
 						endLineNumber += 1
 					line = line[:beginLineNumber-1] + line[endLineNumber:]
 
+				if "M30" in line.strip().replace(' ',''):
+					stopNext = True
 				skip = lineNumber < CNC.vars["beginLine"] or line=='%'
 				# Remove program demarcations if exist
 				line = "N{}".format(lineNumber) + line + '\n'

@@ -36,7 +36,7 @@ except:
 ANTIALIAS_CHEAP = False
 
 VIEW_XY   = 0
-VIEW_XZ	  = 1
+VIEW_XZ   = 1
 VIEW_YZ   = 2
 VIEW_ISO1 = 3
 VIEW_ISO2 = 4

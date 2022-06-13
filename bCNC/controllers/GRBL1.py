@@ -38,6 +38,10 @@ class Controller(_GenericGRBL):
 		self.master = master
 		self.lastSDStatus = -1 
 		self.hasSD = False
+		self.pidSP = 0
+		self.pidTS = 0
+		self.pidTarget = []
+		self.pidActual = []
 		#print("grbl1 loaded")
 
 	def jog(self, dir):
@@ -261,5 +265,22 @@ class Controller(_GenericGRBL):
 			CNC.vars[word[0]] = word[1]
 			self.master._probeUpdate = True
 			self.master._gUpdate = True
+		elif word[0] == "PID":
+			self.pidSP = word[1]
+			self.pidTS = word[2]
+			self.pidTarget = []
+			self.pidActual = []
+			fir = True
+			try:
+				for i in range(3,len(word),2):
+					w = word[i]
+					wP = word[i+1]
+					if fir:
+						fir = False
+						w = w[w.find('|')+1:]
+					self.pidTarget += [float(w)]
+					self.pidActual += [float(wP)]
+			except:
+				pass
 		else:
 			CNC.vars[word[0]] = word[1:]

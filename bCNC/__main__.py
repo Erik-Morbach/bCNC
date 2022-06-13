@@ -84,6 +84,7 @@ from ProbePage import ProbePage
 from EditorPage import EditorPage
 
 import GCodeViewer
+import PidLog
 
 _openserial = True  # override ini parameters
 _device = None
@@ -208,8 +209,15 @@ class Application(Toplevel, Sender):
         self.canvasFrame = CNCCanvas.CanvasFrame(self.notebook, self)
         self.canvasFrame.pack(side=TOP, fill=BOTH, expand=YES)
 
+        if Utils.getBool("CNC", "pidLog", False):
+                self.pidLogFrame = PidLog.PidLogFrame(self.notebook, self)
+                self.pidLogFrame.pack(side=TOP, fill=BOTH, expand=YES)
+
         self.notebook.add(self.gcodeViewFrame.lb, text="GCode")
         self.notebook.add(self.canvasFrame, text="Graph")
+
+        if Utils.getBool("CNC", "pidLog", False):
+                self.notebook.add(self.pidLogFrame, text="PidLog")
 
         # self.paned.add(self.canvasFrame)
         # XXX FIXME do I need the self.canvas?
