@@ -4,6 +4,8 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+import time
+
 try:
 	from Tkinter import *
 	import Tkinter
@@ -24,6 +26,9 @@ class PidLogFrame(Frame, object):
 		self.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=YES)
 
 	def plotPid(self, data=None):
+		self.app.serial_write(chr(0xA2))
+		self.app.serial.flush()
+		time.sleep(1)
 		self.fig.clear(True)
 		ax = self.fig.add_subplot(111)
 		target = self.app.mcontrol.pidTarget[:]
@@ -31,6 +36,10 @@ class PidLogFrame(Frame, object):
 		error = []
 		for (u,v) in zip(target, actual):
 			error += [u - v]
+
+		if len(error) > 0:
+			maxError = max(abs(max(error)), abs(min(error)))
+			ax.ylim(-abs(maxError),abs(maxError))
 		ax.plot(self.app.mcontrol.pidTarget, color='blue')
 		ax.plot(self.app.mcontrol.pidActual, color='green')
 		ax.plot(error, color='red')
