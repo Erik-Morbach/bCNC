@@ -39,7 +39,7 @@ class PidLogFrame(Frame, object):
 
 		if len(error) > 0:
 			maxError = max(abs(max(error)), abs(min(error)))
-			ax.ylim(-abs(maxError),abs(maxError))
+			ax.set_ylim([-abs(maxError),abs(maxError)])
 		ax.plot(self.app.mcontrol.pidTarget, color='blue')
 		ax.plot(self.app.mcontrol.pidActual, color='green')
 		ax.plot(error, color='red')
