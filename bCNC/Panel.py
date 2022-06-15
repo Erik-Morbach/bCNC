@@ -69,7 +69,7 @@ class Panel:
         self.jogActive = Utils.getBool("Panel", "jogPanel", False) and not Utils.getBool("Panel", "jogKeyboard", True)
         if self.jogActive:
             pins = getArrayIntFromUtils("Panel", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
-        self.memberJog = Member(pins, 0.1, self.jog, self.jogActive)
+        self.memberJog = Member(pins, 0.05, self.jog, self.jogActive)
         self.axisMap = {0: "X", 1: "B", 2: "Z"}
         self.directionMap = {0: "Up", 1: "Down"}
         self.JOGMOTION = 0
@@ -92,7 +92,7 @@ class Panel:
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
         self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.3, self.selector, self.selectorActive)
+        self.memberSelector = Member(pins, 0.1, self.selector, self.selectorActive)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
         self.members += [self.memberSelector]
