@@ -17,6 +17,8 @@ class RepeatEngine:
 		self.CNCRef = CNCRef
 
 	def isRepeatable(self):
+		if self.CNCRef.vars["barEnd"] == 0:
+			return False
 		if self.repeatType == self.TYPE_M47:
 			return True
 		self.updateState()

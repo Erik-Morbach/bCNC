@@ -837,6 +837,12 @@ class Sender:
 				if self._runLines != sys.maxsize:
 					self._stop = False
 
+			if tosend is not None:
+				if CNC.vars["SafeDoor"]:
+					for w in ["M3", "M4"]:
+						if w in str(tosend).upper():
+							tosend = None
+							break
 			#print "tosend='%s'"%(repr(tosend)),"stack=",sline,
 			#	"sum=",sum(cline),"wait=",wait,"pause=",self._pause
 			if tosend is not None and sum(cline) < RX_BUFFER_SIZE:
@@ -848,7 +854,6 @@ class Sender:
 				#print ">S>",repr(tosend),"stack=",sline,"sum=",sum(cline)
 				if self.mcontrol.gcode_case > 0: tosend = tosend.upper()
 				if self.mcontrol.gcode_case < 0: tosend = tosend.lower()
-
 
 				self.serial_write(tosend)
 

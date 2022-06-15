@@ -8,11 +8,12 @@ from CNC import CNC
 wp.wiringPiSetup()
 
 class Member:
-    def __init__(self, pins, debounce, callback):
+    def __init__(self, pins, debounce, callback, active):
         self.pins = pins
         self.debounce = debounce
         self.callback = callback
         self.mutex = threading.Lock()
+        self.active = active
         for pin in pins:
             if pin < 0: continue
             wp.pinMode(pin, wp.INPUT)
@@ -60,16 +61,18 @@ def getArrayFloatFromUtils(section, array):
 class Panel:
     def __init__(self, app):
         self.period = 0.05
+        self.members = []
         pins = []
         self.jogActive = Utils.getBool("Panel", "jogPanel", False) and not Utils.getBool("Panel", "jogKeyboard", True)
         if self.jogActive:
             pins = getArrayIntFromUtils("Panel", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
-        self.memberJog = Member(pins, 0.05, self.jog)
+        self.memberJog = Member(pins, 0.05, self.jog, self.jogActive)
         self.axisMap = {0: "X", 1: "B", 2: "Z"}
         self.directionMap = {0: "Up", 1: "Down"}
         self.JOGMOTION = 0
         self.JOGSTOP = 1
         self.jogLastAction = self.JOGMOTION
+        self.members += [self.memberJog]
 
         pins = []
         self.steps = [0]
@@ -86,9 +89,10 @@ class Panel:
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
         self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.05, self.selector)
+        self.memberSelector = Member(pins, 0.05, self.selector, self.selectorActive)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
+        self.members += [self.memberSelector]
 
         pins = []
         self.spPanelActive = Utils.getBool("Panel", "spPanel", False)
@@ -97,15 +101,31 @@ class Panel:
             if buttons==1:
                 pins = [Utils.getInt("Panel", "spButton", -20)]
             else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
-        self.memberStartPause = Member(pins, 0.1, self.startPause)
+        self.memberStartPause = Member(pins, 0.1, self.startPause, self.spPanelActive)
         self.lastStartPauseState = [0]
+        self.members += [self.memberStartPause]
 
         pins = []
         self.clampActive = Utils.getBool("Panel", "clampPanel", False)
         if self.clampActive:
             pins = [Utils.getInt("Panel", "clampButton", -20)]
-        self.memberClamp = Member(pins, 0.1, self.clamp)
+        self.memberClamp = Member(pins, 0.1, self.clamp, self.clampActive)
         self.lastClampState = None
+        self.members += [self.memberClamp]
+
+        pins = []
+        self.safetyDoorActive = Utils.getBool("Panel", "safetyDoorPanel", False)
+        if self.safetyDoorActive:
+            pins = [Utils.getInt("Panel", "safetyDoorPin", -20)]
+        self.memberSafetyDoor = Member(pins, 0.1, self.safetyDoor, self.safetyDoorActive)
+        self.members += [self.memberSafetyDoor]
+
+        pins = []
+        self.barEndActive = Utils.getBool("Panel", "barEndPanel", False)
+        if self.barEndActive:
+            pins = [Utils.getInt("Panel", "barEndPin", -20)]
+        self.memberBarEnd = Member(pins, 0.5, self.barEnd, self.barEndActive)
+        self.members += [self.memberBarEnd]
 
         self.active = Utils.getBool("CNC", "panel", False)
         self.app = app
@@ -147,6 +167,7 @@ class Panel:
         self.lastClampState = pinValues
         if max(pinValues) == 0:
             return
+        self.app.focus_set()
         self.app.event_generate("<<ClampToggle>>", when="tail")
 
     def selector(self, selector: list):
@@ -164,6 +185,7 @@ class Panel:
         if step != self.currentStep or velocity != self.currentVelocity:
             self.currentStep = step
             self.currentVelocity = velocity
+            self.app.focus_set()
             self.app.event_generate("<<AdjustSelector>>", when="tail")
 
     def startPause(self, state):
@@ -175,19 +197,23 @@ class Panel:
         if CNC.vars["state"] == "Idle" and not self.app.running:
             self.app.event_generate("<<Run>>", when="tail")
         else:
+            self.app.focus_set()
             self.app.pause()
+
+    def safetyDoor(self, state):
+        CNC.vars["SafeDoor"] = state[0]
+
+    def barEnd(self, state):
+        CNC.vars["barEnd"] = state[0]
 
     def update(self):
         if not self.active:
             return
         t = time.time()
         if t > self.lastCheck + self.period:
-            if self.jogActive:
-                self.memberJog.check()
-            if self.spPanelActive:
-                self.memberStartPause.check()
-            if self.selectorActive:
-                self.memberSelector.check()
-            if self.clampActive:
-                self.memberClamp.check()
+            for member in self.members:
+                if not member.active:
+                    continue
+                member.check()
+
             self.lastCheck = t
