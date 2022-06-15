@@ -28,11 +28,14 @@ class Member:
 
     def waitDebounce(self):
         pinValues = [self.read(pin) for pin in self.pins]
-        time.sleep(self.debounce)
-        pinValuesDebounced = [self.read(pin) for pin in self.pins]
+        for _ in range(10):
+            time.sleep(self.debounce/10)
+            pinValuesDebounced = [self.read(pin) for pin in self.pins]
+            for i in range(len(pinValues)):
+                pinValues[i] += pinValuesDebounced[i]
 
-        pinValues = [(a & b) for (a, b) in zip(pinValues, pinValuesDebounced)]
-
+        for i in range(len(pinValues)):
+            pinValues[i] = 1 if pinValues[i]>=5 else 0
         self.callback(pinValues)
         self.mutex.release()
 
@@ -89,7 +92,7 @@ class Panel:
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
         self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.2, self.selector, self.selectorActive)
+        self.memberSelector = Member(pins, 0.3, self.selector, self.selectorActive)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
         self.members += [self.memberSelector]
@@ -147,7 +150,7 @@ class Panel:
             self.app.focus_set()
             self.app.event_generate("<<JogStop>>", when="tail")
             self.jogLastAction = self.JOGSTOP
-            mutex.acquire(blocking=True, timeout=2)
+            mutex.acquire(blocking=True, timeout=0.5)
             self.app.jogMutex = None
             return
         for id, (axe,dire) in enumerate(zip(axis,direction)):
@@ -159,7 +162,7 @@ class Panel:
                 self.app.focus_set()
                 self.app.event_generate("<<"+con+">>", when="tail")
                 self.jogLastAction = self.JOGMOTION
-                mutex.acquire(blocking=True, timeout=2)
+                mutex.acquire(blocking=True, timeout=0.5)
                 self.app.jogMutex = None
                 return
     def clamp(self, pinValues):
