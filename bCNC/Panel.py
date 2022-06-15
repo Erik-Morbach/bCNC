@@ -204,7 +204,7 @@ class Panel:
         CNC.vars["SafeDoor"] = state[0]
 
     def barEnd(self, state):
-        CNC.vars["barEnd"] = state[0]
+        CNC.vars["barEnd"] = not state[0]
 
     def update(self):
         if not self.active:
