@@ -89,7 +89,7 @@ class Panel:
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
         self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.08, self.selector, self.selectorActive)
+        self.memberSelector = Member(pins, 0.2, self.selector, self.selectorActive)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
         self.members += [self.memberSelector]
@@ -101,7 +101,7 @@ class Panel:
             if buttons==1:
                 pins = [Utils.getInt("Panel", "spButton", -20)]
             else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
-        self.memberStartPause = Member(pins, 0.15, self.startPause, self.spPanelActive)
+        self.memberStartPause = Member(pins, 0.5, self.startPause, self.spPanelActive)
         self.lastStartPauseState = [0]
         self.members += [self.memberStartPause]
 
@@ -117,7 +117,7 @@ class Panel:
         self.safetyDoorActive = Utils.getBool("Panel", "safetyDoorPanel", False)
         if self.safetyDoorActive:
             pins = [Utils.getInt("Panel", "safetyDoorPin", -20)]
-        self.memberSafetyDoor = Member(pins, 0.15, self.safetyDoor, self.safetyDoorActive)
+        self.memberSafetyDoor = Member(pins, 0.5, self.safetyDoor, self.safetyDoorActive)
         self.safetyDoorLastState = 0
         self.members += [self.memberSafetyDoor]
 
