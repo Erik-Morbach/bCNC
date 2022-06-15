@@ -824,8 +824,6 @@ class Sender:
 				elif self.mcontrol.parseLine(line, cline, sline):
 					pass
 				else:
-					if "<Home" in line:
-						CNC.vars["state"] = "Home"
 					self.log.put((Sender.MSG_RECEIVE, line))
 
 			# Received external message to stop

@@ -333,8 +333,7 @@ class _GenericController:
 		elif line[0]=="<":
 			if not self.master.sio_status:
 				self.master.log.put((self.master.MSG_RECEIVE, line))
-			else:
-				self.parseBracketAngle(line, cline)
+			self.parseBracketAngle(line, cline)
 
 		elif "pgm end" in line.lower():
 			CNC.vars["pgmEnd"] = True
