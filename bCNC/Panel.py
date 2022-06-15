@@ -66,7 +66,7 @@ class Panel:
         self.jogActive = Utils.getBool("Panel", "jogPanel", False) and not Utils.getBool("Panel", "jogKeyboard", True)
         if self.jogActive:
             pins = getArrayIntFromUtils("Panel", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
-        self.memberJog = Member(pins, 0.05, self.jog, self.jogActive)
+        self.memberJog = Member(pins, 0.1, self.jog, self.jogActive)
         self.axisMap = {0: "X", 1: "B", 2: "Z"}
         self.directionMap = {0: "Up", 1: "Down"}
         self.JOGMOTION = 0
@@ -89,7 +89,7 @@ class Panel:
             self.velocitys = getArrayFloatFromUtils("Panel", 
                                 ["selectorVel{}".format(i) for i in range(0,selVels)])
         self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.05, self.selector, self.selectorActive)
+        self.memberSelector = Member(pins, 0.08, self.selector, self.selectorActive)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
         self.members += [self.memberSelector]
@@ -101,7 +101,7 @@ class Panel:
             if buttons==1:
                 pins = [Utils.getInt("Panel", "spButton", -20)]
             else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
-        self.memberStartPause = Member(pins, 0.1, self.startPause, self.spPanelActive)
+        self.memberStartPause = Member(pins, 0.15, self.startPause, self.spPanelActive)
         self.lastStartPauseState = [0]
         self.members += [self.memberStartPause]
 
@@ -109,7 +109,7 @@ class Panel:
         self.clampActive = Utils.getBool("Panel", "clampPanel", False)
         if self.clampActive:
             pins = [Utils.getInt("Panel", "clampButton", -20)]
-        self.memberClamp = Member(pins, 0.1, self.clamp, self.clampActive)
+        self.memberClamp = Member(pins, 0.15, self.clamp, self.clampActive)
         self.lastClampState = None
         self.members += [self.memberClamp]
 
@@ -117,7 +117,8 @@ class Panel:
         self.safetyDoorActive = Utils.getBool("Panel", "safetyDoorPanel", False)
         if self.safetyDoorActive:
             pins = [Utils.getInt("Panel", "safetyDoorPin", -20)]
-        self.memberSafetyDoor = Member(pins, 0.1, self.safetyDoor, self.safetyDoorActive)
+        self.memberSafetyDoor = Member(pins, 0.15, self.safetyDoor, self.safetyDoorActive)
+        self.safetyDoorLastState = 0
         self.members += [self.memberSafetyDoor]
 
         pins = []
@@ -205,8 +206,12 @@ class Panel:
 
     def safetyDoor(self, state):
         CNC.vars["SafeDoor"] = state[0]
-        self.app.focus_set()
-        self.app.event_generate("<<Stop>>", when="tail")
+        if state[0] == self.safetyDoorLastState:
+            return
+        self.safetyDoorLastState = state[0]
+        if state[0]:
+            self.app.focus_set()
+            self.app.event_generate("<<Stop>>", when="tail")
 
     def barEnd(self, state):
         CNC.vars["barEnd"] = not state[0]
