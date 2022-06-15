@@ -205,6 +205,8 @@ class Panel:
 
     def safetyDoor(self, state):
         CNC.vars["SafeDoor"] = state[0]
+        self.app.focus_set()
+        self.app.event_generate("<<Stop>>", when="tail")
 
     def barEnd(self, state):
         CNC.vars["barEnd"] = not state[0]
