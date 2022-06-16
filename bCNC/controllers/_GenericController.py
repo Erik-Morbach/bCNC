@@ -139,13 +139,15 @@ class _GenericController:
 		with open("WorkCoordinates.txt", 'r') as workFile:
 			for line in workFile.readlines():
 				positions = line.split(' ')
-				if len(positions) < 8:
+				if len(positions) < 7:
 					continue
 				positions[-1] = positions[-1].replace('\n','')
 				positionIndex = int(positions[0])
-				radiusMode = positions[1]
-				positions = positions[2:]
-
+				positions = positions[1:]
+				radiusMode = "G90"
+				if len(positions) == 7:
+					radiusMode = positions[6]
+					del positions[-1]
 				workPositions[positionIndex] = {}
 				workPositions[positionIndex]["R"] = radiusMode
 				for (index, currentAxis) in enumerate(axis):
@@ -165,9 +167,7 @@ class _GenericController:
 				file.write(str(workIndex))
 				if workIndex not in workPositions.keys():
 					workPositions[workIndex] = {}
-					workPositions[workIndex]["R"] = "G8"
-				file.write(" {}".format(workPositions[workIndex]["R"]))
-
+					workPositions[workIndex]["R"] = "G90"
 				for currentAxis in axis:
 					if currentAxis not in workPositions[workIndex].keys():
 						workPositions[workIndex][currentAxis] = "0"
@@ -177,6 +177,7 @@ class _GenericController:
 						except:
 							workPositions[workIndex][currentAxis] = "0"
 					file.write(" {}".format(workPositions[workIndex][currentAxis]))
+				file.write(" {}".format(workPositions[workIndex]["R"]))
 				file.write("\n")
 		
 	def sendParameters(self):

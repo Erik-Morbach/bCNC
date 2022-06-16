@@ -728,7 +728,7 @@ class CNC:
 			"program"    : "M0",
 			"spindle"    : "M5",
 			"coolant"    : "M9",
-			"radius"     : "G8",
+			"radius"     : "G90",
 			"line"       : 0,
 			"beginLine"  : 0,
 			"pgmEnd"     : False,
