@@ -206,7 +206,7 @@ class Panel:
             for id, w in enumerate(selector):
                 if w == 1:
                     index += 2 ** id
-        indexProp = index / ((2**len(selector) - 1) if self.selectorType else len(selector))
+        indexProp = index / (2**len(selector) if self.selectorType else len(selector))
         stepIndex = int(indexProp * len(self.steps))
         velocityIndex = int(indexProp * len(self.velocitys))
         step = self.steps[stepIndex]
