@@ -24,7 +24,7 @@ class JogController:
         self.period = 0.1
         self.lastTime = 0
         self.mutex = threading.Lock()
-        self.active = Utils.getBool("Panel", "jogKeyboard", False)
+        self.active = Utils.getBool("Jog", "jogKeyboard", False)
         if self.active:
             for (key,(code,sym)) in self.mapKeyToCode.items():
                 print("Bind {},{} to {}".format(code,sym,key))
