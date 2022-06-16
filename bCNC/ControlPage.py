@@ -127,7 +127,7 @@ class RunGroup(CNCRibbon.ButtonGroup):
 	def __init__(self, master, app):
 		CNCRibbon.ButtonGroup.__init__(self, master, "Run", app)
 
-		b = Ribbon.LabelButton(self.frame, self, "<<RunBegin>>",
+		b = Ribbon.LabelButton(self.frame, self, "<<ProcessInit>>",
 				image=Utils.icons["start32"],
 				text=_("Start"),
 				compound=TOP,
@@ -136,30 +136,13 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		tkExtra.Balloon.set(b, _("Run g-code commands from editor to controller"))
 		self.addWidget(b)
 
-		b = Ribbon.LabelButton(self.frame, self, "<<Pause>>",
-				image=Utils.icons["pause32"],
-				text=_("Pause"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
-		tkExtra.Balloon.set(b, _("Pause running program. Sends either FEED_HOLD ! or CYCLE_START ~"))
-
-		b = Ribbon.LabelButton(self.frame, self, "<<Stop>>",
+		b = Ribbon.LabelButton(self.frame, self, "<<ProcessEnd>>",
 				image=Utils.icons["stop32"],
 				text=_("Stop"),
 				compound=TOP,
 				background=Ribbon._BACKGROUND)
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Pause running program and soft reset controller to empty the buffer."))
-
-
-		b = Ribbon.LabelButton(self.frame, self, "<<RunFromSD>>",
-				image=Utils.icons["start"],
-				text=_("Start From SD"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
-		tkExtra.Balloon.set(b, _("Run g-code commands from SD to controller"))
 
 		f = Frame(self.frame)
 		self.m30CounterSt = StringVar()
@@ -177,31 +160,9 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		self.m30CounterLimitSt.set("0")
 		f.pack(side=RIGHT, fill=BOTH)
 
-		self.lineNumber = Entry(self, font=DROFrame.dro_wpos,
-								background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-								relief=FLAT,
-								borderwidth=0,
-								justify=RIGHT)
-		self.lineNumber.pack(side=BOTTOM, fill=BOTH)
-		tkExtra.Balloon.set(self.lineNumber, _("Line Number to begin"))
-		self.lineNumber.bind('<FocusIn>',  self.workFocus)
-		self.lineNumber.bind('<Return>',   self.setLineNumber)
-		self.lineNumber.bind('<KP_Enter>', self.setLineNumber)
-		self.addWidget(self.lineNumber)
-
 	def workFocus(self, event=None):
 		if self.app.running:
 			self.app.focus_set()
-
-	def setLineNumber(self, event=None):
-		line = 0
-		try:
-			line = int(self.lineNumber.get())
-		except BaseException as be:
-			print(be)
-			line = 0
-		CNC.vars["beginLine"] = line
-		self.app.focus_set()
 
 	def updateM30State(self, *args):
 		try:
@@ -215,8 +176,7 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		try:
 			return int(self.m30CounterLimitSt.get())
 		except:
-			self.m30CounterLimitSt.delete(0)
-			self.m30CounterLimitSt.insert(0, "0")
+			self.m30CounterLimitSt.set("0")
 			return 0	
 
 	def setM30CounterLimit(self, number):
@@ -2074,5 +2034,5 @@ class ControlPage(CNCRibbon.Page):
 		wcsvar = IntVar()
 		wcsvar.set(0)
 
-		self._register((ConnectionGroup, UserGroup, RunGroup),
+		self._register((ConnectionGroup, UserGroup, RunGroup, ProcessGroup),
 			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame))
