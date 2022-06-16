@@ -158,7 +158,7 @@ class Panel:
         self.lastCheck = time.time()
 
     def jog(self, pinValues):
-        if self.app.running and CNC.vars["state"] == "Home":
+        if self.app.running or CNC.vars["state"] == "Home":
             return
         axis = []
         direction = []
