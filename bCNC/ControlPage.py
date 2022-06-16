@@ -215,9 +215,8 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		try:
 			return int(self.m30CounterLimitSt.get())
 		except:
-			self.m30CounterLimitSt.delete(0)
-			self.m30CounterLimitSt.insert(0, "0")
-			return 0	
+			self.m30CounterLimitSt.set("0")
+			return 0
 
 	def setM30CounterLimit(self, number):
 		try:
