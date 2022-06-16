@@ -8,7 +8,7 @@ from CNC import CNC
 wp.wiringPiSetup()
 
 class Member:
-    def __init__(self, pins, debounce, callback, active):
+    def __init__(self, pins, inversion, debounce, callback, active):
         self.pins = pins
         self.debounce = debounce
         self.callback = callback
@@ -19,6 +19,7 @@ class Member:
             wp.pinMode(pin, wp.INPUT)
             wp.pullUpDnControl(pin, wp.PUD_DOWN)
 
+        self.inversion = inversion
         self.lastTime = time.time()
 
     def read(self, pin):
@@ -36,6 +37,8 @@ class Member:
 
         for i in range(len(pinValues)):
             pinValues[i] = 1 if pinValues[i]>=5 else 0
+            if self.inversion & (2**i):
+                pinValues[i] = not pinValues[i]
         self.callback(pinValues)
         self.mutex.release()
 
@@ -63,13 +66,16 @@ def getArrayFloatFromUtils(section, array):
 
 class Panel:
     def __init__(self, app):
-        self.period = 0.05
+        self.period = Utils.getFloat("Panel", "period", 0.1)
         self.members = []
         pins = []
-        self.jogActive = Utils.getBool("Panel", "jogPanel", False) and not Utils.getBool("Panel", "jogKeyboard", True)
+        inversion = 0
+        self.jogActive = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
+        debounce = Utils.getFloat("Jog", "debounce", 0.05)
         if self.jogActive:
-            pins = getArrayIntFromUtils("Panel", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
-        self.memberJog = Member(pins, 0.05, self.jog, self.jogActive)
+            pins = getArrayIntFromUtils("Jog", ["X", "Xdir", "B","Bdir", "Z", "Zdir"])
+            inversion = Utils.getInt("Jog", "inversion", 0)
+        self.memberJog = Member(pins, inversion, debounce, self.jog, self.jogActive)
         self.axisMap = {0: "X", 1: "B", 2: "Z"}
         self.directionMap = {0: "Up", 1: "Down"}
         self.JOGMOTION = 0
@@ -78,57 +84,73 @@ class Panel:
         self.members += [self.memberJog]
 
         pins = []
+        inversion = 0
         self.steps = [0]
         self.velocitys = [0]
-        self.selectorActive = Utils.getBool("Panel", "selectorPanel", False)
+        self.selectorActive = Utils.getBool("Selector", "panel", False)
+        debounce = Utils.getFloat("Selector", "debounce", 0.1)
+        self.selectorType = Utils.getBool("Selector", "binary", False)
         if self.selectorActive:
-            selPins = Utils.getInt("Panel", "selectorPins",0)
-            pins = getArrayIntFromUtils("Panel", 
-                                ["selector{}".format(i) for i in range(0,selPins)])
-            selSteps = Utils.getInt("Panel", "selectorSteps",0)
-            self.steps = getArrayFloatFromUtils("Panel", 
-                                ["selectorStep{}".format(i) for i in range(0,selSteps)])
-            selVels = Utils.getInt("Panel", "selectorVels",0)
-            self.velocitys = getArrayFloatFromUtils("Panel", 
-                                ["selectorVel{}".format(i) for i in range(0,selVels)])
-        self.selectorType = Utils.getBool("Panel", "selectorTypeBinary", False)
-        self.memberSelector = Member(pins, 0.1, self.selector, self.selectorActive)
+            selPins = Utils.getInt("Selector", "pins",0)
+            pins = getArrayIntFromUtils("Selector", 
+                                ["pin{}".format(i) for i in range(0,selPins)])
+            inversion = Utils.getInt("Selector", "inversion", 0)
+
+            selSteps = Utils.getInt("Selector", "steps",0)
+            self.steps = getArrayFloatFromUtils("Selector", 
+                                ["step{}".format(i) for i in range(0,selSteps)])
+            selVels = Utils.getInt("Selector", "vels",0)
+            self.velocitys = getArrayFloatFromUtils("Selector", 
+                                ["vel{}".format(i) for i in range(0,selVels)])
+        self.memberSelector = Member(pins, inversion, debounce, self.selector, self.selectorActive)
         self.currentStep = self.steps[0]
         self.currentVelocity = self.velocitys[0]
         self.members += [self.memberSelector]
 
         pins = []
-        self.spPanelActive = Utils.getBool("Panel", "spPanel", False)
+        inversion = 0
+        self.spPanelActive = Utils.getBool("StartPause", "panel", False)
+        debounce = Utils.getFloat("StartPause", "debounce", 0.5)
         if self.spPanelActive:
-            buttons = Utils.getInt("Panel", "spButtons", 0)
+            buttons = Utils.getInt("StartPause", "pins", 0)
             if buttons==1:
-                pins = [Utils.getInt("Panel", "spButton", -20)]
-            else: pins = getArrayIntFromUtils("Panel", ["startButton", "pauseButton"])
-        self.memberStartPause = Member(pins, 0.5, self.startPause, self.spPanelActive)
+                pins = [Utils.getInt("StartPause", "pin", -20)]
+            else: pins = getArrayIntFromUtils("StartPause", ["start", "pause"])
+            inversion = Utils.getInt("StartPause", "inversion", 0)
+        self.memberStartPause = Member(pins, inversion, debounce, self.startPause, self.spPanelActive)
         self.lastStartPauseState = [0]
         self.members += [self.memberStartPause]
 
         pins = []
-        self.clampActive = Utils.getBool("Panel", "clampPanel", False)
+        inversion = 0
+        self.clampActive = Utils.getBool("Clamp", "panel", False)
+        debounce = Utils.getFloat("Clamp", "debounce", 0.15)
         if self.clampActive:
-            pins = [Utils.getInt("Panel", "clampButton", -20)]
-        self.memberClamp = Member(pins, 0.15, self.clamp, self.clampActive)
+            pins = [Utils.getInt("Clamp", "pin", -20)]
+            inversion = Utils.getInt("Clamp", "inversion", 0)
+        self.memberClamp = Member(pins, inversion, debounce, self.clamp, self.clampActive)
         self.lastClampState = None
         self.members += [self.memberClamp]
 
         pins = []
-        self.safetyDoorActive = Utils.getBool("Panel", "safetyDoorPanel", False)
+        inversion = 0
+        self.safetyDoorActive = Utils.getBool("SafetyDoor", "panel", False)
+        debounce = Utils.getFloat("SafetyDoor", "debounce", 0.5)
         if self.safetyDoorActive:
-            pins = [Utils.getInt("Panel", "safetyDoorPin", -20)]
-        self.memberSafetyDoor = Member(pins, 0.5, self.safetyDoor, self.safetyDoorActive)
+            pins = [Utils.getInt("SafetyDoor", "pin", -20)]
+            inversion = Utils.getInt("SafetyDoor", "inversion", 0)
+        self.memberSafetyDoor = Member(pins, inversion, debounce, self.safetyDoor, self.safetyDoorActive)
         self.safetyDoorLastState = 0
         self.members += [self.memberSafetyDoor]
 
         pins = []
-        self.barEndActive = Utils.getBool("Panel", "barEndPanel", False)
+        inversion = 0
+        self.barEndActive = Utils.getBool("BarEnd", "panel", False)
+        debounce = Utils.getFloat("BarEnd", "debounce", 0.5)
         if self.barEndActive:
-            pins = [Utils.getInt("Panel", "barEndPin", -20)]
-        self.memberBarEnd = Member(pins, 0.5, self.barEnd, self.barEndActive)
+            pins = [Utils.getInt("BarEnd", "pin", -20)]
+            inversion = Utils.getInt("BarEnd", "inversion", 0)
+        self.memberBarEnd = Member(pins, inversion, debounce, self.barEnd, self.barEndActive)
         self.members += [self.memberBarEnd]
 
         self.active = Utils.getBool("CNC", "panel", False)
@@ -136,7 +158,7 @@ class Panel:
         self.lastCheck = time.time()
 
     def jog(self, pinValues):
-        if self.app.running:
+        if self.app.running and CNC.vars["state"] == "Home":
             return
         axis = []
         direction = []
@@ -217,7 +239,7 @@ class Panel:
             self.app.event_generate("<<Stop>>", when="tail")
 
     def barEnd(self, state):
-        CNC.vars["barEnd"] = not state[0]
+        CNC.vars["barEnd"] = state[0]
 
     def update(self):
         if not self.active:
