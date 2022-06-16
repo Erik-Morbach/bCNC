@@ -19,7 +19,7 @@ class IteceProcess:
     def __init__(self, app) -> None:
         self.mutex = threading.Lock()
         self.app = app
-        self.currentState = 0
+        self.currentState = states.Waiting
         self.radiusZeroPosition = Utils.getFloat("Itece", "radiusZero", 0)
         self.beginRpm = Utils.getFloat("Itece", "beginRpm", 4000) # rpm
         self.angularVelocity = Utils.getFloat("Itece", "defaultAngularVelocity", 125.66) # rad/s
@@ -31,6 +31,43 @@ class IteceProcess:
         self.thread = threading.Thread(target=self._process)
         self.mutex.acquire()
         self.thread.start()
+
+    def end(self) -> None:
+        if not self.mutex.locked():
+            return
+        self.mutex.release()
+        self.app.processEnd()
+
+    def _process(self) -> None:
+        self._startupProcess()
+        while self.mutex.locked():
+            self._rpmCompensation()
+            self._stateChange()
+            if CNC.vars["state"] == "Idle":
+                self._iteration()
+        self._endProcess()
+
+    def _startupProcess(self) -> None:
+        self.app.sendGCode("G54")
+        self.app.mcontrol._wcsSet("0",None,None,None,None,None)
+        self.app.sendGCode("M3S{}".format(self.beginRpm))
+        self.app.sendGCode("G4P10") # wait mainSpindle
+        self.sleep(10)
+
+        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), 
+                                                               self.beginRpm)
+
+        self._setHighSpeed()
+        self._activateMotors()
+        self.app.sendGCode("M62P2") # presser
+        self.app.sendGCode("G4P1") #  wait Presser
+        self.sleep(1)
+
+    def _endProcess(self) -> None:
+        self.app.sendGCode("M5")
+        self._deactivateMotors()
+        self.app.sendGCode("G55")
+        self.app.sendGCode("G0X0")
 
     def _activateMotors(self) -> None:
         self.app.sendGCode("M62P0") # activate Motor 0
@@ -66,25 +103,6 @@ class IteceProcess:
             CNC.vars["wait"] = t
         CNC.vars["wait"] = 0
 
-    def _startupProcess(self) -> None:
-        self.app.mcontrol._wcsSet("0",None,None,None,None,None)
-        self.app.sendGCode("M3S{}".format(self.beginRpm))
-        self.app.sendGCode("G4P10") # wait mainSpindle
-        self.sleep(10)
-
-        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), 
-                                                               self.beginRpm)
-
-        self._setHighSpeed()
-        self._activateMotors()
-        self.app.sendGCode("M62P2") # presser
-        self.app.sendGCode("G4P1") #  wait Presser
-        self.sleep(1)
-
-    def _endProcess(self) -> None:
-        self.app.sendGCode("M5")
-        self._deactivateMotors()
-
     def _rpmCompensation(self) -> None:
         rpm = self._getDesiredRpm(self._getCurrentRadius(),
                                   self.angularVelocity)
@@ -95,23 +113,41 @@ class IteceProcess:
                                                                CNC.vars["curspindle"])
 
     def _iteration(self) -> None:
-        pass
+        if self.currentState == states.Waiting:
+            return
+        self.app.sendGCode("G91G1X-0.2F20")
+        while CNC.vars["state"] == "Run":
+            time.sleep(0.01)
+
+    def _setState(self, state):
+        self.currentState = state
+        if state == states.Rotating:
+            self._setLowSpeed()
+        else:
+            self._setHighSpeed()
 
     def _stateChange(self) -> None:
-        pass
+        s1 = CNC.vars["Inputs"] & 1
+        s2 = CNC.vars["Inputs"] & 2
 
-    def _process(self) -> None:
-        self._startupProcess()
-        while self.mutex.locked():
-            self._rpmCompensation()
-            self._stateChange()
-            if CNC.vars["state"] == "Idle":
-                self._iteration()
-        self._endProcess()
-
-    def end(self) -> None:
-        if not self.mutex.locked():
+        if self.currentState == states.Waiting:
+            if s1 == 1: self._setState(states.Entering)
             return
-        self.mutex.release()
-        self.app.processEnd()
+        if self.currentState == states.Entering:
+            if (s1 == 1 and s2 == 1) or (s1==0 and s2==0): self._setState(states.Middle)
+            elif s1 == 0 and s2 == 1: self._setState(states.Rotating)
+            return
+        if self.currentState == states.Middle:
+            if s1 == 0 and s2 == 1: self._setState(states.Rotating)
+            return
+        if self.currentState == states.Rotating:
+            if s1 == 1: self._setState(states.ReEntering)
+            return
+        if self.currentState == states.ReEntering:
+            if (s1 == 1 and s2 == 1) or (s1==0 and s2==0): self._setState(states.Exiting)
+            elif s1 == 0 and s2 == 1: self._setState(states.Exiting)
+            return
+        if self.currentState == states.Exiting:
+            if s2 == 0: self._setState(states.Waiting)
+
 
