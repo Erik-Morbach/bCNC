@@ -741,6 +741,7 @@ class CNC:
 			"rpm"        : 0.0,
 			"realRpm"    : 0.0,
 			"JogSpeed"   : 3000.0,
+			"jogActive"  : True,
 
 			"planner"    : 0,
 			"rxbytes"    : 0,
@@ -767,6 +768,13 @@ class CNC:
 
 			"PRB"        : None,
 			"TLO"        : 0.,
+
+			"wait"       : 0,
+			"processState":0,
+			"motor0Low"  : 600,
+			"motor1Low"  : 600,
+			"motor0High"  : 900,
+			"motor1High"  : 1000,
 
 			"Sending"	 : False,
 			"version"    : "",

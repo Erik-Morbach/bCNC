@@ -6,6 +6,7 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+from tkinter.ttk import Separator
 __author__ = "Vasilis Vlachoudis"
 __email__  = "vvlachoudis@gmail.com"
 
@@ -144,53 +145,168 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Pause running program and soft reset controller to empty the buffer."))
 
-		f = Frame(self.frame)
-		self.m30CounterSt = StringVar()
-		self.m30CounterLabel = Label(f,textvariable=self.m30CounterSt,background=Ribbon._BACKGROUND)
-		self.m30CounterLabel.pack(side=TOP,fill=BOTH)
-		tkExtra.Balloon.set(self.m30CounterLabel, _("Number of times already reapeated by a m48 command"))
-		self.m30CounterSt.set("0")
 
-		self.m30CounterLimitSt = StringVar()
-		self.m30CounterLimit = Label(f, textvariable=self.m30CounterLimitSt,
-									 background=Ribbon._BACKGROUND,
-									 justify=RIGHT)
-		self.m30CounterLimit.pack(side=TOP, fill=BOTH)
-		tkExtra.Balloon.set(self.m30CounterLimit, _("Number of times wich a m48 command will repeat"))
-		self.m30CounterLimitSt.set("0")
-		f.pack(side=RIGHT, fill=BOTH)
+class ProcessGroup(CNCRibbon.ButtonGroup):
+	def __init__(self, master, app):
+		CNCRibbon.ButtonGroup.__init__(self, master, "Process", app)
+		self.app = app
+		frame = Frame(self)
+		f0 = Frame(frame)
+		Label(f0, text="Wait: ").pack(side=TOP)
+		self.timeSt = StringVar(value="0")
+		Label(f0, textvariable=self.timeSt).pack(side=TOP)
+		f0.pack(side=LEFT)
 
-	def workFocus(self, event=None):
-		if self.app.running:
-			self.app.focus_set()
+		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=10)
 
-	def updateM30State(self, *args):
+		motor0 = Frame(frame)
+		Label(motor0,text="Motor 0").pack(side=TOP)
+		f0 = Frame(motor0)
+		f0Low = Frame(f0)
+		Label(f0Low, text="Low").pack(side=TOP)
+		Button(f0Low, text="M0+", command=self.m0LowPlus).pack(side=TOP)
+		self.motor0VelocityLow = Label(f0Low, text=CNC.vars["motor0Low"])
+		self.motor0VelocityLow.pack(side=TOP)
+		Button(f0Low, text="M0-", command=self.m0LowMinus).pack(side=TOP)
+		f0Low.pack(side=LEFT)
+		Separator(f0, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
+		f0High = Frame(f0)
+		Label(f0High, text="High").pack(side=TOP)
+		Button(f0High, text="M0+", command=self.m0HighPlus).pack(side=TOP)
+		self.motor0VelocityHigh = Label(f0High, text=CNC.vars["motor0High"])
+		self.motor0VelocityHigh.pack(side=TOP)
+		Button(f0High, text="M0-", command=self.m0HighMinus).pack(side=TOP)
+		f0High.pack(side=LEFT)
+		f0.pack(side=TOP)
+		motor0.pack(side=LEFT)
+
+		Separator(frame, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+
+		motor1 = Frame(frame)
+		Label(motor1,text="Motor 1").pack(side=TOP)
+		f1 = Frame(motor1)
+		f1Low = Frame(f1)
+		Label(f1Low, text="Low").pack(side=TOP)
+		Button(f1Low, text="M1+", command=self.m1LowPlus).pack(side=TOP)
+		self.motor1VelocityLow = Label(f1Low, text=CNC.vars["motor1Low"])
+		self.motor1VelocityLow.pack(side=TOP)
+		Button(f1Low, text="M1-", command=self.m1LowMinus).pack(side=TOP)
+		f1Low.pack(side=LEFT)
+		Separator(f1, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
+		f1High = Frame(f1)
+		Label(f1High, text="High").pack(side=TOP)
+		Button(f1High, text="M1+", command=self.m1HighPlus).pack(side=TOP)
+		self.motor1VelocityHigh = Label(f1High, text=CNC.vars["motor1High"])
+		self.motor1VelocityHigh.pack(side=TOP)
+		Button(f1High, text="M1-", command=self.m1HighMinus).pack(side=TOP)
+		f1High.pack(side=LEFT)
+		f1.pack(side=TOP)
+		motor1.pack(side=LEFT)
+
+
+		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
+
+		self.spindleRpmSt = StringVar()
+		self.spindleRpmSt.set("4000")
+		spindleControl = Frame(frame)
+		Label(spindleControl, text="Spindle").pack(side=TOP)
+		Button(spindleControl, text="S+", command=self.spindlePlus).pack(side=TOP)
+		en = Entry(spindleControl,textvariable=self.spindleRpmSt)
+		en.pack(side=TOP)
+		Button(spindleControl, text="S-", command=self.spindleMinus).pack(side=TOP)
+		spindleControl.pack(side=LEFT)
+		self.rpmInFocus = False
+		en.bind('<FocusIn>',  self.rpmFocus)
+		en.bind('<KP_Enter>', self.rpmUpdated)
+		en.bind("<Return>", self.rpmUpdated)
+
+		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
+
+		flood = Frame(frame)
+		Label(flood, text="Flood").pack(side=TOP)
+		Button(flood, text="toggle", command=self.floodToggle).pack(side=TOP)
+		flood.pack(side=LEFT)
+
+		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
+
+		state = Frame(frame)
+		self.stateVar = StringVar()
+		Label(state, textvariable= self.stateVar).pack(side=TOP)
+		state.pack(side=LEFT)
+
+		frame.pack()
+
+		self.update()
+
+	def update(self, *args):
+		self.timeSt.set("%0.2f" % CNC.vars["wait"])
+		if not self.rpmInFocus:
+			self.spindleRpmSt.set("%0.2f" % CNC.vars["curspindle"])
+		self.stateVar.set(str(CNC.vars["processState"]))
+		self.motor0VelocityLow.config(text=CNC.vars["motor0Low"])
+		self.motor0VelocityHigh.config(text=CNC.vars["motor0High"])
+		self.motor1VelocityLow.config(text=CNC.vars["motor1Low"])
+		self.motor1VelocityHigh.config(text=CNC.vars["motor1High"])
+
+	def rpmFocus(self, *args):
+		self.rpmInFocus = True
+	def rpmUpdated(self, *args):
 		try:
-			limit = int(self.m30CounterLimitSt.get())
-			CNC.vars["M30CounterLimit"] = limit
+			rpm = float(self.spindleRpmSt.get())
+		except BaseException as be:
+			print(be)
+			return
+		self.rpmInFocus = False
+		self.app.iteceProcess._updateAngular(rpm)
+		self.app.focus_set()
 
-		except:
-			pass
-
-	def getM30Max(self):
+	def floodToggle(self, *args):
+		self.app.sendHex("0xA0")
+	def spindlePlus(self, *args):
 		try:
-			return int(self.m30CounterLimitSt.get())
-		except:
-			self.m30CounterLimitSt.set("0")
-			return 0	
+			self.rpmInFocus = True
+			rpm = float(self.spindleRpmSt.get())
+			self.spindleRpmSt.set(str(rpm+rpm/10))
+			self.rpmUpdated()
+			self.rpmInFocus = False
+		except BaseException as be:
+			print(be)
+			return
 
-	def setM30CounterLimit(self, number):
+	def spindleMinus(self, *args):
 		try:
-			self.m30CounterLimitSt.set(str(int(number)))
-		except:
-			self.m30CounterLimitSt.set("0")
-
-	def setM30Counter(self, number):
-		try:
-			self.m30CounterSt.set(str(int(number)))
-		except:
-			self.m30CounterSt.set("-1")
-
+			self.rpmInFocus = True
+			rpm = float(self.spindleRpmSt.get())
+			self.spindleRpmSt.set(str(rpm-rpm/10))
+			self.rpmUpdated()
+			self.rpmInFocus = False
+		except BaseException as be:
+			print(be)
+			return
+	def m0LowPlus(self, *args):
+		CNC.vars["motor0Low"]+=10
+		CNC.vars["motor0Low"] = min(1024, CNC.vars["motor0Low"])
+	def m0LowMinus(self, *args):
+		CNC.vars["motor0Low"]-=10
+		CNC.vars["motor0Low"] = max(0, CNC.vars["motor0Low"])
+	def m0HighPlus(self, *args):
+		CNC.vars["motor0High"]+=10
+		CNC.vars["motor0High"] = min(1024, CNC.vars["motor0High"])
+	def m0HighMinus(self, *args):
+		CNC.vars["motor0High"]-=10
+		CNC.vars["motor0High"] = max(0, CNC.vars["motor0High"])
+	def m1LowPlus(self, *args):
+		CNC.vars["motor1Low"]+=10
+		CNC.vars["motor1Low"] = min(1024, CNC.vars["motor1Low"])
+	def m1LowMinus(self, *args):
+		CNC.vars["motor1Low"]-=10
+		CNC.vars["motor1Low"] = max(0, CNC.vars["motor1Low"])
+	def m1HighPlus(self, *args):
+		CNC.vars["motor1High"]+=10
+		CNC.vars["motor1High"] = min(1024, CNC.vars["motor1High"])
+	def m1HighMinus(self, *args):
+		CNC.vars["motor1High"]-=10
+		CNC.vars["motor1High"] = max(0, CNC.vars["motor1High"])
 
 #===============================================================================
 # DRO Frame
@@ -736,7 +852,6 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 class ControlFrame(CNCRibbon.PageExLabelFrame):
 	def __init__(self, master, app):
 		CNCRibbon.PageExLabelFrame.__init__(self, master, "Control", _("Control"), app)
-		self.isLathe = Utils.getBool("CNC","lathe",0)
 
 		frame = Frame(self())
 		frame.pack(side=TOP, fill=X)
@@ -749,7 +864,6 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 		self.jogSpeedEntry.bind('<Return>',self.setJogSpeed)
 		self.jogSpeedEntry.bind('<KP_Enter>',self.setJogSpeed)
 		tkExtra.Balloon.set(self.jogSpeedEntry,_("Jog Speed"))
-		self.addWidget(self.jogSpeedEntry)
 
 		speeds = ["1000", "2000", "3000", "5000"]
 		buttonSpeed = []
@@ -762,23 +876,6 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 			tkExtra.Balloon.set(b, _(speed))
 			self.addWidget(b)
 			buttonSpeed += [b]
-
-		def selectSpeed(value):
-			self.jogSpeedEntry.set(value)
-			self.setJogSpeed()
-		buttonSpeed[0].config(command=lambda:selectSpeed(speeds[0]))
-		buttonSpeed[1].config(command=lambda:selectSpeed(speeds[1]))
-		buttonSpeed[2].config(command=lambda:selectSpeed(speeds[2]))
-		buttonSpeed[3].config(command=lambda:selectSpeed(speeds[3]))
-
-		# A+    C+
-		#    B+    B-
-		# A-    C-
-
-		aName = "B" if self.isLathe else "Z"
-		bName = "Z" if self.isLathe else "X"
-		cName = "X" if self.isLathe else "Y"
-
 		def focu(event = None):
 			self.app.focus_set()
 		col += 2
@@ -788,64 +885,40 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 		b.grid(row=row, column=col, columnspan=2, sticky=EW)
 		tkExtra.Balloon.set(b, _("Focus"))
 
+		def selectSpeed(value):
+			self.jogSpeedEntry.set(value)
+			self.setJogSpeed()
+		buttonSpeed[0].config(command=lambda:selectSpeed(speeds[0]))
+		buttonSpeed[1].config(command=lambda:selectSpeed(speeds[1]))
+		buttonSpeed[2].config(command=lambda:selectSpeed(speeds[2]))
+		buttonSpeed[3].config(command=lambda:selectSpeed(speeds[3]))
+
 		row+=1
 		col = 0
-		Label(frame, text=_(aName)).grid(row=row, column=col)
+		width=5
+		height=5
+		buttons = Utils.getInt("Itece", "xJogButtons", 1)
+		steps = []
+		for i in range(0,buttons):
+			steps.append(Utils.getFloat("Itece", "xJog{}".format(i), 0.5*i))
 
-		col += 3
-		Label(frame, text=_(cName)).grid(row=row, column=col)
+		for j in range(0,buttons):
+			b = Button(frame, text=Unicode.BLACK_UP_POINTING_TRIANGLE,
+						command=functools.partial(self.moveXupStep, steps[j]),
+						width=width, height=height,
+						activebackground="LightYellow")
+			b.grid(row=1, column=j, sticky=EW)
+		for j in range(0,buttons):
+			l = Label(frame, text=str(steps[j]))
+			l.grid(row=2,column=j, sticky=EW)
+		for j in range(0,buttons):
+			b = Button(frame, text=Unicode.BLACK_DOWN_POINTING_TRIANGLE,
+						command=functools.partial(self.moveXdownStep, steps[j]),
+						width=width, height=height,
+						activebackground="LightYellow")
+			b.grid(row=3, column=j, sticky=EW)
 
-		# ---
-		row += 1
-		col = 0
-
-		width=3
-		height=2
-		command = self.moveBup if self.isLathe else self.moveZup
-		name = "Move +{}".format(aName)
-		b = Button(frame, text=Unicode.BLACK_UP_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
-		command = self.moveZdownXup if self.isLathe else self.moveXdownYup
-		name = "Move -{} +{}".format(bName, cName)
-		b = Button(frame, text=Unicode.UPPER_LEFT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveXup if self.isLathe else self.moveYup
-		name = "Move +{}".format(cName)
-		b = Button(frame, text=Unicode.BLACK_UP_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveZupXup if self.isLathe else self.moveXupYup
-		name = "Move +{} +{}".format(bName, cName)
-		b = Button(frame, text=Unicode.UPPER_RIGHT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
+		col = buttons + 2
 		b = Button(frame, text=u"\u00D710",
 				command=self.mulStep,
 				width=3,
@@ -863,123 +936,16 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 		tkExtra.Balloon.set(b, _("Increase step by 1 unit"))
 		self.addWidget(b)
 
-		# ---
-		row += 1
-
-		col = 1
-		Label(frame, text=_(bName), width=3, anchor=E).grid(row=row, column=col, sticky=E)
-
-		col += 1
-		command = self.moveZdown if self.isLathe else self.moveXdown
-		name = "Move -{}".format(bName)
-		b = Button(frame, text=Unicode.BLACK_LEFT_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		b = Utils.UserButton(frame, self.app, 0, text=Unicode.LARGE_CIRCLE,
-					command=self.go2origin,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _("Move to Origin.\nUser configurable button.\nRight click to configure."))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveZup if self.isLathe else self.moveXup
-		name = "Move +{}".format(bName)
-		b = Button(frame, text=Unicode.BLACK_RIGHT_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		# --
-		col += 1
-		Label(frame,"",width=2).grid(row=row,column=col)
-		
-		col += 1
+		row +=1
+		col = buttons + 2
 		self.step = tkExtra.Combobox(frame, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
 		self.step.grid(row=row, column=col, columnspan=2, sticky=EW)
 		self.step.set(Utils.config.get("Control","step"))
 		self.step.fill(map(float, Utils.config.get("Control","steplist").split()))
 		tkExtra.Balloon.set(self.step, _("Step for every move operation"))
 		self.addWidget(self.step)
-
-
-		# -- Separate zstep --
-		self.zstep = self.step
-
-		# Default steppings
-		try:
-			self.step1 = Utils.getFloat("Control","step1")
-		except:
-			self.step1 = 0.1
-
-		try:
-			self.step2 = Utils.getFloat("Control","step2")
-		except:
-			self.step2 = 1
-
-		try:
-			self.step3 = Utils.getFloat("Control","step3")
-		except:
-			self.step3 = 10
-
-		# ---
 		row += 1
-		col = 0
-
-		command = self.moveBdown if self.isLathe else self.moveZdown
-		name = "Move -{}".format(aName)
-		b = Button(frame, text=Unicode.BLACK_DOWN_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
-		command = self.moveZdownXdown if self.isLathe else self.moveXdownYdown
-		name ="Move -{} -{}".format(bName,cName)
-		b = Button(frame, text=Unicode.LOWER_LEFT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveXdown if self.isLathe else self.moveYdown
-		name = "Move -{}".format(cName)
-		b = Button(frame, text=Unicode.BLACK_DOWN_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveZdownXup if self.isLathe else self.moveXupYdown
-		name = "Move +{} -{}".format(bName, cName)
-		b = Button(frame, text=Unicode.LOWER_RIGHT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
+		col = buttons + 2
 		b = Button(frame, text=u"\u00F710",
 					command=self.divStep,
 					padx=1, pady=1)
@@ -995,6 +961,7 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 		tkExtra.Balloon.set(b, _("Decrease step by 1 unit"))
 		self.addWidget(b)
 
+		self.zstep = self.step
 		#self.grid_columnconfigure(6,weight=1)
 		try:
 #			self.grid_anchor(CENTER)
@@ -1005,8 +972,6 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 	#----------------------------------------------------------------------
 	def saveConfig(self):
 		Utils.setFloat("Control", "step", self.step.get())
-		if self.zstep is not self.step:
-			Utils.setFloat("Control", "zstep", self.zstep.get())
 
 	#----------------------------------------------------------------------
 	# Jogging
@@ -1019,15 +984,15 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 			pass
 
 	def getStep(self, axis='x'):
-		isolatedStep = 'b' if self.isLathe else 'z'
-		if axis == isolatedStep:
-			zs = self.zstep.get()
-			if zs == _NOZSTEP:
-				return self.step.get()
-			else:
-				return zs
-		else:
-			return self.step.get()
+		return self.step.get()
+
+	def moveXupStep(self, step, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.sendGCode("G91G1X%sF100"%(step))
+
+	def moveXdownStep(self, step, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.sendGCode("G91G1X%sF100"%(-step))
 
 	def moveXup(self, event=None):
 		if event is not None and not self.acceptKey(): return
@@ -1092,14 +1057,6 @@ class ControlFrame(CNCRibbon.PageExLabelFrame):
 	def moveZdown(self, event=None):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("Z-%s"%(self.getStep('z')))
-
-	def go2origin(self, event=None):
-		self.sendGCode("G90")
-		self.sendGCode("G0Z%d"%(CNC.vars['safe']))
-		self.sendGCode("G0X0Y0")
-		self.sendGCode("G0Z0")
-		if self.isLathe:
-			self.sendGCode("G0B0")
 
 	#----------------------------------------------------------------------
 	def setStep(self, s, zs=None):

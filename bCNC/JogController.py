@@ -24,7 +24,7 @@ class JogController:
         self.period = 0.1
         self.lastTime = 0
         self.mutex = threading.Lock()
-        self.active = Utils.getBool("Panel", "jogKeyboard", False)
+        self.active = Utils.getBool("Jog", "keyboard", False)
         if self.active:
             for (key,(code,sym)) in self.mapKeyToCode.items():
                 print("Bind {},{} to {}".format(code,sym,key))
@@ -37,7 +37,7 @@ class JogController:
             self.mutex.acquire()
 
     def jogEvent(self, data):
-        if self.app.running or CNC.vars["state"] == "Run" or data is None:
+        if self.app.running or not CNC.vars["jogActive"] or CNC.vars["state"] == "Run" or data is None:
             return
         self.lastTime = time.time()
         if self.mutex.locked():
