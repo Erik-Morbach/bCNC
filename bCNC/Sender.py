@@ -341,6 +341,13 @@ class Sender:
 		elif cmd == "STOP":
 			self.stopRun()
 
+		elif cmd == "SETLZ":
+			try: 
+				z = float(line[1])
+				self.sendGCode("$132={}".format(z))
+			except:
+				pass
+
 		# UNL*OCK: unlock grbl
 		elif rexx.abbrev("UNLOCK",cmd,3):
 			self.unlock()
