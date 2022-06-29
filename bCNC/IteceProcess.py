@@ -22,6 +22,7 @@ class IteceProcess:
         self.mutex = threading.Lock()
         self.app = app
         self.currentState = states.Waiting
+        self.resolution = Utils.getFloat("Itece", "pwmResolution", 1024)
         self.radiusZeroPosition = Utils.getFloat("Itece", "radiusZero", 0) # mm
         self.processLimitPosition = Utils.getFloat("Itece", "processLimitPosition", -100) # mm
         self.beginWaitTime = Utils.getFloat("Itece", "processBeginWait", 10) # segundos
@@ -99,14 +100,18 @@ class IteceProcess:
         self.app.sendGCode("M67E1Q0")
 
     def _setLowSpeed(self) -> None:
+        m0Low = CNC.vars["motor0Low"] * self.resolution
+        m1Low = CNC.vars["motor1Low"] * self.resolution
         self.app.sendGCode("M62P3")
-        self.app.sendGCode("M67E0Q{}".format(CNC.vars["motor0Low"]))
-        self.app.sendGCode("M67E1Q{}".format(CNC.vars["motor1Low"]))
+        self.app.sendGCode("M67E0Q{}".format(m0Low))
+        self.app.sendGCode("M67E1Q{}".format(m1Low))
 
     def _setHighSpeed(self) -> None:
+        m0High = CNC.vars["motor0High"] * self.resolution
+        m1High = CNC.vars["motor1High"] * self.resolution
         self.app.sendGCode("M63P3")
-        self.app.sendGCode("M67E0Q{}".format(CNC.vars["motor0High"]))
-        self.app.sendGCode("M67E1Q{}".format(CNC.vars["motor1High"]))
+        self.app.sendGCode("M67E0Q{}".format(m0High))
+        self.app.sendGCode("M67E1Q{}".format(m1High))
 
     def _getDesiredRpm(self, radius, angularVelocity) -> float:
         return angularVelocity / (2 * np.pi * radius)

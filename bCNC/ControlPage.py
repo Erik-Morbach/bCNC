@@ -56,7 +56,7 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 		col,row=0,0
 		b = Ribbon.LabelButton(self.frame,
 				image=Utils.icons["home32"],
-				text=_("Home"),
+				text=_("Referencia"),
 				compound=TOP,
 				anchor=W,
 				command=app.home,
@@ -69,7 +69,7 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 		col,row=1,0
 		b = Ribbon.LabelButton(self.frame,
 				image=Utils.icons["unlock"],
-				text=_("Unlock/Startup"),
+				text=_("Desbloquear"),
 				compound=LEFT,
 				anchor=W,
 				command=app.unlock,
@@ -81,7 +81,7 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 		row += 1
 		b = Ribbon.LabelButton(self.frame,
 				image=Utils.icons["serial"],
-				text=_("Connection"),
+				text=_("Conexao"),
 				compound=LEFT,
 				anchor=W,
 				command=lambda s=self : s.event_generate("<<Connect>>"),
@@ -152,7 +152,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		self.app = app
 		frame = Frame(self)
 		f0 = Frame(frame)
-		Label(f0, text="Wait: ").pack(side=TOP)
+		Label(f0, text="Tempo de espera: ").pack(side=TOP)
 		self.timeSt = StringVar(value="0")
 		Label(f0, textvariable=self.timeSt).pack(side=TOP)
 		f0.pack(side=LEFT)
@@ -163,7 +163,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		Label(motor0,text="Motor 0").pack(side=TOP)
 		f0 = Frame(motor0)
 		f0Low = Frame(f0)
-		Label(f0Low, text="Low").pack(side=TOP)
+		Label(f0Low, text="Baixa").pack(side=TOP)
 		Button(f0Low, text="M0+", command=self.m0LowPlus).pack(side=TOP)
 		self.motor0VelocityLow = Label(f0Low, text=CNC.vars["motor0Low"])
 		self.motor0VelocityLow.pack(side=TOP)
@@ -171,7 +171,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		f0Low.pack(side=LEFT)
 		Separator(f0, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
 		f0High = Frame(f0)
-		Label(f0High, text="High").pack(side=TOP)
+		Label(f0High, text="Alta").pack(side=TOP)
 		Button(f0High, text="M0+", command=self.m0HighPlus).pack(side=TOP)
 		self.motor0VelocityHigh = Label(f0High, text=CNC.vars["motor0High"])
 		self.motor0VelocityHigh.pack(side=TOP)
@@ -186,7 +186,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		Label(motor1,text="Motor 1").pack(side=TOP)
 		f1 = Frame(motor1)
 		f1Low = Frame(f1)
-		Label(f1Low, text="Low").pack(side=TOP)
+		Label(f1Low, text="Baixa").pack(side=TOP)
 		Button(f1Low, text="M1+", command=self.m1LowPlus).pack(side=TOP)
 		self.motor1VelocityLow = Label(f1Low, text=CNC.vars["motor1Low"])
 		self.motor1VelocityLow.pack(side=TOP)
@@ -194,7 +194,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		f1Low.pack(side=LEFT)
 		Separator(f1, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
 		f1High = Frame(f1)
-		Label(f1High, text="High").pack(side=TOP)
+		Label(f1High, text="Alta").pack(side=TOP)
 		Button(f1High, text="M1+", command=self.m1HighPlus).pack(side=TOP)
 		self.motor1VelocityHigh = Label(f1High, text=CNC.vars["motor1High"])
 		self.motor1VelocityHigh.pack(side=TOP)
