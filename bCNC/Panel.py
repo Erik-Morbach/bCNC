@@ -1,11 +1,35 @@
 import threading
 import time
-import wiringpi as wp
 import Utils
+import io
 
 from CNC import CNC
 
-wp.wiringPiSetup()
+def is_raspberrypi():
+	try:
+		with io.open('/sys/firmware/devicetree/base/model', 'r') as m:
+			if 'raspberry pi' in m.read().lower(): 
+				return True
+	except Exception:
+		pass
+	return False
+
+if is_raspberrypi():
+	print("Is a Pi")
+	import wiringpi as wp
+	wp.wiringPiSetup()
+else:
+	print("Not a Pi")
+	class A:
+		INPUT = 0
+		PUD_DOWN = 1
+		def pinMode(self, *args):
+			pass
+		def pullUpDnControl(self, *args):
+			pass
+		def digitalRead(self, *args):
+			return 0
+	wp = A()
 
 class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
