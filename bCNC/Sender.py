@@ -699,7 +699,7 @@ class Sender:
 	def controllerStateChange(self, state):
 		print("Controller state changed to: %s (Running: %s)"%(state, self.running))
 		if state in ("Idle"):
-			self.mcontrol.viewParameters()
+#			self.mcontrol.viewParameters()
 			self.mcontrol.viewState()
 
 		if self.cleanAfter == True and self.running == False and state in ("Idle"):

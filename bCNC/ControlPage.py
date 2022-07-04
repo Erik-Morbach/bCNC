@@ -223,8 +223,8 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
 
 		flood = Frame(frame)
-		Label(flood, text="Flood").pack(side=TOP)
-		Button(flood, text="toggle", command=self.floodToggle).pack(side=TOP)
+		Label(flood, text="Refrigeracao").pack(side=TOP)
+		Button(flood, text="Ativa/Desativa", command=self.floodToggle).pack(side=TOP)
 		flood.pack(side=LEFT)
 
 		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
@@ -285,25 +285,25 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 			return
 	def m0LowPlus(self, *args):
 		CNC.vars["motor0Low"]+=10
-		CNC.vars["motor0Low"] = min(1024, CNC.vars["motor0Low"])
+		CNC.vars["motor0Low"] = min(100, CNC.vars["motor0Low"])
 	def m0LowMinus(self, *args):
 		CNC.vars["motor0Low"]-=10
 		CNC.vars["motor0Low"] = max(0, CNC.vars["motor0Low"])
 	def m0HighPlus(self, *args):
 		CNC.vars["motor0High"]+=10
-		CNC.vars["motor0High"] = min(1024, CNC.vars["motor0High"])
+		CNC.vars["motor0High"] = min(100, CNC.vars["motor0High"])
 	def m0HighMinus(self, *args):
 		CNC.vars["motor0High"]-=10
 		CNC.vars["motor0High"] = max(0, CNC.vars["motor0High"])
 	def m1LowPlus(self, *args):
 		CNC.vars["motor1Low"]+=10
-		CNC.vars["motor1Low"] = min(1024, CNC.vars["motor1Low"])
+		CNC.vars["motor1Low"] = min(100, CNC.vars["motor1Low"])
 	def m1LowMinus(self, *args):
 		CNC.vars["motor1Low"]-=10
 		CNC.vars["motor1Low"] = max(0, CNC.vars["motor1Low"])
 	def m1HighPlus(self, *args):
 		CNC.vars["motor1High"]+=10
-		CNC.vars["motor1High"] = min(1024, CNC.vars["motor1High"])
+		CNC.vars["motor1High"] = min(100, CNC.vars["motor1High"])
 	def m1HighMinus(self, *args):
 		CNC.vars["motor1High"]-=10
 		CNC.vars["motor1High"] = max(0, CNC.vars["motor1High"])

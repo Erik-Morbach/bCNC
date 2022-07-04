@@ -1,4 +1,6 @@
 from enum import IntEnum
+import functools
+from os import wait
 import threading
 import numpy as np
 import time
@@ -16,13 +18,83 @@ class states(IntEnum):
     ReEntering = 4,
     Exiting = 5
 
+class State:
+    _variablesToId: dict = {}
+    _idToUpdateMethod: dict = {}
+    _idToUpdateFlag: dict = {}
+    _idToValue: dict = {}
+    _idCounter = 0
+    def __init__(self):
+        self._variablesToId = {}
+        self._idToUpdateMethod = {}
+        self._idToUpdateFlag = {}
+        self._idToValue = {}
+        self._idCounter = 0
+
+    def showState(self):
+        print(self._variablesToId)
+        print(self._idToValue)
+        print(self._idToUpdateFlag)
+
+    def _getVariableId(self, name):
+        if self._variablesToId.get(name) is None:
+            self._variablesToId[name] = self._getNewId()
+        return self._variablesToId[name]
+
+    def _getNewId(self):
+        self._idCounter += 1
+        return self._idCounter
+
+    def createVariable(self, name, value, updateMethod):
+        self.setValue(name, value)
+        self.setUpdateMethod(name, updateMethod)
+
+    def setValue(self, name, value):
+        currentId = self._getVariableId(name)
+        self._idToValue[currentId] = value
+        self._idToUpdateFlag[currentId] = True
+
+    def setUpdateMethod(self, name, updateMethod):
+        currentId = self._getVariableId(name)
+        self._idToUpdateMethod[currentId] = updateMethod
+
+    def getValue(self, name):
+        currentId = self._getVariableId(name)
+        return self._idToValue[currentId]
+
+    def clearUpdateFlag(self, name):
+        currentId = self._getVariableId(name)
+        self._idToUpdateFlag[currentId] = False
+
+    def update(self, name = ""):
+        currentId = self._getVariableId(name)
+        try:
+            value = self._idToValue[currentId]
+            self._idToUpdateMethod[currentId](value)
+        except BaseException as be:
+            print("While executing update method of {}:{}".format(name))
+            print(be)
+            print("passing....")
+
+    def executeUpdateMethods(self, variables=None):
+        if variables is None:
+            variables = [w for w in self._variablesToId.keys()]
+        for name in variables:
+            if self.shouldUpdate(name):
+                self.update(name)
+                self.clearUpdateFlag(name)
+
+    def shouldUpdate(self, name):
+        currentId = self._getVariableId(name)
+        return self._idToUpdateFlag[currentId]
 
 class IteceProcess:
     def __init__(self, app) -> None:
         self.mutex = threading.Lock()
         self.app = app
         self.currentState = states.Waiting
-        self.resolution = Utils.getFloat("Itece", "pwmResolution", 1024)
+        self.spindleDeadBand = Utils.getFloat("Itece", "spindleDeadBand", 50)
+        self.pwmResolution = Utils.getFloat("Itece", "pwmResolution", 1024)
         self.radiusZeroPosition = Utils.getFloat("Itece", "radiusZero", 0) # mm
         self.processLimitPosition = Utils.getFloat("Itece", "processLimitPosition", -100) # mm
         self.beginWaitTime = Utils.getFloat("Itece", "processBeginWait", 10) # segundos
@@ -30,6 +102,22 @@ class IteceProcess:
         self.angularVelocity = Utils.getFloat("Itece", "defaultAngularVelocity", 125.66) # rad/s
         self.iterationDistance = Utils.getFloat("Itece", "iterationDistance", 0.2) # mm
         self.iterationFeed = Utils.getFloat("Itece", "iterationFeed", 20) # mm/min
+
+        self.updateVelocityMethod = self._updateToHighSpeed
+
+        self.state = State()
+        def sendRpm(rpm):
+            self.app.sendGCode("S{}".format(rpm))
+        self.state.createVariable("rpm", self.beginRpm, sendRpm)
+
+        def sendVelocity(ind,vel):
+            self.app.sendGCode("M67E{}Q{}".format(ind, vel))
+        self.state.createVariable("motor0",
+                                  CNC.vars["motor0High"]/100 * self.pwmResolution,
+                                  functools.partial(sendVelocity, 0))
+        self.state.createVariable("motor1",
+                                  CNC.vars["motor1High"]/100 * self.pwmResolution,
+                                  functools.partial(sendVelocity, 1))
 
     def start(self, *args) -> None:
         if self.mutex.locked():
@@ -49,6 +137,9 @@ class IteceProcess:
             time.sleep(0.1)
             self._rpmCompensation()
             self._stateChange()
+            self.updateVelocityMethod()
+            self.state.executeUpdateMethods()
+
             if not self._isPositionValid():
                 self.mutex.release()
                 break
@@ -63,25 +154,25 @@ class IteceProcess:
         self.app.sendGCode("G54")
         self.app.mcontrol._wcsSet("0",None,None,None,None,None)
         self.app.sendGCode("M3S{}".format(self.beginRpm))
+        self._setHighSpeed()
+        self._activateMotors()
+        self.state.executeUpdateMethods()
         self.app.sendGCode("G4P{}".format(int(self.beginWaitTime))) # wait mainSpindle
         self.sleep(self.beginWaitTime)
 
         self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), 
                                                                self.beginRpm)
-
-        self._setHighSpeed()
-        self._activateMotors()
         self.app.sendGCode("M62P2") # presser
         self.app.sendGCode("G4P1") #  wait Presser
         self.sleep(1)
 
     def _endProcess(self) -> None:
         self.app.sendGCode("M5")
+        self._setState(states.Waiting)
         self._deactivateMotors()
         self.app.sendGCode("G90 G55 G0 X0")
         self.app.sendGCode("G54")
         self.app.configWidgets("state", tkinter.NORMAL)
-        self._setState(states.Waiting)
         CNC.vars["jogActive"] = True
         self.app.sendGCode("%")
 
@@ -96,22 +187,34 @@ class IteceProcess:
         self.app.sendGCode("M63P0") # activate Motor 0
         self.app.sendGCode("M63P1") # activate Motor 1
         self.app.sendGCode("M63P3") # activate Motor 1
-        self.app.sendGCode("M67E0Q0")
-        self.app.sendGCode("M67E1Q0")
+        self.state.setValue("motor0", 0)
+        self.state.setValue("motor1", 0)
+
+    def _updateToLowSpeed(self):
+        m0Low = float(CNC.vars["motor0Low"])/100 * self.pwmResolution
+        m1Low = float(CNC.vars["motor1Low"])/100 * self.pwmResolution
+        if m0Low != self.state.getValue("motor0"):
+            self.state.setValue("motor0", m0Low)
+        if m1Low != self.state.getValue("motor1"):
+            self.state.setValue("motor1", m1Low)
+
+    def _updateToHighSpeed(self):
+        m0High = float(CNC.vars["motor0High"])/100 * self.pwmResolution
+        m1High = float(CNC.vars["motor1High"])/100 * self.pwmResolution
+        if m0High != self.state.getValue("motor0"):
+            self.state.setValue("motor0", m0High)
+        if m1High != self.state.getValue("motor1"):
+            self.state.setValue("motor1", m1High)
 
     def _setLowSpeed(self) -> None:
-        m0Low = CNC.vars["motor0Low"] * self.resolution
-        m1Low = CNC.vars["motor1Low"] * self.resolution
+        self._updateToLowSpeed()
         self.app.sendGCode("M62P3")
-        self.app.sendGCode("M67E0Q{}".format(m0Low))
-        self.app.sendGCode("M67E1Q{}".format(m1Low))
+        self.updateVelocityMethod = self._updateToLowSpeed
 
     def _setHighSpeed(self) -> None:
-        m0High = CNC.vars["motor0High"] * self.resolution
-        m1High = CNC.vars["motor1High"] * self.resolution
+        self._updateToHighSpeed()
         self.app.sendGCode("M63P3")
-        self.app.sendGCode("M67E0Q{}".format(m0High))
-        self.app.sendGCode("M67E1Q{}".format(m1High))
+        self.updateVelocityMethod = self._updateToHighSpeed
 
     def _getDesiredRpm(self, radius, angularVelocity) -> float:
         return angularVelocity / (2 * np.pi * radius)
@@ -124,15 +227,18 @@ class IteceProcess:
 
     def sleep(self, t) -> None:
         while t > 0:
+            if not self.mutex.locked():
+                CNC.vars["wait"] = 0
+                return
             time.sleep(0.1)
             t -= 0.1
             CNC.vars["wait"] = t
         CNC.vars["wait"] = 0
 
     def _rpmCompensation(self) -> None:
-        rpm = self._getDesiredRpm(self._getCurrentRadius(),
-                                  self.angularVelocity)
-        self.app.sendGCode("S{}".format(rpm))
+        newRpm = self._getDesiredRpm(self._getCurrentRadius(), self.angularVelocity)
+        if abs(newRpm - self.state.getValue("rpm")) > self.spindleDeadBand:
+            self.state.setValue("rpm", newRpm)
 
     def _updateAngular(self,rpm) -> None:
         self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), rpm)
@@ -148,9 +254,9 @@ class IteceProcess:
         self.currentState = state
         CNC.vars["processState"] = state
         if state == states.Rotating:
-            self._setLowSpeed()
+            self.updateVelocityMethod = self._setLowSpeed
         else:
-            self._setHighSpeed()
+            self.updateVelocityMethod = self._setHighSpeed
 
     def _stateChange(self) -> None:
         s1 = (CNC.vars["inputs"] & 1) > 0
