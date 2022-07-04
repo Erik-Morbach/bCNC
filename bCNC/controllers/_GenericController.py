@@ -98,7 +98,7 @@ class _GenericController:
 		self.master.sendGCode("$H")
 
 	def viewStatusReport(self):
-		self.master.serial_write(b'\x80')
+		self.master.serial_write(b'?')
 		self.master.sio_status = True
 
 	def viewConfiguration(self):
@@ -194,7 +194,7 @@ class _GenericController:
 		self.master.sendGCode(currentMode)
 
 	def viewState(self): #Maybe rename to viewParserState() ???
-		self.master.serial_write(b'\x83')
+		self.master.serial_write(b'?')
 
 	#----------------------------------------------------------------------
 	def jog(self, dir):
@@ -268,7 +268,7 @@ class _GenericController:
 	def feedHold(self, event=None):
 		if event is not None and not self.master.acceptKey(True): return
 		if self.master.serial is None: return
-		self.master.serial_write(b'\x82')
+		self.master.serial_write(b'!')
 		self.master.serial.flush()
 		self.master._pause = True
 
@@ -276,7 +276,7 @@ class _GenericController:
 	def resume(self, event=None):
 		if event is not None and not self.master.acceptKey(True): return
 		if self.master.serial is None: return
-		self.master.serial_write(b'\x81')
+		self.master.serial_write(b'~')
 		self.master.serial.flush()
 		self.master._msg   = None
 		self.master._alarm = False
@@ -295,7 +295,7 @@ class _GenericController:
 	# a reset to clear the buffer of the controller
 	#---------------------------------------------------------------------
 	def purgeController(self):
-		self.master.serial_write(b'\x82')
+		self.master.serial_write(b'!')
 		self.master.serial.flush()
 		time.sleep(1)
 		# remember and send all G commands

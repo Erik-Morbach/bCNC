@@ -4706,7 +4706,7 @@ class GCode:
 						endLineNumber += 1
 					line = line[:beginLineNumber-1] + line[endLineNumber:]
 
-				if "M30" in line.strip().replace(' ',''):
+				if "M30" in line.strip().replace(' ','').upper():
 					stopNext = True
 				skip = lineNumber < CNC.vars["beginLine"] or line=='%'
 				# Remove program demarcations if exist
