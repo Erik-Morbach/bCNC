@@ -37,7 +37,7 @@ class JogController:
             self.mutex.acquire()
 
     def jogEvent(self, data):
-        if self.app.running or not CNC.vars["jogActive"] or CNC.vars["state"] == "Run" or data is None:
+        if self.app.running or CNC.vars["state"] == "Run" or data is None:
             return
         self.lastTime = time.time()
         if self.mutex.locked():

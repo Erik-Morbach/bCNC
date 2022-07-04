@@ -85,7 +85,6 @@ from EditorPage import EditorPage
 
 import GCodeViewer
 import PidLog
-from IteceProcess import IteceProcess
 
 _openserial = True  # override ini parameters
 _device = None
@@ -326,8 +325,6 @@ class Application(Toplevel, Sender):
         self.bind('<<Recent8>>', self._loadRecent8)
         self.bind('<<Recent9>>', self._loadRecent9)
 
-        self.iteceProcess = IteceProcess(self)
-
         self.bind('<<TerminalClear>>', Page.frames["Terminal"].clear)
         self.bind('<<AlarmClear>>', self.alarmClear)
         self.bind('<<Help>>', self.help)
@@ -339,8 +336,6 @@ class Application(Toplevel, Sender):
         self.bind('<<RunFromSD>>', lambda e, s=self: s.run(fromSD=True))
         self.bind('<<Stop>>', self.stopRun)
         self.bind('<<Pause>>', self.pause)
-        self.bind('<<ProcessInit>>', self.iteceProcess.start)
-        self.bind('<<ProcessEnd>>', self.iteceProcess.end)
         #		self.bind('<<TabAdded>>',	self.tabAdded)
 
         tkExtra.bindEventData(self, "<<Status>>", self.updateStatus)
@@ -2724,7 +2719,6 @@ class Application(Toplevel, Sender):
                 Page.frames["ProbeCommon"].updateTlo()
             self._update = None
 
-        Page.groups["Process"].update()
         self.panel.update()
         self.jogController.update()
 
