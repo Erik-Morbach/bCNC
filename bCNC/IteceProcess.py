@@ -131,6 +131,9 @@ class IteceProcess:
             return
         self.mutex.release()
 
+    def setNewRpm(self, rpm) -> None:
+        self._updateAngular(rpm)
+
     def _process(self) -> None:
         self._startupProcess()
         while self.mutex.locked():
