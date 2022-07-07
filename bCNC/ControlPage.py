@@ -347,24 +347,11 @@ class DROFrame(CNCRibbon.PageFrame):
 			focus = self.focus_get()
 		except:
 			focus = None
-		middle_work = self.bwork if self.isLathe else self.ywork
-		if focus is not self.xwork:
-			self.xwork.delete(0,END)
-			self.xwork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wx"]))
-		if focus is not middle_work:
-			middle_work.delete(0,END)
-			middle_work.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wb" if self.isLathe else "wy"]))
-		if focus is not self.zwork:
-			self.zwork.delete(0,END)
-			self.zwork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wz"]))
+		self.xwork["text"] = "%0.3f" % CNC.vars["wx"]
 
-		self.xmachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["mx"])
-		if self.isLathe:
-			self.bmachine["text"] = self.padFloat(CNC.drozeropad, CNC.vars["mb"])
-		else:
-			self.ymachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["my"])
-		self.zmachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["mz"])
+		self.xmachine["text"] = "%0.3f" % CNC.vars["mx"]
 		self.app.abcdro.updateCoords()
+
 	#----------------------------------------------------------------------
 	def padFloat(self, decimals, value):
 		if decimals>0:
