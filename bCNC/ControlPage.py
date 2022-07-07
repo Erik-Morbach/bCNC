@@ -291,8 +291,7 @@ class DROFrame(CNCRibbon.PageFrame):
 		self.xwork = Label(self, font=DROFrame.dro_wpos,
 					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
 					anchor=E,
-					relief=FLAT,
-					borderwidth=0,
+					relief=GROOVE,
 					justify=RIGHT)
 		self.xwork.grid(row=row,column=col,padx=1,sticky=EW)
 		tkExtra.Balloon.set(self.xwork, _("X work position (click to set)"))
@@ -304,7 +303,9 @@ class DROFrame(CNCRibbon.PageFrame):
 		Label(self,text=_("MPos:")).grid(row=row,column=col,sticky=E)
 
 		col += 1
-		self.xmachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,anchor=E)
+		self.xmachine = Label(self, font=DROFrame.dro_mpos, 
+				relief=GROOVE,
+				background=tkExtra.GLOBAL_CONTROL_BACKGROUND,anchor=E)
 		self.xmachine.grid(row=row,column=col,padx=1,sticky=EW)
 
 		# Set buttons
