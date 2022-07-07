@@ -1595,11 +1595,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 
 	#----------------------------------------------------------------------
 	def updateFeed(self):
-		if self.feedRate.cget("state") == DISABLED:
-			self.feedRate.config(state=NORMAL)
-			self.feedRate.delete(0,END)
-			self.feedRate.insert(0, CNC.vars["curfeed"])
-			self.feedRate.config(state=DISABLED)
+		pass
 
 	#----------------------------------------------------------------------
 	def wcsChange(self):
