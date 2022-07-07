@@ -1585,8 +1585,6 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 			focus = None
 
 		try:
-			self.feedRate.set(str(CNC.vars["feed"]))
-			self.feedMode.set(FEED_MODE[CNC.vars["feedmode"]])
 			self.spindle.set(CNC.vars["spindle"]=="M3")
 			self.spindleSpeed.set(int(CNC.vars["rpm"]))
 		except KeyError:
