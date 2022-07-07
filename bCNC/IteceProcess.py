@@ -247,8 +247,6 @@ class IteceProcess:
         if self.currentState == states.Waiting:
             return
         self.app.sendGCode("G91G1X-0.2F20")
-        while CNC.vars["state"] == "Run":
-            time.sleep(0.01)
 
     def _setState(self, state):
         self.currentState = state
