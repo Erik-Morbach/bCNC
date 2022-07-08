@@ -345,6 +345,7 @@ class Sender:
 			try: 
 				z = float(line[1])
 				self.sendGCode("$132={}".format(z))
+				self.modifyConfiguration("$132", z)
 			except:
 				pass
 
@@ -358,6 +359,18 @@ class Sender:
 
 		else:
 			return _("unknown command"),_("Invalid command %s")%(oline)
+
+	#----------------------------------------------------------------------
+	def modifyConfiguration(self, name, value):
+		settingsFile = open("Settings.txt",'r')
+		lines = settingsFile.readlines()
+		settingsFile.close()
+		for id,w in enumerate(lines):
+			if w.startswith(name):
+				lines[id] = w[:w.find('=')] + "= {}\n".format(value)
+		settingsFile = open("Settings.txt",'w')
+		settingsFile.writelines(lines)
+		settingsFile.close()
 
 	#----------------------------------------------------------------------
 	def help(self, event=None):
