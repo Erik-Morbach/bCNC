@@ -118,6 +118,7 @@ class Sender:
 		self.thread	 = None
 
 
+		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
 		self._probeUpdate= False	# Update probe
 		self._gUpdate	 = False	# Update $G
@@ -712,8 +713,10 @@ class Sender:
 	def controllerStateChange(self, state):
 		print("Controller state changed to: %s (Running: %s)"%(state, self.running))
 		if state in ("Idle"):
-			self.mcontrol.viewParameters()
-			self.mcontrol.viewState()
+			if time.time() - self._updateChangedState > 1:
+				self.mcontrol.viewParameters()
+				self.mcontrol.viewState()
+				self._updateChangedState = time.time()
 
 		if self.cleanAfter == True and self.running == False and state in ("Idle"):
 			self.cleanAfter = False
