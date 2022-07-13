@@ -696,7 +696,7 @@ class Sender:
 		if CNC.vars["state"].lower() not in ["idle","hold","hold:0", "hold:1", "run"]:
 			return
 		while CNC.vars["state"].lower() in ["hold","hold:0", "hold:1", "run"]:
-			time.sleep(0.1)
+			time.sleep(0.005)
 		if CNC.vars["state"].lower() != "idle":
 			return
 		self.gcode.repeatEngine.countRepetition()
@@ -713,7 +713,7 @@ class Sender:
 	def controllerStateChange(self, state):
 		print("Controller state changed to: %s (Running: %s)"%(state, self.running))
 		if state in ("Idle"):
-			if time.time() - self._updateChangedState > 1:
+			if time.time() - self._updateChangedState > 20:
 				self.mcontrol.viewParameters()
 				self.mcontrol.viewState()
 				self._updateChangedState = time.time()
@@ -880,7 +880,7 @@ class Sender:
 
 				self.serial_write(tosend)
 
-				self.log.put((Sender.MSG_BUFFER, tosend))
+				self.log.put((Sender.MSG_SEND, tosend))
 
 				tosend = None
 				if not self.running and t-tg > G_POLL:
