@@ -342,51 +342,6 @@ class DROFrame(CNCRibbon.PageFrame):
 		self.zmachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, anchor=E)
 		self.zmachine.grid(row=row,column=col,padx=1,sticky=EW)
 
-		# Set buttons
-		row += 1
-		col = 1
-
-		self.xzero = Button(self, text=_("X=0"),
-				command=self.setX0,
-				activebackground="LightYellow",
-				padx=2, pady=1)
-		self.xzero.grid(row=row, column=col, pady=0, sticky=EW)
-		tkExtra.Balloon.set(self.xzero, _("Set X coordinate to zero (or to typed coordinate in WPos)"))
-		self.addWidget(self.xzero)
-
-		col += 1
-		if self.isLathe:
-			self.bzero = Button(self, text=_("B=0"),
-								command=self.setB0,
-								activebackground="LightYellow",
-								padx=2, pady=1)
-			self.bzero.grid(row=row, column=col, pady=0, sticky=EW)
-			tkExtra.Balloon.set(self.bzero, _("Set B coordinate to zero (or to typed coordinate in WPos)"))
-			self.addWidget(self.bzero)
-		else:
-			self.yzero = Button(self, text=_("Y=0"),
-					command=self.setY0,
-					activebackground="LightYellow",
-					padx=2, pady=1)
-			self.yzero.grid(row=row, column=col, pady=0, sticky=EW)
-			tkExtra.Balloon.set(self.yzero, _("Set Y coordinate to zero (or to typed coordinate in WPos)"))
-			self.addWidget(self.yzero)
-
-		col += 1
-		self.zzero = Button(self, text=_("Z=0"),
-				command=self.setZ0,
-				activebackground="LightYellow",
-				padx=2, pady=1)
-		self.zzero.grid(row=row, column=col, pady=0, sticky=EW)
-		tkExtra.Balloon.set(self.zzero, _("Set Z coordinate to zero (or to typed coordinate in WPos)"))
-		self.addWidget(self.zzero)
-
-		# Set buttons
-		row += 1
-		col = 1
-		f = Frame(self)
-		f.grid(row=row, column=col, columnspan=3, pady=0, sticky=EW)
-
 		self.grid_columnconfigure(1, weight=1)
 		self.grid_columnconfigure(2, weight=1)
 		self.grid_columnconfigure(3, weight=1)
@@ -423,21 +378,24 @@ class DROFrame(CNCRibbon.PageFrame):
 			focus = None
 		middle_work = self.bwork if self.isLathe else self.ywork
 		if focus is not self.xwork:
+			value = "%.03f" % CNC.vars["wx"]
 			self.xwork.delete(0,END)
-			self.xwork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wx"]))
+			self.xwork.insert(0,value)
 		if focus is not middle_work:
+			value = "%.03f" % CNC.vars["wb" if self.isLathe else "wy"]
 			middle_work.delete(0,END)
-			middle_work.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wb" if self.isLathe else "wy"]))
+			middle_work.insert(0,value)
 		if focus is not self.zwork:
+			value = "%.03f" % CNC.vars["wx"]
 			self.zwork.delete(0,END)
-			self.zwork.insert(0,self.padFloat(CNC.drozeropad,CNC.vars["wz"]))
+			self.zwork.insert(0,value)
 
-		self.xmachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["mx"])
+		self.xmachine["text"] = "%.03f" % CNC.vars["mx"]
 		if self.isLathe:
-			self.bmachine["text"] = self.padFloat(CNC.drozeropad, CNC.vars["mb"])
+			self.bmachine["text"] = "%.03f" % CNC.vars["mb"]
 		else:
-			self.ymachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["my"])
-		self.zmachine["text"] = self.padFloat(CNC.drozeropad,CNC.vars["mz"])
+			self.ymachine["text"] = "%.03f" % CNC.vars["my"]
+		self.zmachine["text"] = "%.03f" % CNC.vars["mz"]
 		self.app.abcdro.updateCoords()
 	#----------------------------------------------------------------------
 	def padFloat(self, decimals, value):

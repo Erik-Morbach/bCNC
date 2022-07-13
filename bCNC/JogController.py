@@ -22,10 +22,11 @@ class JogController:
 
         self.jog = {}
         self.period = 0.05
-        self.releasePeriod = 0
+        self.releasePeriod = 0.05
         self.lastTime = 0
         self.lastStop = 0
         self.mutex = threading.Lock()
+        self.mutex.acquire()
         self.active = Utils.getBool("Jog", "keyboard", False)
         if self.active:
             for (key,(code,sym)) in self.mapKeyToCode.items():
@@ -38,7 +39,7 @@ class JogController:
         if t - self.lastTime >= self.period and not self.mutex.locked():# and t - self.lastStop >= self.period:
             self.app.event_generate("<<JogStop>>", when="tail")
             self.lastStop = time.time()
-            if CNC.vars["state"] == "Idle":
+            if CNC.vars["state"] != "Jog":
                 self.mutex.acquire()
 
     def jogEvent(self, data):
