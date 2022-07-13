@@ -386,7 +386,7 @@ class DROFrame(CNCRibbon.PageFrame):
 			middle_work.delete(0,END)
 			middle_work.insert(0,value)
 		if focus is not self.zwork:
-			value = "%.03f" % CNC.vars["wx"]
+			value = "%.03f" % CNC.vars["wz"]
 			self.zwork.delete(0,END)
 			self.zwork.insert(0,value)
 
