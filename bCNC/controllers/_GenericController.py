@@ -214,7 +214,7 @@ class _GenericController:
 		self.master.sendGCode("%s"%(cmd))
 
 	#----------------------------------------------------------------------
-	def _wcsSet(self, x, y, z, a=None, b=None, c=None):
+	def _wcsSet(self, x, y, z, a=None, b=None, c=None, wcsIndex=None):
 		
 		# Updating WorkCoordinates.txt file
 		parameters = self.getParameters()
@@ -222,7 +222,10 @@ class _GenericController:
 
 		#global wcsvar
 		#p = wcsvar.get()
-		p = WCS.index(CNC.vars["WCS"])
+		if wcsIndex is None:
+			p = WCS.index(CNC.vars["WCS"])
+		else: p = wcsIndex
+
 		parameters[p+1]["R"] = radiusMode
 		if p<6:
 			cmd = "G10L20P%d"%(p+1)

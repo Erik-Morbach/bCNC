@@ -320,6 +320,17 @@ class Sender:
 			except: z = None
 			self._wcsSet(x,y,z)
 
+		elif cmd == "SETP":
+			try: wcs = int(line[1])
+			except: wcs = None
+			try: x = float(line[2])
+			except: x = None
+			try: y = float(line[3])
+			except: y = None
+			try: z = float(line[4])
+			except: z = None
+			self._wcsSet(x,y,z, wcsIndex=wcs)
+
 		elif cmd == "SET0":
 			self._wcsSet(0.,0.,0.)
 
@@ -607,7 +618,7 @@ class Sender:
 	def grblRestoreWCS(self):		self.mcontrol.grblRestoreWCS()
 	def grblRestoreAll(self):		self.mcontrol.grblRestoreAll()
 	def goto(self, x=None, y=None, z=None):	self.mcontrol.goto(x,y,z)
-	def _wcsSet(self, x, y, z):		self.mcontrol._wcsSet(x,y,z) # FIXME Duplicate with ControlPage
+	def _wcsSet(self, x, y, z, wcsIndex=None):		self.mcontrol._wcsSet(x,y,z,wcsIndex=wcsIndex) # FIXME Duplicate with ControlPage
 	def feedHold(self, event=None):		self.mcontrol.feedHold(event)
 	def resume(self, event=None):		self.mcontrol.resume(event)
 	def pause(self, event=None):		self.mcontrol.pause(event)
