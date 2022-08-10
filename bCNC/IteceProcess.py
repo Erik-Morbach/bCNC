@@ -277,7 +277,7 @@ class IteceProcess:
             if s1 == 1: self._setState(states.ReEntering)
             return
         if self.currentState == states.ReEntering:
-            if (s1 == 0 and s2 == 0): self._setState(states.Exiting)
+            if s2 == 1: self._setState(states.Exiting)
             return
         if self.currentState == states.Exiting:
             if s2 == 0: self._setState(states.Waiting)
