@@ -249,7 +249,7 @@ class IteceProcess:
     def _iteration(self) -> None:
         if self.currentState == states.Waiting:
             return
-        self.app.sendGCode("G91G1X-0.2F20")
+        self.app.sendGCode("G91G1X{}F{}".format(self.iterationDistance, self.iterationFeed))
 
     def _setState(self, state):
         self.currentState = state
