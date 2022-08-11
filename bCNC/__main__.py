@@ -482,7 +482,8 @@ class Application(Toplevel, Sender):
 
         def stopJog(*args):
             if self.serial is None: return
-            self.serial_write(chr(0x85))
+            for _ in range(20):
+                self.serial_write(chr(0x85))
             self.serial.flush()
             releaseJogMutex()
 
