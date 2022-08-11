@@ -30,7 +30,6 @@ class GCodeViewer:
             except BaseException as be:
                 print(be)
                 self.lb.activate(lineNumber)
-                self.lb.see(lineNumber)
             alreadySelected = False
             for w in self.lb.curselection():
                 if w != lineNumber:
@@ -41,6 +40,7 @@ class GCodeViewer:
                 self.lb.selection_set(lineNumber)
             if lastFocus is not None:
                 lastFocus.focus_set()
+            self.lb.see(lineNumber)
 
 
     def reload(self):

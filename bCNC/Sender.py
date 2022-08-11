@@ -665,6 +665,8 @@ class Sender:
 				nThread = threading.Thread(target=self.repeatProgram)
 				nThread._args = [nThread]
 				nThread.start()
+			else:
+				self.after(1000, self.purgeController)
 
 			if self._onStop:
 				try:
