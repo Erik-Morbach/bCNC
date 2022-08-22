@@ -70,7 +70,6 @@ import Ribbon
 import Pendant
 from Sender import Sender, NOT_CONNECTED, STATECOLOR, STATECOLORDEF
 
-import CNCCanvas
 import webbrowser
 
 from Panel import Panel
@@ -78,13 +77,12 @@ from JogController import JogController
 from CNCRibbon import Page
 from ToolsPage import Tools, ToolsPage
 from FilePage import FilePage
-from ControlPage import ControlPage
+from ControlPage import ExecutionPage, JogPage
 from TerminalPage import TerminalPage
 from ProbePage import ProbePage
 from EditorPage import EditorPage
+import CNCCanvas
 
-import GCodeViewer
-import PidLog
 
 _openserial = True  # override ini parameters
 _device = None
@@ -96,7 +94,7 @@ print("FIRMWARE =", firmware)
 grblIPAddress = '192.168.5.1' if firmware == GRBL_HAL else 'http://192.168.0.1'
 
 MONITOR_AFTER = 40  # ms
-DRAW_AFTER = 500  # ms
+DRAW_AFTER = 5000  # ms
 
 RX_BUFFER_SIZE = 512
 
@@ -142,7 +140,7 @@ class Application(Toplevel, Sender):
         self.ribbon.pack(side=TOP, fill=X)
 
         # Main frame
-        self.paned = PanedWindow(self, orient=HORIZONTAL)
+        self.paned = PanedWindow(self)
         self.paned.pack(fill=BOTH, expand=YES)
 
         # Status bar
@@ -167,11 +165,10 @@ class Application(Toplevel, Sender):
 
         # --- Left side ---
         frame = Frame(self.paned)
-        self.paned.add(frame)  # , minsize=340)
+        self.paned.add(frame)
 
         pageframe = Frame(frame)
         pageframe.pack(side=TOP, expand=YES, fill=BOTH)
-        self.ribbon.setPageFrame(pageframe)
 
         # Command bar
         f = Frame(frame)
@@ -195,37 +192,20 @@ class Application(Toplevel, Sender):
                               "(move,inkscape, round...) [Space or Ctrl-Space]"))
         self.widgets.append(self.command)
 
-        # --- Right side ---
         frame = Frame(self.paned)
         self.paned.add(frame)
 
-        # --- Canvas ---
-        self.notebook = ttk.Notebook(frame)
-        self.notebook.pack(side=TOP, expand=YES, fill=BOTH)
+        self.rightFrame = Frame(frame)
+        self.rightFrame.pack(side=TOP, expand=YES, fill=BOTH)
 
-        self.gcodeViewFrame = GCodeViewer.GCodeViewer(self.notebook, self)
-        self.gcodeViewFrame.pack(side=TOP, fill=BOTH, expand=YES)
+        self.ribbon.setPageFrame(pageframe, self.rightFrame)
 
-        self.canvasFrame = CNCCanvas.CanvasFrame(self.notebook, self)
-        self.canvasFrame.pack(side=TOP, fill=BOTH, expand=YES)
-
-        if Utils.getBool("CNC", "pidLog", False):
-                self.pidLogFrame = PidLog.PidLogFrame(self.notebook, self)
-                self.pidLogFrame.pack(side=TOP, fill=BOTH, expand=YES)
-
-        self.notebook.add(self.gcodeViewFrame.lb, text="GCode")
-        self.notebook.add(self.canvasFrame, text="Graph")
-
-        if Utils.getBool("CNC", "pidLog", False):
-                self.notebook.add(self.pidLogFrame, text="PidLog")
-
-        # self.paned.add(self.canvasFrame)
-        # XXX FIXME do I need the self.canvas?
-        self.canvas = self.canvasFrame.canvas
+        self.canvas = None
 
         # fist create Pages
         self.pages = {}
-        for cls in (ControlPage,
+        for cls in (ExecutionPage,
+                    JogPage,
                     EditorPage,
                     FilePage,
                     ProbePage,
@@ -266,17 +246,20 @@ class Application(Toplevel, Sender):
                                      "no longer exist in bCNC" % (" ".join(errors)), parent=self)
 
         # remember the editor list widget
-        self.dro = Page.frames["DRO"]
-        self.abcdro = Page.frames["abcDRO"]
-        self.gstate = Page.frames["State"]
-        self.control = Page.frames["Control"]
-        self.abccontrol = Page.frames["abcControl"]
-        self.editor = Page.frames["Editor"].editor
-        self.terminal = Page.frames["Terminal"].terminal
-        self.buffer = Page.frames["Terminal"].buffer
+        self.dro = Page.lframes["DRO"]
+        self.abcdro = Page.lframes["abcDRO"]
+        self.gstate = Page.lframes["State"]
+        self.control = Page.rframes["Control"]
+        self.abccontrol = Page.lframes["abcControl"]
+        self.editor = Page.lframes["Editor"].editor
+        self.terminal = Page.lframes["Terminal"].terminal
+        self.buffer = Page.lframes["Terminal"].buffer
+        self.canvasFrame = Page.rframes["Notebook"].canvasFrame
+        self.canvas = self.canvasFrame.canvas
+        self.gcodeViewFrame = Page.rframes["Notebook"].gcodeViewFrame
 
         # XXX FIXME Do we need it or I can takes from Page every time?
-        self.autolevel = Page.frames["Probe:Autolevel"]
+        self.autolevel = Page.lframes["Probe:Autolevel"]
 
         # Left side
         for name in Utils.getStr(Utils.__prg__, "ribbon").split():
@@ -292,7 +275,7 @@ class Application(Toplevel, Sender):
         self.pages["Probe"].tabChange()  # Select "Probe:Probe" tab to show the dialogs!
         self.ribbon.changePage(Utils.getStr(Utils.__prg__, "page", "File"))
 
-        probe = Page.frames["Probe:Probe"]
+        probe = Page.lframes["Probe:Probe"]
         tkExtra.bindEventData(self, "<<OrientSelect>>", lambda e, f=probe: f.selectMarker(int(e.data)))
         tkExtra.bindEventData(self, '<<OrientChange>>', lambda e, s=self: s.canvas.orientChange(int(e.data)))
         self.bind('<<OrientUpdate>>', probe.orientUpdate)
@@ -325,7 +308,7 @@ class Application(Toplevel, Sender):
         self.bind('<<Recent8>>', self._loadRecent8)
         self.bind('<<Recent9>>', self._loadRecent9)
 
-        self.bind('<<TerminalClear>>', Page.frames["Terminal"].clear)
+        self.bind('<<TerminalClear>>', Page.lframes["Terminal"].clear)
         self.bind('<<AlarmClear>>', self.alarmClear)
         self.bind('<<Help>>', self.help)
         # Do not send the event otherwise it will skip the feedHold/resume
@@ -375,7 +358,7 @@ class Application(Toplevel, Sender):
         self.bind('<<MoveGantry>>', self.canvas.setActionGantry)
         self.bind('<<SetWPOS>>', self.canvas.setActionWPOS)
 
-        frame = Page.frames["Probe:Tool"]
+        frame = Page.lframes["Probe:Tool"]
         self.bind('<<ToolCalibrate>>', frame.calibrate)
         self.bind('<<ToolChange>>', frame.change)
 
@@ -1356,15 +1339,15 @@ class Application(Toplevel, Sender):
                 Page.groups["Probe:Camera"].switchCamera()
 
             elif rexx.abbrev("SPINDLE", line[1].upper(), 2):
-                Page.frames["Probe:Camera"].registerSpindle()
+                Page.lframes["Probe:Camera"].registerSpindle()
 
             elif rexx.abbrev("CAMERA", line[1].upper(), 1):
-                Page.frames["Probe:Camera"].registerCamera()
+                Page.lframes["Probe:Camera"].registerCamera()
 
         # CLE*AR: clear terminal
         elif rexx.abbrev("CLEAR", cmd, 3) or cmd == "CLS":
             self.ribbon.changePage("Terminal")
-            Page.frames["Terminal"].clear()
+            Page.lframes["Terminal"].clear()
 
         # CLOSE: close path - join end with start with a line segment
         elif rexx.abbrev("CLOSE", cmd, 4):
@@ -1819,23 +1802,23 @@ class Application(Toplevel, Sender):
 
         # RR*APID:
         elif rexx.abbrev("RRAPID", cmd, 2):
-            Page.frames["Probe:Probe"].recordRapid()
+            Page.lframes["Probe:Probe"].recordRapid()
 
         # RF*EED:
         elif rexx.abbrev("RFEED", cmd, 2):
-            Page.frames["Probe:Probe"].recordFeed()
+            Page.lframes["Probe:Probe"].recordFeed()
 
         # RP*OINT:
         elif rexx.abbrev("RPOINT", cmd, 2):
-            Page.frames["Probe:Probe"].recordPoint()
+            Page.lframes["Probe:Probe"].recordPoint()
 
         # RC*IRCLE:
         elif rexx.abbrev("RCIRCLE", cmd, 2):
-            Page.frames["Probe:Probe"].recordCircle()
+            Page.lframes["Probe:Probe"].recordCircle()
 
         # RFI*NISH:
         elif rexx.abbrev("RFINISH", cmd, 3):
-            Page.frames["Probe:Probe"].recordFinishAll()
+            Page.lframes["Probe:Probe"].recordFinishAll()
 
         # XY: switch to XY view
         # YX: switch to XY view
@@ -2226,7 +2209,7 @@ class Application(Toplevel, Sender):
             self.canvas.reset()
             self.draw()
             self.canvas.fit2Screen()
-            Page.frames["CAM"].populate()
+            Page.lframes["CAM"].populate()
 
         if autoloaded:
             self.setStatus(_("'%s' reloaded at '%s'") % (filename, str(datetime.now())))
@@ -2259,7 +2242,7 @@ class Application(Toplevel, Sender):
 
     def sendWithYModem(self, sdFileName, fileName):
         self.close()
-        serialPage = Page.frames["Serial"]
+        serialPage = Page.lframes["Serial"]
         device = _device or serialPage.portCombo.get()  # .split("\t")[0]
         baudrate = _baud or serialPage.baudCombo.get()
         mySerial = serial.serial_for_url(
@@ -2397,14 +2380,14 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def openClose(self, event=None):
-        serialPage = Page.frames["Serial"]
+        serialPage = Page.lframes["Serial"]
         if self.serial is not None:
             self.close()
             serialPage.connectBtn.config(text=_("Open"),
                                          background="Salmon",
                                          activebackground="Salmon")
         else:
-            serialPage = Page.frames["Serial"]
+            serialPage = Page.lframes["Serial"]
             device = _device or serialPage.portCombo.get()  # .split("\t")[0]
             baudrate = _baud or serialPage.baudCombo.get()
             if self.open(device, baudrate):
@@ -2716,17 +2699,17 @@ class Application(Toplevel, Sender):
 
         # Update probe and draw point
         if self._probeUpdate:
-            Page.frames["Probe:Probe"].updateProbe()
-            Page.frames["ProbeCommon"].updateTlo()
+            Page.lframes["Probe:Probe"].updateProbe()
+            Page.lframes["ProbeCommon"].updateTlo()
             self.canvas.drawProbe()
             self._probeUpdate = False
 
         # Update any possible variable?
         if self._update:
             if self._update == "toolheight":
-                Page.frames["Probe:Tool"].updateTool()
+                Page.lframes["Probe:Tool"].updateTool()
             elif self._update == "TLO":
-                Page.frames["ProbeCommon"].updateTlo()
+                Page.lframes["ProbeCommon"].updateTlo()
             self._update = None
 
         self.panel.update()

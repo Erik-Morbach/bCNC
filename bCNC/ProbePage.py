@@ -1512,6 +1512,7 @@ class CameraFrame(CNCRibbon.PageFrame):
 	# Update canvas with values
 	#-----------------------------------------------------------------------
 	def updateValues(self, *args):
+		if not self.app.canvas: return
 		self.app.canvas.cameraAnchor = self.cameraAnchor()
 		try: self.app.canvas.cameraRotation = float(self.rotation.get())
 		except ValueError: pass
@@ -2008,7 +2009,8 @@ class ProbePage(CNCRibbon.Page):
 
 		# Remove all page tabs with ":" and add the new ones
 		self.ribbons = [ x for x in self.ribbons if ":" not in x[0].name ]
-		self.frames  = [ x for x in self.frames  if ":" not in x[0].name ]
+		self.lframes  = [ x for x in self.lframes  if ":" not in x[0].name ]
+		self.rframes  = [ x for x in self.rframes  if ":" not in x[0].name ]
 
 		try:
 			self.addRibbonGroup("Probe:%s"%(tab))

@@ -16,6 +16,8 @@ except ImportError:
 	from tkinter import *
 	import tkinter.messagebox as tkMessageBox
 
+from tkinter import Toplevel
+import tkinter.ttk as ttk
 import math
 from math import * #Math in DRO
 
@@ -29,6 +31,10 @@ import Unicode
 import CNCRibbon
 from Sender import ERROR_CODES
 from CNC import WCS, DISTANCE_MODE, FEED_MODE, UNITS, PLANE
+
+import GCodeViewer
+import PidLog
+import CNCCanvas
 
 _LOWSTEP   = 0.0001
 _HIGHSTEP  = 1000.0
@@ -77,19 +83,7 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 		tkExtra.Balloon.set(b, _("Unlock controller [$X]"))
 		self.addWidget(b)
 
-		row += 1
-		b = Ribbon.LabelButton(self.frame,
-				image=Utils.icons["serial"],
-				text=_("Connection"),
-				compound=LEFT,
-				anchor=W,
-				command=lambda s=self : s.event_generate("<<Connect>>"),
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Open/Close connection"))
-		self.addWidget(b)
-
-		row += 1
+		row += 2
 		b = Ribbon.LabelButton(self.frame,
 				image=Utils.icons["reset"],
 				text=_("Reset"),
@@ -118,6 +112,36 @@ class UserGroup(CNCRibbon.ButtonGroup):
 			col,row = divmod(i-1,3)
 			b.grid(row=row, column=col, sticky=NSEW)
 			self.addWidget(b)
+
+
+class ZeroGroup(CNCRibbon.ButtonGroup):
+	def __init__(self, master, app):
+		CNCRibbon.ButtonGroup.__init__(self, master, "Zero", app)
+		self.master = master
+		b = Ribbon.LabelButton(self.frame, self, self.onClick,
+				image=Utils.icons["config"],
+				text=_("Set Zeros"),
+				compound=TOP,
+				background=Ribbon._BACKGROUND)
+		b.pack(side=LEFT, fill=BOTH)
+		tkExtra.Balloon.set(b, _("Set your WCS"))
+		self.addWidget(b)
+
+	def onClick(self, *args):
+		root = TopLevel(self.master)
+		root.title("Set Zeros")
+		root.geometry("400x400")
+		left = Frame(root)
+		Label(left, text="WorkSystem").pack(side=TOP)
+		for w in "XYZABC":
+			Label(left, text=w).pack(side=TOP)
+		left.pack(side=LEFT,fill=Y, expand=TRUE)
+		right = Frame(root)
+		Label(right, text="UAAAA").pack(side=TOP)
+		right.pack(side=RIGHT, fill=Y, expand=TRUE)
+
+
+
 
 
 #===============================================================================
@@ -721,12 +745,12 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 #===============================================================================
 # ControlFrame
 #===============================================================================
-class ControlFrame(CNCRibbon.PageExLabelFrame):
+class ControlFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
-		CNCRibbon.PageExLabelFrame.__init__(self, master, "Control", _("Control"), app)
+		CNCRibbon.PageLabelFrame.__init__(self, master, "Control", _("Control"), app)
 		self.isLathe = Utils.getBool("CNC","lathe",0)
 
-		frame = Frame(self())
+		frame = Frame(self)
 		frame.pack(side=TOP, fill=X)
 		row,col = 0,0
 		Label(frame, text=_("Jog Speed: ")).grid(row=row,column=col)
@@ -1579,17 +1603,41 @@ class abcControlFrame(CNCRibbon.PageExLabelFrame):
 		self.setStep(self.step3, self.step2)
 
 
+class NotebookFrame(CNCRibbon.PageLabelFrame):
+    def __init__(self, master, app):
+        CNCRibbon.PageLabelFrame.__init__(self, master, "Notebook", _("Notebook"), app)
+
+        # --- Canvas ---
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(side=TOP, expand=YES, fill=BOTH)
+
+        self.gcodeViewFrame = GCodeViewer.GCodeViewer(self.notebook, app)
+
+        self.gcodeViewFrame.pack(side=TOP, fill=BOTH, expand=YES)
+        self.canvasFrame = CNCCanvas.CanvasFrame(self.notebook, app)
+        self.canvasFrame.pack(side=TOP, fill=BOTH, expand=YES)
+
+        if Utils.getBool("CNC", "pidLog", False):
+                self.pidLogFrame = PidLog.PidLogFrame(self.notebook, app)
+                self.pidLogFrame.pack(side=TOP, fill=BOTH, expand=YES)
+
+        self.notebook.add(self.gcodeViewFrame.lb, text="GCode")
+        self.notebook.add(self.canvasFrame, text="Graph")
+
+        if Utils.getBool("CNC", "pidLog", False):
+                self.notebook.add(self.pidLogFrame, text="PidLog")
+
 #===============================================================================
 # StateFrame
 #===============================================================================
-class StateFrame(CNCRibbon.PageExLabelFrame):
+class StateFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		global wcsvar
-		CNCRibbon.PageExLabelFrame.__init__(self, master, "State", _("State"), app)
+		CNCRibbon.PageLabelFrame.__init__(self, master, "State", _("State"), app)
 		self._gUpdate = False
 
 		# State
-		f = Frame(self())
+		f = Frame(self)
 		f.pack(side=TOP, fill=X, expand=TRUE)
 
 		# ===
@@ -1608,7 +1656,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 			b.pack(side=LEFT, fill=X, expand=YES)
 			tkExtra.Balloon.set(b, _("Switch to workspace %s")%(w))
 			self.addWidget(b)
-		f = Frame(self())
+		f = Frame(self)
 		f.pack(side=TOP, fill=X)
 
 		col,row=0,0
@@ -1763,7 +1811,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 		f.grid_columnconfigure(4, weight=1)
 
 		# Spindle
-		f = Frame(self())
+		f = Frame(self)
 		f.pack(side=BOTTOM, fill=X)
 
 		self.override = IntVar()
@@ -2008,11 +2056,11 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 
 
 #===============================================================================
-# Control Page
+# Execution Page
 #===============================================================================
-class ControlPage(CNCRibbon.Page):
+class ExecutionPage(CNCRibbon.Page):
 	__doc__ = _("CNC communication and control")
-	_name_  = N_("Control")
+	_name_  = N_("Execution")
 	_icon_  = "control"
 
 	#----------------------------------------------------------------------
@@ -2024,4 +2072,28 @@ class ControlPage(CNCRibbon.Page):
 		wcsvar.set(0)
 
 		self._register((ConnectionGroup, UserGroup, RunGroup),
+			(DROFrame, abcDROFrame, NotebookFrame, StateFrame))
+
+
+
+#===============================================================================
+# Jog Page
+#===============================================================================
+class JogPage(CNCRibbon.Page):
+	__doc__ = _("CNC communication and control")
+	_name_  = N_("Jog")
+	_icon_  = "control"
+
+	#----------------------------------------------------------------------
+	# Add a widget in the widgets list to enable disable during the run
+	#----------------------------------------------------------------------
+	def register(self):
+		global wcsvar
+		wcsvar = IntVar()
+		wcsvar.set(0)
+
+		self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup),
 			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame))
+	def activate(self, **kwargs):
+		CNC.vars["JogActive"] = True
+

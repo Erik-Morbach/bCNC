@@ -286,62 +286,6 @@ class EditGroup(CNCRibbon.ButtonMenuGroup):
 
 
 #===============================================================================
-# Move Group
-#===============================================================================
-class MoveGroup(CNCRibbon.ButtonMenuGroup):
-	def __init__(self, master, app):
-		CNCRibbon.ButtonMenuGroup.__init__(self, master, N_("Move"), app)
-		self.grid3rows()
-
-		# ===
-		col,row = 0,0
-		b = Ribbon.LabelRadiobutton(self.frame,
-				image=Utils.icons["move32"],
-				text=_("Move"),
-				compound=TOP,
-				anchor=W,
-				variable=app.canvas.actionVar,
-				value=ACTION_MOVE,
-				command=app.canvas.setActionMove,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, rowspan=3, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Move objects [M]"))
-		self.addWidget(b)
-
-		# ---
-		col += 1
-		b = Ribbon.LabelRadiobutton(self.frame,
-				image=Utils.icons["origin32"],
-				text=_("Origin"),
-				compound=TOP,
-				anchor=W,
-				variable=app.canvas.actionVar,
-				value=ACTION_ORIGIN,
-				command=app.canvas.setActionOrigin,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, rowspan=3, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Move all gcode such as origin is on mouse location [O]"))
-		self.addWidget(b)
-
-	#----------------------------------------------------------------------
-	def createMenu(self):
-		menu = Menu(self, tearoff=0)
-		for i,n,c in (  ("tl",     _("Top-Left"),    "MOVE TL"),
-				("lc",     _("Left"),        "MOVE LC"),
-				("bl",     _("Bottom-Left"), "MOVE BL"),
-				("tc",     _("Top"),         "MOVE TC"),
-				("center", _("Center"),      "MOVE CENTER"),
-				("bc",     _("Bottom"),      "MOVE BC"),
-				("tr",     _("Top-Right"),   "MOVE TR"),
-				("rc",     _("Right"),       "MOVE RC"),
-				("br",     _("Bottom-Right"),"MOVE BR")):
-			menu.add_command(label=n,
-					image=Utils.icons[i], compound=LEFT,
-					command=lambda a=self.app,c=c:a.insertCommand(c,True))
-		return menu
-
-
-#===============================================================================
 # Order Group
 #===============================================================================
 class OrderGroup(CNCRibbon.ButtonMenuGroup):
@@ -604,6 +548,6 @@ class EditorPage(CNCRibbon.Page):
 	# Add a widget in the widgets list to enable disable during the run
 	#----------------------------------------------------------------------
 	def register(self):
-		self._register((ClipboardGroup, SelectGroup, EditGroup, MoveGroup,
+		self._register((ClipboardGroup, SelectGroup, EditGroup,
 				OrderGroup, TransformGroup, RouteGroup, InfoGroup),
 			(EditorFrame,))
