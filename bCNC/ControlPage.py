@@ -2097,3 +2097,6 @@ class JogPage(CNCRibbon.Page):
 	def activate(self, **kwargs):
 		CNC.vars["JogActive"] = True
 
+	def release(self, **kwargs):
+		CNC.vars["JogActive"] = False
+
