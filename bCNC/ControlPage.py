@@ -1593,11 +1593,9 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 		f.pack(side=TOP, fill=X, expand=TRUE)
 
 		# ===
-		col,row=0,0
 		f2 = Frame(f)
-		f2.grid(row=row, column=col, columnspan=5,sticky=EW)
+		f2.pack(side=TOP, fill=X)
 		for p,w in enumerate(WCS):
-			col += 1
 			b = Radiobutton(f2, text=w,
 					foreground="DarkRed",
 					font = "Helvetica,14",
@@ -1613,6 +1611,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 		f = Frame(self())
 		f.pack(side=TOP, fill=X)
 
+		col,row=0,0
 		# Absolute or relative mode
 		row += 1
 		col = 0
