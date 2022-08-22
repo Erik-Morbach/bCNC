@@ -21,8 +21,9 @@ class JogController:
         self.keys = keys
 
         self.jog = {}
-        self.period = 0.05
-        self.releasePeriod = 0.05
+        self.plannerLimit = Utils.getInt("Jog","planner", 20)
+        self.period = Utils.getFloat("Jog", "periodToStop", 0.05)
+        self.releasePeriod = Utils.getFloat("Jog", "beginPeriod", 0.05)
         self.lastTime = 0
         self.lastStop = 0
         self.mutex = threading.Lock()
@@ -32,15 +33,28 @@ class JogController:
             for (key,(code,sym)) in self.mapKeyToCode.items():
                 print("Bind {},{} to {}".format(code,sym,key))
                 self.app.bind("<"+str(sym)+">", self.jogEvent)
+        self.mtx = threading.Lock()
+        self.mtx.acquire()
+        self.updateTaskThread = threading.Thread(target=self.updateTask)
+        self.updateTaskThread.start()
+
+    def updateTask(self):
+        while self.mtx.locked():
+            time.sleep(self.period)
+            self.update()
+    def stopTask(self):
+        self.mtx.release()
+
     def update(self):
-        if not self.active or self.app.running:
+        if self.app.running:
             return
         t = time.time()
-        if t - self.lastTime >= self.period and not self.mutex.locked():# and t - self.lastStop >= self.period:
-            self.app.event_generate("<<JogStop>>", when="tail")
-            self.lastStop = time.time()
-            if CNC.vars["state"] != "Jog":
-                self.mutex.acquire()
+        if t - self.lastTime >= self.period:
+            if not self.mutex.locked() or CNC.vars["state"] == "Jog":
+                self.app.event_generate("<<JogStop>>", when="tail")
+                self.lastStop = time.time()
+                if CNC.vars["state"] != "Jog":
+                    self.mutex.acquire()
 
     def jogEvent(self, data):
         if self.app.running or CNC.vars["state"] == "Run" or data is None or time.time() - self.lastStop < self.releasePeriod:
@@ -48,7 +62,7 @@ class JogController:
         self.lastTime = time.time()
         if self.mutex.locked():
             self.mutex.release()
-        if CNC.vars["planner"] < 10:
+        if CNC.vars["planner"] < self.plannerLimit:
             return
         self.keys[self.mapCodeToKey[data.keycode]](data)
 

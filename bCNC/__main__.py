@@ -620,6 +620,7 @@ class Application(Toplevel, Sender):
 
         self.canvas.cameraOff()
         Sender.quit(self)
+        self.jogController.stopTask()
         self.saveConfig()
         self.destroy()
         if Utils.errors and Utils._errorReport:
@@ -1372,6 +1373,14 @@ class Application(Toplevel, Sender):
         # CONT*ROL: switch to control tab
         elif rexx.abbrev("CONTROL", cmd, 4):
             self.ribbon.changePage("Control")
+
+        # FILE: switch to File tab
+        elif cmd == "FILE":
+            self.ribbon.changePage("File")
+
+        # EDITOR: switch to Editor tab
+        elif cmd == "EDITOR":
+            self.ribbon.changePage("Editor")
 
         # CUT [depth] [pass-per-depth] [z-surface] [feed] [feedz]: replicate selected blocks to cut-height
         # default values are taken from the active material
@@ -2721,7 +2730,6 @@ class Application(Toplevel, Sender):
             self._update = None
 
         self.panel.update()
-        self.jogController.update()
 
         if self.running:
             self.statusbar.setProgress(self._runLines - self.queue.qsize(),

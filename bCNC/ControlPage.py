@@ -152,15 +152,6 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Pause running program and soft reset controller to empty the buffer."))
 
-
-		b = Ribbon.LabelButton(self.frame, self, "<<RunFromSD>>",
-				image=Utils.icons["start"],
-				text=_("Start From SD"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
-		tkExtra.Balloon.set(b, _("Run g-code commands from SD to controller"))
-
 		f = Frame(self.frame)
 		self.m30CounterSt = StringVar()
 		self.m30CounterLabel = Label(f,textvariable=self.m30CounterSt,background=Ribbon._BACKGROUND)
@@ -1599,7 +1590,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 
 		# State
 		f = Frame(self())
-		f.pack(side=TOP, fill=X)
+		f.pack(side=TOP, fill=X, expand=TRUE)
 
 		# ===
 		col,row=0,0
@@ -1619,6 +1610,8 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 			b.pack(side=LEFT, fill=X, expand=YES)
 			tkExtra.Balloon.set(b, _("Switch to workspace %s")%(w))
 			self.addWidget(b)
+		f = Frame(self())
+		f.pack(side=TOP, fill=X)
 
 		# Absolute or relative mode
 		row += 1
@@ -1993,7 +1986,7 @@ class StateFrame(CNCRibbon.PageExLabelFrame):
 			self.distance.set(DISTANCE_MODE[CNC.vars["distance"]])
 			self.plane.set(PLANE[CNC.vars["plane"]])
 			self.tlo.set(str(CNC.vars["TLO"]))
-			self.g92.config(text=str(CNC.vars["G92"]))
+			self.g92.config(text=str(CNC.vars["G92"]), width=10)
 			self.realRpm.config(text=str(CNC.vars["realRpm"]))
 		except KeyError:
 			pass

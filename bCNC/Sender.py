@@ -361,6 +361,15 @@ class Sender:
 			except:
 				pass
 
+		elif cmd == "MODIFY":
+			try: 
+				index = int(line[1])
+				value = line[2]
+				self.sendGCode("{}={}" % (index, value))
+				self.modifyConfiguration("${}" % index, value)
+			except:
+				pass
+
 		# UNL*OCK: unlock grbl
 		elif rexx.abbrev("UNLOCK",cmd,3):
 			self.unlock()
