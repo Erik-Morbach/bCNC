@@ -29,7 +29,7 @@ except:
 	print("Using fallback Utils.comports()!")
 	from Utils import comports
 
-BAUDS = [2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400]
+BAUDS = [2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 921600]
 
 #===============================================================================
 # Recent Menu button
@@ -377,6 +377,30 @@ class SerialFrame(CNCRibbon.PageLabelFrame):
 
 
 #===============================================================================
+# Startup Frame
+#===============================================================================
+class StartupFrame(CNCRibbon.PageLabelFrame):
+	def __init__(self, master, app):
+		CNCRibbon.PageLabelFrame.__init__(self, master, "Startup", _("Startup"), app)
+		self.app = app
+		f = Frame(self)
+		Label(f, text="Startup").pack(side=TOP)
+
+		b = Ribbon.LabelButton(f,
+				image=Utils.icons["config32"],
+				text=_("Reference"),
+				compound=TOP,
+				command=lambda s=self : s.reference(),
+				background=Ribbon._BACKGROUND)
+		b.pack(side=TOP,fill=BOTH, expand=TRUE)
+		f.pack(side=TOP)
+	def reference(self):
+		self.app.mcontrol.softReset()
+		self.app.mcontrol.unlock()
+		self.app.mcontrol.unlock()
+		self.app.mcontrol.home()
+
+#===============================================================================
 # File Page
 #===============================================================================
 class FilePage(CNCRibbon.Page):
@@ -392,4 +416,4 @@ class FilePage(CNCRibbon.Page):
 				PendantGroup,
 				OptionsGroup,
 				CloseGroup),
-				(SerialFrame,))
+				(SerialFrame, StartupFrame))
