@@ -1353,13 +1353,17 @@ class Application(Toplevel, Sender):
         elif rexx.abbrev("CLOSE", cmd, 4):
             self.executeOnSelection("CLOSE", True)
 
-        # CONT*ROL: switch to control tab
-        elif rexx.abbrev("CONTROL", cmd, 4):
-            self.ribbon.changePage("Control")
-
         # FILE: switch to File tab
         elif cmd == "FILE":
             self.ribbon.changePage("File")
+
+        # FILE: switch to Execution tab
+        elif cmd == "EXECUTION":
+            self.ribbon.changePage("Execution")
+
+        # FILE: switch to Jog tab
+        elif cmd == "JOG":
+            self.ribbon.changePage("Jog")
 
         # EDITOR: switch to Editor tab
         elif cmd == "EDITOR":

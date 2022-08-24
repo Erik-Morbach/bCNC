@@ -169,10 +169,13 @@ class Page(Ribbon.Page):
 	#----------------------------------------------------------------------
 	@staticmethod
 	def saveConfig():
-		for frame in Page.lframes.values():
-			frame.saveConfig()
 		for frame in Page.rframes.values():
 			frame.saveConfig()
+		for frame in Page.lframes.values():
+			frame.saveConfig()
+			#FIXME: Bug
+			# normally widgets are used in the left portion
+			# when setting the right porting this could overwritte the config
 
 	#----------------------------------------------------------------------
 	@staticmethod

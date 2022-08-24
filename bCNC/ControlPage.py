@@ -10,13 +10,16 @@ __author__ = "Vasilis Vlachoudis"
 __email__  = "vvlachoudis@gmail.com"
 
 try:
+	import Tkinter
 	from Tkinter import *
 	import tkMessageBox
+	from Tkinter.simpledialog import Dialog
 except ImportError:
+	import tkinter
 	from tkinter import *
 	import tkinter.messagebox as tkMessageBox
+	from tkinter.simpledialog import Dialog
 
-from tkinter import Toplevel
 import tkinter.ttk as ttk
 import math
 from math import * #Math in DRO
@@ -114,11 +117,86 @@ class UserGroup(CNCRibbon.ButtonGroup):
 			self.addWidget(b)
 
 
+class SetZeroDialog(Dialog):
+	def __init__(self, parent, title, app):
+		self.app = app
+		self.wcs = StringVar(value="")
+		self.wcsOptions = ["G54","G55","G56","G57","G58","G59"]
+		self.x = StringVar(value='0')
+		self.y = StringVar(value='0')
+		self.z = StringVar(value='0')
+		self.a = StringVar(value='0')
+		self.b = StringVar(value='0')
+		self.c = StringVar(value='0')
+		self.axes = "XYZABC"
+		self.var = [self.x, self.y, self.z, self.a, self.b, self.c]
+		Dialog.__init__(self, parent, title)
+	def body(self, frame):
+		f = Frame(frame)
+		Label(f, text="WCS").pack(side=LEFT, fill=X)
+		cb = ttk.Combobox(f, textvariable=self.wcs)
+		cb["state"] = 'readonly'
+		cb["values"] = self.wcsOptions
+		cb.pack(side=RIGHT)
+		cb.bind("<Return>", lambda x, s=self: s.focus_set())
+		cb.bind("<<ComboboxSelected>>", self.onWcs)
+		cb.set(self.wcsOptions[0])
+		self.onWcs() # ComboboxSelected not trigger
+		f.pack(side=TOP, fill=X, expand=TRUE)
+
+		f = Frame(frame)
+		vcmd = (self.parent.register(self.valid), '%P')
+		for (id,w) in enumerate(self.axes):
+			f2 = Frame(f)
+			Label(f2, text=w).pack(side=LEFT, fill=X)
+			e = Entry(f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
+			e.pack(side=RIGHT, fill=X)
+			e.bind("<Return>", lambda x, s=self: s.focus_set())
+			f2.pack(side=TOP, fill=X, expand=TRUE)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+
+	def onWcs(self, *args):
+		index = self.wcsOptions.index(self.wcs.get()) + 1
+		wco = self.app.mcontrol.getParameters()[index]
+		for (id, w) in enumerate(self.axes):
+			self.var[id].set(round(CNC.vars["m%s" % w.lower()] - float(wco[w]), 3))
+
+	def valid(self, future_value):
+		if len(future_value)==0: return True
+		if future_value == "-": return True
+		try:
+			float(future_value)
+			return True
+		except ValueError:
+			return False
+
+	def getWco(self):
+		values = []
+		for (id, w) in enumerate(self.axes):
+			s = self.var[id].get()
+			if s=="" or s=="-": # only cornerCases not treated
+				s = "0"
+			values += [float(s)]
+		return values 
+
+	def onOk(self):
+		index = self.wcsOptions.index(self.wcs.get())
+		wco = self.getWco()
+		self.app.mcontrol._wcsSet(*wco, index)
+
+	def onExit(self):
+		self.destroy()
+
+	def buttonbox(self,*args):
+		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
+		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+
 class ZeroGroup(CNCRibbon.ButtonGroup):
 	def __init__(self, master, app):
 		CNCRibbon.ButtonGroup.__init__(self, master, "Zero", app)
 		self.master = master
-		b = Ribbon.LabelButton(self.frame, self, self.onClick,
+		b = Ribbon.LabelButton(self.frame, self, "<<SetZero>>",
 				image=Utils.icons["config"],
 				text=_("Set Zeros"),
 				compound=TOP,
@@ -126,20 +204,10 @@ class ZeroGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Set your WCS"))
 		self.addWidget(b)
+		app.bind("<<SetZero>>", self.onClick)
 
 	def onClick(self, *args):
-		root = TopLevel(self.master)
-		root.title("Set Zeros")
-		root.geometry("400x400")
-		left = Frame(root)
-		Label(left, text="WorkSystem").pack(side=TOP)
-		for w in "XYZABC":
-			Label(left, text=w).pack(side=TOP)
-		left.pack(side=LEFT,fill=Y, expand=TRUE)
-		right = Frame(root)
-		Label(right, text="UAAAA").pack(side=TOP)
-		right.pack(side=RIGHT, fill=Y, expand=TRUE)
-
+		SetZeroDialog(self.app, "Set Zero", self.app)
 
 
 
@@ -287,54 +355,41 @@ class DROFrame(CNCRibbon.PageFrame):
 
 		# work
 		col += 1
-		self.xwork = Entry(self, font=DROFrame.dro_wpos,
+		self.xwork = Label(self, font=DROFrame.dro_wpos,
 					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					relief=FLAT,
-					borderwidth=0,
+					relief=RAISED,
+					borderwidth=2,
 					justify=RIGHT)
 		self.xwork.grid(row=row,column=col,padx=1,sticky=EW)
-		tkExtra.Balloon.set(self.xwork, _("X work position (click to set)"))
-		self.xwork.bind('<FocusIn>',  self.workFocus)
-		self.xwork.bind('<Return>',   self.setX)
-		self.xwork.bind('<KP_Enter>', self.setX)
+		tkExtra.Balloon.set(self.xwork, _("X work position"))
 
 		# ---
 		col += 1
 		if self.isLathe:
-			self.bwork = Entry(self, font=DROFrame.dro_wpos,
+			self.bwork = Label(self, font=DROFrame.dro_wpos,
 							   background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-							   relief=FLAT,
-							   borderwidth=0,
+							   relief=RAISED,
+							   borderwidth=2,
 							   justify=RIGHT)
 			self.bwork.grid(row=row,column=col,padx=1,sticky=EW)
-			tkExtra.Balloon.set(self.bwork, _("B work position (click to set)"))
-			self.bwork.bind('<FocusIn>',  self.workFocus)
-			self.bwork.bind('<Return>',   self.setB)
-			self.bwork.bind('<KP_Enter>', self.setB)
+			tkExtra.Balloon.set(self.bwork, _("B work position"))
 		else:
-			self.ywork = Entry(self, font=DROFrame.dro_wpos,
+			self.ywork = Label(self, font=DROFrame.dro_wpos,
 						background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-						relief=FLAT,
-						borderwidth=0,
+						relief=RAISED,
+						borderwidth=2,
 						justify=RIGHT)
 			self.ywork.grid(row=row,column=col,padx=1,sticky=EW)
-			tkExtra.Balloon.set(self.ywork, _("Y work position (click to set)"))
-			self.ywork.bind('<FocusIn>',  self.workFocus)
-			self.ywork.bind('<Return>',   self.setY)
-			self.ywork.bind('<KP_Enter>', self.setY)
-
+			tkExtra.Balloon.set(self.ywork, _("Y work position"))
 		# ---
 		col += 1
-		self.zwork = Entry(self, font=DROFrame.dro_wpos,
+		self.zwork = Label(self, font=DROFrame.dro_wpos,
 					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					relief=FLAT,
-					borderwidth=0,
+					relief=RAISED,
+					borderwidth=2,
 					justify=RIGHT)
 		self.zwork.grid(row=row,column=col,padx=1,sticky=EW)
-		tkExtra.Balloon.set(self.zwork, _("Z work position (click to set)"))
-		self.zwork.bind('<FocusIn>',  self.workFocus)
-		self.zwork.bind('<Return>',   self.setZ)
-		self.zwork.bind('<KP_Enter>', self.setZ)
+		tkExtra.Balloon.set(self.zwork, _("Z work position"))
 
 		# Machine
 		row += 1
@@ -393,17 +448,11 @@ class DROFrame(CNCRibbon.PageFrame):
 			focus = None
 		middle_work = self.bwork if self.isLathe else self.ywork
 		if focus is not self.xwork:
-			value = "%.03f" % CNC.vars["wx"]
-			self.xwork.delete(0,END)
-			self.xwork.insert(0,value)
+			self.xwork["text"] = "%.03f" % CNC.vars["wx"]
 		if focus is not middle_work:
-			value = "%.03f" % CNC.vars["wb" if self.isLathe else "wy"]
-			middle_work.delete(0,END)
-			middle_work.insert(0,value)
+			middle_work["text"] = "%.03f" % CNC.vars["wb" if self.isLathe else "wy"]
 		if focus is not self.zwork:
-			value = "%.03f" % CNC.vars["wz"]
-			self.zwork.delete(0,END)
-			self.zwork.insert(0,value)
+			self.zwork["text"] = "%.03f" % CNC.vars["wz"]
 
 		self.xmachine["text"] = "%.03f" % CNC.vars["mx"]
 		if self.isLathe:
