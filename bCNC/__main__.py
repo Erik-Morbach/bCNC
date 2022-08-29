@@ -721,11 +721,11 @@ class Application(Toplevel, Sender):
         Utils.setInt(Utils.__prg__, "height", str(self.winfo_height()))
         # Utils.setInt(Utils.__prg__,  "x",	  str(self.winfo_rootx()))
         # Utils.setInt(Utils.__prg__,  "y",	  str(self.winfo_rooty()))
-        Utils.setInt(Utils.__prg__, "sash", str(self.paned.sash_coord(0)[0]))
+        #Utils.setInt(Utils.__prg__, "sash", str(self.paned.sash_coord(0)[0])) Must not change
 
         # save windowState
         Utils.setStr(Utils.__prg__, "windowstate", str(self.wm_state()))
-        Utils.setStr(Utils.__prg__, "page", str(self.ribbon.getActivePage().name))
+        #Utils.setStr(Utils.__prg__, "page", str(self.ribbon.getActivePage().name)) must always start in page File
 
         # Connection
         Page.saveConfig()

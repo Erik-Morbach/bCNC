@@ -397,7 +397,6 @@ class StartupFrame(CNCRibbon.PageLabelFrame):
 	def reference(self):
 		self.app.mcontrol.softReset()
 		self.app.mcontrol.unlock()
-		self.app.mcontrol.unlock()
 		self.app.mcontrol.home()
 
 #===============================================================================

@@ -91,6 +91,9 @@ class _GenericController:
 		self.master.sendGCode("$X")
 		self.sendSettings()
 		self.sendParameters()
+		self.master.sendGCode("$X")
+		self.sendSettings()
+		self.sendParameters()
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
