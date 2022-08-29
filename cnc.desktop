@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=BjmCncInterface
+Comment=Bjm interface for CNC machines
+Path=~/bCNC
+Exec=python3 bCNC
+Icon=logo.jpg
+Terminal=false
+Categories=CNC;
