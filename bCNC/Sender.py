@@ -366,7 +366,7 @@ class Sender:
 				index = int(line[1])
 				value = line[2]
 				self.sendGCode("${}={}".format(index, value))
-				self.modifyConfiguration("${}" % index, value)
+				self.modifyConfiguration("${}".format(index), value)
 			except:
 				pass
 
