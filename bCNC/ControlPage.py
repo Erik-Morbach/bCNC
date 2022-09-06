@@ -128,7 +128,7 @@ class SetZeroDialog(Dialog):
 		self.a = StringVar(value='0')
 		self.b = StringVar(value='0')
 		self.c = StringVar(value='0')
-		self.axes = "XYZABC"
+		self.axes = Utils.getStr("CNC", "axis", "XYZABC").upper()
 		self.var = [self.x, self.y, self.z, self.a, self.b, self.c]
 		Dialog.__init__(self, parent, title)
 	def body(self, frame):
