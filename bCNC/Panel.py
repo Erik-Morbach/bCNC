@@ -7,30 +7,31 @@ import io
 from CNC import CNC
 
 def is_raspberrypi():
-	try:
-		with io.open('/sys/firmware/devicetree/base/model', 'r') as m:
-			if 'raspberry pi' in m.read().lower(): 
-				return True
-	except Exception:
-		pass
-	return False
+    try:
+        with io.open('/sys/firmware/devicetree/base/model', 'r') as m:
+            if 'raspberry pi' in m.read().lower(): 
+                return True
+    except Exception:
+        pass
+    return False
 
 if is_raspberrypi():
-	print("Is a Pi")
-	import wiringpi as wp
-	wp.wiringPiSetup()
+    print("Is a Pi")
+    import wiringpi as wp
+    wp.wiringPiSetup()
 else:
-	print("Not a Pi")
-	class A:
-		INPUT = 0
-		PUD_DOWN = 1
-		def pinMode(self, *args):
-			pass
-		def pullUpDnControl(self, *args):
-			pass
-		def digitalRead(self, *args):
-			return 0
-	wp = A()
+    print("Not a Pi")
+    class A:
+        INPUT = 0
+        PUD_DOWN = 1
+        PUD_OFF = 2
+        def pinMode(self, *args):
+            pass
+        def pullUpDnControl(self, *args):
+            pass
+        def digitalRead(self, *args):
+            return 0
+    wp = A()
 
 class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
@@ -42,7 +43,7 @@ class Member:
         for pin in pins:
             if pin < 0: continue
             wp.pinMode(pin, wp.INPUT)
-            wp.pullUpDnControl(pin, wp.PUD_DOWN)
+            wp.pullUpDnControl(pin, wp.PUD_OFF)
 
         self.inversion = inversion
         self.lastTime = time.time()
@@ -106,8 +107,15 @@ class Jog(MemberImpl):
         super().__init__(app)
         self.jogActive = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
 
+        self.type = Utils.getBool("Jog", "dirMode", True)
+
         self.axisMap = "XYZABC"
         self.directionMap = {0: "Up", 1: "Down"}
+
+        self.directMappings = []
+        for w in self.axisMap:
+            self.directMappings += [w+"Up",w+"Down"]
+
         self.jogLastAction = self.JOGMOTION
         debounce = Utils.getFloat("Jog", "debounce", 0.05)
 
@@ -119,30 +127,21 @@ class Jog(MemberImpl):
         pins = []
         inversion = 0
         arr = []
-        for w in self.axisMap:
-            arr += [w, w+"dir"]
+        if self.type:
+            for w in self.axisMap:
+                arr += [w, w+"dir"]
+        else:
+            arr = self.directMappings
         pins = getArrayIntFromUtils("Jog", arr)
         inversion = Utils.getInt("Jog", "inversion", 0)
         return pins, inversion
 
-    def callback(self, pinValues):
-        if self.app.running or CNC.vars["state"] == "Home":
-            return
+    def directionMode(self, pinValues):
         axis = []
         direction = []
         for i in range(0,len(pinValues)):
             if i % 2 == 0: axis += [pinValues[i]]
             else: direction += [pinValues[i]]
-        if max(axis) == 0 and self.jogLastAction != self.JOGSTOP:
-            mutex = threading.Lock()
-            mutex.acquire()
-            self.app.jogMutex = mutex
-            self.app.focus_set()
-            self.app.event_generate("<<JogStop>>", when="tail")
-            self.jogLastAction = self.JOGSTOP
-            mutex.acquire(blocking=True, timeout=0.5)
-            self.app.jogMutex = None
-            return
         for id, (axe,dire) in enumerate(zip(axis,direction)):
             if axe == 1:
                 con = self.axisMap[id] + self.directionMap[dire]
@@ -155,6 +154,38 @@ class Jog(MemberImpl):
                 mutex.acquire(blocking=True, timeout=0.5)
                 self.app.jogMutex = None
                 return
+
+    def directMode(self, pinValues):
+        for id, val in enumerate(pinValues):
+            if val == 1:
+                con = self.directMappings[id]
+                mutex = threading.Lock()
+                mutex.acquire()
+                self.app.jogMutex = mutex
+                self.app.focus_set()
+                self.app.event_generate("<<"+con+">>", when="tail")
+                self.jogLastAction = self.JOGMOTION
+                mutex.acquire(blocking=True, timeout=0.5)
+                self.app.jogMutex = None
+                return
+
+    def callback(self, pinValues):
+        if self.app.running or CNC.vars["state"] == "Home":
+            return
+        if max(pinValues) == 0 and self.jogLastAction != self.JOGSTOP:
+            mutex = threading.Lock()
+            mutex.acquire()
+            self.app.jogMutex = mutex
+            self.app.focus_set()
+            self.app.event_generate("<<JogStop>>", when="tail")
+            self.jogLastAction = self.JOGSTOP
+            mutex.acquire(blocking=True, timeout=0.5)
+            self.app.jogMutex = None
+            return
+        if self.type == True:
+            self.directionMode(pinValues)
+        else:
+            self.directMode(pinValues)
 
 class Selector(MemberImpl):
     def __init__(self, app, index, onChange) -> None:

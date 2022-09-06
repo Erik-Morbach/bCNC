@@ -22,7 +22,7 @@ class JogController:
 
         self.jog = {}
         self.plannerLimit = Utils.getInt("Jog","planner", 90)
-        self.period = Utils.getFloat("Jog", "periodToStop", 0.05)
+        self.period = Utils.getFloat("Jog", "debounce", 0.05)
         self.releasePeriod = Utils.getFloat("Jog", "beginPeriod", 0.05)
         self.lastTime = 0
         self.lastStop = 0

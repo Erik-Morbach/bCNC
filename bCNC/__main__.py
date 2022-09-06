@@ -451,18 +451,6 @@ class Application(Toplevel, Sender):
         self.bind('<<BUp>>', bUp)
         self.bind('<<BDown>>', bDown)
 
-        def selectorAdjust(*args):
-            step = self.panel.currentStep
-            velocity = self.panel.currentVelocity
-            self.control.setStep(step)
-            self.gstate.overrideCombo.set('Feed')
-            self.gstate.override.set(velocity)
-            self.gstate.overrideChange()
-            self.gstate.overrideCombo.set('Rapid')
-            self.gstate.override.set(velocity)
-            self.gstate.overrideChange()
-            self.gstate.overrideCombo.set('Feed')
-
         def stopJog(*args):
             if self.serial is None: return
             self.emptyQueue()
@@ -482,7 +470,6 @@ class Application(Toplevel, Sender):
             clampToggleCounter+=1
 
 
-        self.bind('<<AdjustSelector>>', selectorAdjust)
         self.bind('<<JogStop>>', stopJog)
         self.bind('<<ClampToggle>>', clampToggle)
 
