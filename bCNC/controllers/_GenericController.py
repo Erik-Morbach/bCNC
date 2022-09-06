@@ -172,6 +172,7 @@ class _GenericController:
 				file.write(str(workIndex))
 				if workIndex not in workPositions.keys():
 					workPositions[workIndex] = {}
+				if "R" not in workPositions[workIndex].keys():
 					workPositions[workIndex]["R"] = "G90"
 				for currentAxis in axis:
 					if currentAxis not in workPositions[workIndex].keys():
@@ -190,7 +191,7 @@ class _GenericController:
 		parameters = self.getParameters()
 		time.sleep(0.05)
 		currentMode = CNC.vars["radius"]
-		for workIndex in range(1,9):
+		for workIndex in parameters.keys():
 			self.master.sendGCode(parameters[workIndex]["R"])
 			cmd = "G10L2P" + str(workIndex)
 			for currentAxis in axis:
