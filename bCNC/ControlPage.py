@@ -171,18 +171,18 @@ class SetZeroDialog(Dialog):
 			return False
 
 	def getWco(self):
-		values = []
+		values = {}
 		for (id, w) in enumerate(self.axes):
 			s = self.var[id].get()
 			if s=="" or s=="-": # only cornerCases not treated
 				s = "0"
-			values += [float(s)]
+			values[w.lower()] = float(s)
 		return values 
 
 	def onOk(self):
 		index = self.wcsOptions.index(self.wcs.get())
 		wco = self.getWco()
-		self.app.mcontrol._wcsSet(*wco, index)
+		self.app.mcontrol._wcsSet(**wco, wcsIndex=index)
 
 	def onExit(self):
 		self.destroy()

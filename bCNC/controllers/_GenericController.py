@@ -220,7 +220,7 @@ class _GenericController:
 		self.master.sendGCode("%s"%(cmd))
 
 	#----------------------------------------------------------------------
-	def _wcsSet(self, x, y, z, a=None, b=None, c=None, wcsIndex=None):
+	def _wcsSet(self, x=None, y=None, z=None, a=None, b=None, c=None, wcsIndex=None):
 		
 		# Updating WorkCoordinates.txt file
 		parameters = self.getParameters()
