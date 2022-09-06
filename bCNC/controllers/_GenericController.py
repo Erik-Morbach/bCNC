@@ -6,6 +6,7 @@ from __future__ import print_function
 
 from CNC import CNC, WCS
 from CNCRibbon    import Page
+import Utils
 import os.path
 import time
 import re
@@ -134,7 +135,8 @@ class _GenericController:
 		self.master.sendGCode("$#")
 
 	def getParameters(self):
-		axis = "XYZABC"
+		axis = Utils.getStr("CNC", "axis", "XYZABC").upper()
+		lineLen = 1 + len(axis) # +1 optional
 		if not os.path.isfile("WorkCoordinates.txt"):
 			self.saveParameters()
 				
@@ -142,14 +144,14 @@ class _GenericController:
 		with open("WorkCoordinates.txt", 'r') as workFile:
 			for line in workFile.readlines():
 				positions = line.split(' ')
-				if len(positions) < 7:
+				if len(positions) < lineLen:
 					continue
 				positions[-1] = positions[-1].replace('\n','')
 				positionIndex = int(positions[0])
 				positions = positions[1:]
 				radiusMode = "G90"
-				if len(positions) == 7:
-					radiusMode = positions[6]
+				if len(positions) > lineLen:
+					radiusMode = positions[-1]
 					del positions[-1]
 				workPositions[positionIndex] = {}
 				workPositions[positionIndex]["R"] = radiusMode
@@ -158,7 +160,7 @@ class _GenericController:
 		return workPositions
 
 	def saveParameters(self, workPositions=None):
-		axis = "XYZABC"
+		axis = Utils.getStr("CNC", "axis", "XYZABC").upper()
 		if workPositions == None:
 			workPositions = {}
 		flag = 'x'
@@ -176,7 +178,7 @@ class _GenericController:
 						workPositions[workIndex][currentAxis] = "0"
 					else:
 						try:
-							workPositions[workIndex][currentAxis] = str(float(workPositions[workIndex][currentAxis]))
+							workPositions[workIndex][currentAxis] = "%.3f" % float(workPositions[workIndex][currentAxis])
 						except:
 							workPositions[workIndex][currentAxis] = "0"
 					file.write(" {}".format(workPositions[workIndex][currentAxis]))
@@ -184,7 +186,7 @@ class _GenericController:
 				file.write("\n")
 		
 	def sendParameters(self):
-		axis = "XYZABC"
+		axis = Utils.getStr("CNC", "axis", "XYZABC").upper()
 		parameters = self.getParameters()
 		time.sleep(0.05)
 		currentMode = CNC.vars["radius"]

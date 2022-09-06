@@ -66,7 +66,7 @@ class JogController:
         self.lastTime = time.time()
         if self.mutex.locked():
             self.mutex.release()
-        if CNC.vars["planner"] < self.plannerLimit:
+        if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:
             return
         self.keys[self.mapCodeToKey[data.keycode]](data)
 

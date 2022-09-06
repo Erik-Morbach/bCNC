@@ -743,7 +743,7 @@ class CNC:
 			"JogSpeed"   : 3000.0,
 			"JogActive"  : False,
 
-			"planner"    : 0,
+			"planner"    : -1,
 			"rxbytes"    : 0,
 
 			"OvFeed"     : 100,	# Override status
