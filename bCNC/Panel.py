@@ -35,15 +35,18 @@ else:
 
 class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
+        print("Member:", end='')
         self.pins = pins
         self.debounce = debounce
         self.callback = callback
         self.mutex = threading.Lock()
         self.active = active
         for pin in pins:
+            print(" " + pin, end='')
             if pin < 0: continue
             wp.pinMode(pin, wp.INPUT)
             wp.pullUpDnControl(pin, wp.PUD_OFF)
+        print()
 
         self.inversion = inversion
         self.lastTime = time.time()
@@ -121,6 +124,7 @@ class Jog(MemberImpl):
 
         pins, inversion = self.load_pins()
 
+        print("JOG")
         self.member = Member(pins, inversion, debounce, self.callback, self.jogActive)
 
     def load_pins(self):
@@ -207,6 +211,7 @@ class Selector(MemberImpl):
 
         pins, inversion = self.load_pins()
 
+        print("Selector{}".format(index))
         self.memberSelector = Member(pins, inversion, debounce, self.callback, self.selectorActive)
         self.currentVar = self.variableOptions[0]
 
@@ -256,6 +261,7 @@ class ButtonPanel(MemberImpl):
         self.active = Utils.getBool(self.panelName, "panel", False)
         debounce = Utils.getFloat(self.panelName, "debounce", 0.5)
         pins, inversion = self.load_pins()
+        print("Button{}".format(index))
         self.member = Member(pins, inversion, debounce, self.callback, self.active)
         self.lastState = [0]
 
