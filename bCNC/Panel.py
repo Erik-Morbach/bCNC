@@ -80,16 +80,22 @@ class Member:
         self.mutex.acquire()
         threading.Thread(target=self.waitDebounce).start()
 
-def getArrayIntFromUtils(section, array):
+def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
     values = []
-    for w in array:
-        values += [Utils.getInt(section, w, -20)]
+    index = 0
+    while 1:
+        id = preffix + str(index)
+        values += [method(section, id, default)]
+        if values[-1] == default:
+            del values[-1]
+            break
+        index += 1
     return values
 
-def getArrayFloatFromUtils(section, array):
+def getArrayFromUtils(section, array, method=Utils.getInt, default=-20):
     values = []
     for w in array:
-        values += [Utils.getFloat(section, w, 0)]
+        values += [method(section, w, default)]
     return values
 
 class MemberImpl(abc.ABC):
@@ -108,7 +114,7 @@ class Jog(MemberImpl):
     JOGSTOP = 1
     def __init__(self, app):
         super().__init__(app)
-        self.jogActive = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
+        self.active = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
 
         self.type = Utils.getBool("Jog", "dirMode", True)
 
@@ -124,8 +130,8 @@ class Jog(MemberImpl):
 
         pins, inversion = self.load_pins()
 
-        print("JOG")
-        self.member = Member(pins, inversion, debounce, self.callback, self.jogActive)
+        print("JOG", end=' ')
+        self.member = Member(pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
         pins = []
@@ -136,7 +142,7 @@ class Jog(MemberImpl):
                 arr += [w, w+"dir"]
         else:
             arr = self.directMappings
-        pins = getArrayIntFromUtils("Jog", arr)
+        pins = getArrayFromUtils("Jog", arr, Utils.getInt, -20)
         inversion = Utils.getInt("Jog", "inversion", 0)
         return pins, inversion
 
@@ -174,7 +180,7 @@ class Jog(MemberImpl):
                 return
 
     def callback(self, pinValues):
-        if self.app.running or CNC.vars["state"] == "Home":
+        if self.app.running or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
             return
         if max(pinValues) == 0 and self.jogLastAction != self.JOGSTOP:
             mutex = threading.Lock()
@@ -205,21 +211,17 @@ class Selector(MemberImpl):
         direct = lambda index, id: id
         self.typeFunction = binary if self.selectorType else direct
 
-        pinsLen = Utils.getInt(self.selectorName, "pinsLen", 0)
-        self.variableOptions = getArrayFloatFromUtils(self.selectorName,
-                            ["v{}".format(i) for i in range(0,pinsLen)])
+        self.variableOptions = getArrayWhileExists(self.selectorName, "v", Utils.getFloat, 0)
 
         pins, inversion = self.load_pins()
 
-        print("Selector{}".format(index))
+        print(self.selectorName, end= ' ')
         self.memberSelector = Member(pins, inversion, debounce, self.callback, self.selectorActive)
         self.currentVar = self.variableOptions[0]
 
     def load_pins(self):
-        pinsLen = Utils.getInt(self.selectorName, "pinsLen", 0)
-        pins = getArrayIntFromUtils("Selector", 
-                            ["pin{}".format(i) for i in range(0,pinsLen)])
-        inversion = Utils.getInt("Selector", "inversion", 0)
+        pins = getArrayWhileExists(self.selectorName, "pin", Utils.getInt, -20)
+        inversion = Utils.getInt(self.selectorName, "inversion", 0)
         return pins, inversion
 
     def calculateIndex(self, selector: list):
@@ -261,7 +263,7 @@ class ButtonPanel(MemberImpl):
         self.active = Utils.getBool(self.panelName, "panel", False)
         debounce = Utils.getFloat(self.panelName, "debounce", 0.5)
         pins, inversion = self.load_pins()
-        print("Button{}".format(index))
+        print("Button{}".format(index), end=' ')
         self.member = Member(pins, inversion, debounce, self.callback, self.active)
         self.lastState = [0]
 
