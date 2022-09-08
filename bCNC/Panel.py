@@ -98,8 +98,9 @@ def getArrayFromUtils(section, array, method=Utils.getInt, default=-20):
         values += [method(section, w, default)]
     return values
 
-class MemberImpl(abc.ABC):
-    def __init__(self,app) -> None:
+class MemberImpl(Member):
+    def __init__(self, app, pins, inversion, debounce, callback, active):
+        super().__init__(pins, inversion, debounce, callback, active)
         self.app = app
 
     @abc.abstractmethod
@@ -113,7 +114,6 @@ class Jog(MemberImpl):
     JOGMOTION = 0
     JOGSTOP = 1
     def __init__(self, app):
-        super().__init__(app)
         self.active = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
 
         self.type = Utils.getBool("Jog", "dirMode", True)
@@ -131,7 +131,7 @@ class Jog(MemberImpl):
         pins, inversion = self.load_pins()
 
         print("JOG", end=' ')
-        self.member = Member(pins, inversion, debounce, self.callback, self.active)
+        super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
         pins = []
@@ -199,11 +199,10 @@ class Jog(MemberImpl):
 
 class Selector(MemberImpl):
     def __init__(self, app, index, onChange) -> None:
-        super().__init__(app)
         self.onChange = onChange
         self.selectorIndex = index
         self.selectorName = "Selector{}".format(index)
-        self.selectorActive = Utils.getBool(self.selectorName, "panel", False)
+        self.active = Utils.getBool(self.selectorName, "panel", False)
         debounce = Utils.getFloat(self.selectorName, "debounce", 0.1)
         self.selectorType = Utils.getBool(self.selectorName, "binary", False)
 
@@ -216,8 +215,8 @@ class Selector(MemberImpl):
         pins, inversion = self.load_pins()
 
         print(self.selectorName, end= ' ')
-        self.memberSelector = Member(pins, inversion, debounce, self.callback, self.selectorActive)
         self.currentVar = self.variableOptions[0]
+        super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
         pins = getArrayWhileExists(self.selectorName, "pin", Utils.getInt, -20)
@@ -258,14 +257,13 @@ class FeedSelector(Selector):
 
 class ButtonPanel(MemberImpl):
     def __init__(self, app, index) -> None:
-        super().__init__(app)
         self.panelName = "Button{}".format(index)
         self.active = Utils.getBool(self.panelName, "panel", False)
         debounce = Utils.getFloat(self.panelName, "debounce", 0.5)
         pins, inversion = self.load_pins()
         print("Button{}".format(index), end=' ')
-        self.member = Member(pins, inversion, debounce, self.callback, self.active)
         self.lastState = [0]
+        super().__init__(app,pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
         pins = [Utils.getInt(self.panelName, "pin", -20)]
