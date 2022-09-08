@@ -42,7 +42,7 @@ class Member:
         self.mutex = threading.Lock()
         self.active = active
         for pin in pins:
-            print(" " + pin, end='')
+            print(" " + str(pin), end='')
             if pin < 0: continue
             wp.pinMode(pin, wp.INPUT)
             wp.pullUpDnControl(pin, wp.PUD_OFF)
