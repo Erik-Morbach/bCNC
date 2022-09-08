@@ -243,14 +243,14 @@ class StepSelector(Selector):
     def onChange(self):
         self.app.control.setStep(self.currentVar)
 
-class FeedSelector(Selector):
+class FeedRapidSelector(Selector):
     def __init__(self, app, index, names = ["Feed","Rapid"]) -> None:
          super().__init__(app, index, self.onChange)
          self.names = names
+
     def change(self, name, var):
-        self.app.gstate.overrideCombo.set(name)
-        self.app.gstate.override.set(var)
-        self.app.gstate.overrideChange()
+        self.app.gstate.setOverride(name,var)
+
     def onChange(self):
         for w in self.names:
             self.change(w, self.currentVar)
@@ -351,7 +351,7 @@ class Panel:
         self.app = app
         self.period = Utils.getFloat("Panel", "period", 0.1)
         self.mapper = {"stepselector":StepSelector,
-                "feedselector":FeedSelector, "startbutton":StartButton,
+                "feedrapidselector":FeedRapidSelector, "startbutton":StartButton,
                 "pausebutton":PauseButton, "startpausebutton":StartPauseButton,
                 "clampbutton":ClampButton, "safetydoorbutton":SafetyDoorButton,
                 "barendbutton":BarEndButton, "resetbutton": ResetButton}

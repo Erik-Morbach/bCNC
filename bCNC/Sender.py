@@ -627,7 +627,7 @@ class Sender:
 	def grblRestoreWCS(self):		self.mcontrol.grblRestoreWCS()
 	def grblRestoreAll(self):		self.mcontrol.grblRestoreAll()
 	def goto(self, x=None, y=None, z=None):	self.mcontrol.goto(x,y,z)
-	def _wcsSet(self, x, y, z, wcsIndex=None):		self.mcontrol._wcsSet(x,y,z,wcsIndex=wcsIndex) # FIXME Duplicate with ControlPage
+	def _wcsSet(self, x, y, z, a=None, b=None, c=None, wcsIndex=None):		self.mcontrol._wcsSet(x,y,z,wcsIndex=wcsIndex) # FIXME Duplicate with ControlPage
 	def feedHold(self, event=None):		self.mcontrol.feedHold(event)
 	def resume(self, event=None):		self.mcontrol.resume(event)
 	def pause(self, event=None):		self.mcontrol.pause(event)

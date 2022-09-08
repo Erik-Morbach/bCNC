@@ -140,7 +140,7 @@ class SetZeroDialog(Dialog):
 		cb.pack(side=RIGHT)
 		cb.bind("<Return>", lambda x, s=self: s.focus_set())
 		cb.bind("<<ComboboxSelected>>", self.onWcs)
-		cb.set(self.wcsOptions[0])
+		cb.set(CNC.vars["WCS"])
 		self.onWcs() # ComboboxSelected not trigger
 		f.pack(side=TOP, fill=X, expand=TRUE)
 
@@ -150,10 +150,16 @@ class SetZeroDialog(Dialog):
 			f2 = Frame(f)
 			Label(f2, text=w).pack(side=LEFT, fill=X)
 			e = Entry(f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
-			e.pack(side=RIGHT, fill=X)
+			e.pack(side=LEFT, expand=TRUE, fill=X)
 			e.bind("<Return>", lambda x, s=self: s.focus_set())
+
+			b = Button(f2, text="Zero", command=functools.partial(self.zero, self.var[id]))
+			b.pack(side=RIGHT, fill=X)
 			f2.pack(side=TOP, fill=X, expand=TRUE)
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+
+	def zero(self, strVar: StringVar):
+		strVar.set("0.00")
 
 	def onWcs(self, *args):
 		index = self.wcsOptions.index(self.wcs.get()) + 1
@@ -182,6 +188,7 @@ class SetZeroDialog(Dialog):
 	def onOk(self):
 		index = self.wcsOptions.index(self.wcs.get())
 		wco = self.getWco()
+		print(wco)
 		self.app.mcontrol._wcsSet(**wco, wcsIndex=index)
 
 	def onExit(self):
@@ -318,30 +325,29 @@ class RunGroup(CNCRibbon.ButtonGroup):
 # DRO Frame
 #===============================================================================
 class DROFrame(CNCRibbon.PageFrame):
-	dro_status = ('Helvetica',12,'bold')
-	dro_wpos   = ('Helvetica',12,'bold')
-	dro_mpos   = ('Helvetica',12)
+	dro_status = ('Helvetica',16,'bold')
+	dro_wpos   = ('Helvetica',16,'bold')
+	dro_mpos   = ('Helvetica',16)
 
 	def __init__(self, master, app):
 		CNCRibbon.PageFrame.__init__(self, master, "DRO", app)
 		self.isLathe = Utils.getBool("CNC","lathe",False)
+		self.axis = Utils.getStr("CNC", "axis", "XYZ")
 
 		DROFrame.dro_status = Utils.getFont("dro.status", DROFrame.dro_status)
 		DROFrame.dro_wpos   = Utils.getFont("dro.wpos",   DROFrame.dro_wpos)
 		DROFrame.dro_mpos   = Utils.getFont("dro.mpos",   DROFrame.dro_mpos)
-
-		row = 0
-		col = 0
-		Label(self,text=_("Status:")).grid(row=row,column=col,sticky=E)
-		col += 1
-		self.state = Button(self,
+		f = Frame(self)
+		f2 = Frame(f)
+		Label(f2,text=_("Status:")).pack(side=LEFT, fill=X, expand=FALSE)
+		self.state = Button(f2,
 				text=Sender.NOT_CONNECTED,
 				font=DROFrame.dro_status,
 				command=self.showState,
 				cursor="hand1",
 				background=Sender.STATECOLOR[Sender.NOT_CONNECTED],
 				activebackground="LightYellow")
-		self.state.grid(row=row,column=col, columnspan=3, sticky=EW)
+		self.state.pack(side=RIGHT, fill=X, expand=TRUE)
 		tkExtra.Balloon.set(self.state,
 				_("Show current state of the machine\n"
 				  "Click to see details\n"
@@ -349,72 +355,34 @@ class DROFrame(CNCRibbon.PageFrame):
 		#self.state.bind("<Button-3>", lambda e,s=self : s.event_generate("<<AlarmClear>>"))
 		self.state.bind("<Button-3>", self.stateMenu)
 
-		row += 1
-		col = 0
-		Label(self,text=_("WPos:")).grid(row=row,column=col,sticky=E)
+		f2.pack(side=TOP, fill=X, expand=TRUE)
 
-		# work
-		col += 1
-		self.xwork = Label(self, font=DROFrame.dro_wpos,
+		self.works = []
+		self.machs = []
+		f2 = Frame(f)
+		Label(f2, text="Machine").pack(side=RIGHT, fill=X,expand=TRUE)
+		Label(f2, text="Work").pack(side=RIGHT, fill=X, expand=TRUE)
+		f2.pack(side=TOP, fill=X, expand=TRUE)
+		for axe in self.axis:
+			f2 = Frame(f)
+			Label(f2, text=_(axe.upper()+":"), font=DROFrame.dro_wpos).pack(side=LEFT)
+			mach = Label(f2, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+					anchor=E,width=9)
+			mach.pack(side=RIGHT, fill=X, expand=TRUE)
+			tkExtra.Balloon.set(mach, _(axe+" machine position"))
+
+			work = Label(f2, font=DROFrame.dro_wpos,
 					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					relief=RAISED,
-					borderwidth=2,
-					justify=RIGHT)
-		self.xwork.grid(row=row,column=col,padx=1,sticky=EW)
-		tkExtra.Balloon.set(self.xwork, _("X work position"))
+					relief=RAISED, borderwidth=2, justify=RIGHT,
+					width=9)
+			work.pack(side=RIGHT, fill=X, expand=TRUE)
+			tkExtra.Balloon.set(work, _(axe+" work position"))
 
-		# ---
-		col += 1
-		if self.isLathe:
-			self.bwork = Label(self, font=DROFrame.dro_wpos,
-							   background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-							   relief=RAISED,
-							   borderwidth=2,
-							   justify=RIGHT)
-			self.bwork.grid(row=row,column=col,padx=1,sticky=EW)
-			tkExtra.Balloon.set(self.bwork, _("B work position"))
-		else:
-			self.ywork = Label(self, font=DROFrame.dro_wpos,
-						background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-						relief=RAISED,
-						borderwidth=2,
-						justify=RIGHT)
-			self.ywork.grid(row=row,column=col,padx=1,sticky=EW)
-			tkExtra.Balloon.set(self.ywork, _("Y work position"))
-		# ---
-		col += 1
-		self.zwork = Label(self, font=DROFrame.dro_wpos,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					relief=RAISED,
-					borderwidth=2,
-					justify=RIGHT)
-		self.zwork.grid(row=row,column=col,padx=1,sticky=EW)
-		tkExtra.Balloon.set(self.zwork, _("Z work position"))
+			f2.pack(side=TOP, fill=X, expand=TRUE)
 
-		# Machine
-		row += 1
-		col = 0
-		Label(self,text=_("MPos:")).grid(row=row,column=col,sticky=E)
-
-		col += 1
-		self.xmachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,anchor=E)
-		self.xmachine.grid(row=row,column=col,padx=1,sticky=EW)
-
-		col += 1
-		if self.isLathe:
-			self.bmachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, anchor=E)
-			self.bmachine.grid(row=row, column=col, padx=1, sticky=EW)
-		else:
-			self.ymachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,anchor=E)
-			self.ymachine.grid(row=row,column=col,padx=1,sticky=EW)
-
-		col += 1
-		self.zmachine = Label(self, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, anchor=E)
-		self.zmachine.grid(row=row,column=col,padx=1,sticky=EW)
-
-		self.grid_columnconfigure(1, weight=1)
-		self.grid_columnconfigure(2, weight=1)
-		self.grid_columnconfigure(3, weight=1)
+			self.works += [work]
+			self.machs += [mach]
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
 	#----------------------------------------------------------------------
 	def stateMenu(self, event=None):
@@ -446,21 +414,12 @@ class DROFrame(CNCRibbon.PageFrame):
 			focus = self.focus_get()
 		except:
 			focus = None
-		middle_work = self.bwork if self.isLathe else self.ywork
-		if focus is not self.xwork:
-			self.xwork["text"] = "%.03f" % CNC.vars["wx"]
-		if focus is not middle_work:
-			middle_work["text"] = "%.03f" % CNC.vars["wb" if self.isLathe else "wy"]
-		if focus is not self.zwork:
-			self.zwork["text"] = "%.03f" % CNC.vars["wz"]
+		for (axe, work, mach) in zip(self.axis, self.works, self.machs):
+			wv = "%.03f" % CNC.vars["w"+axe]
+			mv = "%.03f" % CNC.vars["m"+axe]
+			work["text"] = wv
+			mach["text"] = mv
 
-		self.xmachine["text"] = "%.03f" % CNC.vars["mx"]
-		if self.isLathe:
-			self.bmachine["text"] = "%.03f" % CNC.vars["mb"]
-		else:
-			self.ymachine["text"] = "%.03f" % CNC.vars["my"]
-		self.zmachine["text"] = "%.03f" % CNC.vars["mz"]
-		self.app.abcdro.updateCoords()
 	#----------------------------------------------------------------------
 	def padFloat(self, decimals, value):
 		if decimals>0:
@@ -474,75 +433,6 @@ class DROFrame(CNCRibbon.PageFrame):
 	def workFocus(self, event=None):
 		if self.app.running:
 			self.app.focus_set()
-
-	#----------------------------------------------------------------------
-	def setX0(self, event=None):
-		self.app.mcontrol._wcsSet("0",None,None,None,None,None)
-
-	#----------------------------------------------------------------------
-	def setY0(self, event=None):
-		self.app.mcontrol._wcsSet(None,"0",None,None,None,None)
-
-	#----------------------------------------------------------------------
-	def setB0(self, event=None):
-		self.app.mcontrol._wcsSet(None,None,None,None,"0",None)
-
-	#----------------------------------------------------------------------
-	def setZ0(self, event=None):
-		self.app.mcontrol._wcsSet(None,None,"0",None,None,None)
-
-	#----------------------------------------------------------------------
-	def setXY0(self, event=None):
-		self.app.mcontrol._wcsSet("0","0",None,None,None,None)
-
-	#----------------------------------------------------------------------
-	def setXYZ0(self, event=None):
-		self.app.mcontrol._wcsSet("0","0","0",None,None,None)
-
-	#----------------------------------------------------------------------
-	def setX(self, event=None):
-		if self.app.running: return
-		try:
-			value = round(eval(self.xwork.get(), None, CNC.vars), 3)
-			self.app.mcontrol._wcsSet(value,None,None,None,None,None)
-		except:
-			pass
-		self.app.focus_set()
-	#----------------------------------------------------------------------
-	def setY(self, event=None):
-		if self.app.running: return
-		try:
-			value = round(eval(self.ywork.get(), None, CNC.vars), 3)
-			self.app.mcontrol._wcsSet(None,value,None,None,None,None)
-		except:
-			pass
-		self.app.focus_set()
-
-	#----------------------------------------------------------------------
-	def setB(self, event=None):
-		if self.app.running: return
-		try:
-			value = round(eval(self.bwork.get(), None, CNC.vars), 3)
-			self.app.mcontrol._wcsSet(None,None,None,None,value,None)
-		except:
-			pass
-		self.app.focus_set()
-
-	#----------------------------------------------------------------------
-	def setZ(self, event=None):
-		if self.app.running: return
-		try:
-			value = round(eval(self.zwork.get(), None, CNC.vars), 3)
-			self.app.mcontrol._wcsSet(None,None,value,None,None,None)
-		except:
-			pass
-		self.app.focus_set()
-
-	#----------------------------------------------------------------------
-	#def wcsSet(self, x, y, z): self.app.mcontrol._wcsSet(x, y, z)
-
-	#----------------------------------------------------------------------
-	#def _wcsSet(self, x, y, z): self.app.mcontrol._wcsSet(x, y, z)
 
 	#----------------------------------------------------------------------
 	def showState(self):
@@ -797,182 +687,124 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 class ControlFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Control", _("Control"), app)
-		self.isLathe = Utils.getBool("CNC","lathe",0)
+		self.isLathe = Utils.getBool("CNC","lathe",False)
+		self.axis = Utils.getStr("CNC", "axis", "XYZ")
+		self.crossAxis = Utils.getStr("CNC", "jogCross", "XY")
 
-		frame = Frame(self)
-		frame.pack(side=TOP, fill=X)
-		row,col = 0,0
-		Label(frame, text=_("Jog Speed: ")).grid(row=row,column=col)
-		col+=1
+		f = Frame(self)
+		
+		f2 = Frame(self)
+		
 
-		self.jogSpeedEntry = tkExtra.FloatEntry(frame, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black",width=5)
-		self.jogSpeedEntry.grid(row=row,column=col,sticky=EW)
-		self.jogSpeedEntry.bind('<Return>',self.setJogSpeed)
-		self.jogSpeedEntry.bind('<KP_Enter>',self.setJogSpeed)
-		tkExtra.Balloon.set(self.jogSpeedEntry,_("Jog Speed"))
-		self.addWidget(self.jogSpeedEntry)
-
-		speeds = ["1000", "2000", "3000", "5000"]
-		buttonSpeed = []
-		for speed in speeds:
-			col+=1
-			b = Button(frame, text=speed,
-						width=2, height=1,
-						activebackground="LightYellow")
-			b.grid(row=row, column=col, sticky=EW)
-			tkExtra.Balloon.set(b, _(speed))
-			self.addWidget(b)
-			buttonSpeed += [b]
-
-		def selectSpeed(value):
-			self.jogSpeedEntry.set(value)
-			self.setJogSpeed()
-		buttonSpeed[0].config(command=lambda:selectSpeed(speeds[0]))
-		buttonSpeed[1].config(command=lambda:selectSpeed(speeds[1]))
-		buttonSpeed[2].config(command=lambda:selectSpeed(speeds[2]))
-		buttonSpeed[3].config(command=lambda:selectSpeed(speeds[3]))
-
-		# A+    C+
-		#    B+    B-
-		# A-    C-
-
-		aName = "B" if self.isLathe else "Z"
-		bName = "Z" if self.isLathe else "X"
-		cName = "X" if self.isLathe else "Y"
-
-		def focu(event = None):
-			self.app.focus_set()
-		col += 2
-		b = Button(frame, text="Ativa teclado",
-				   command=focu,
-				   activebackground="LightYellow")
-		b.grid(row=row, column=col, columnspan=2, sticky=EW)
-		tkExtra.Balloon.set(b, _("Focus"))
-
-		row+=1
-		col = 0
-		Label(frame, text=_(aName)).grid(row=row, column=col)
-
-		col += 3
-		Label(frame, text=_(cName)).grid(row=row, column=col)
-
-		# ---
-		row += 1
-		col = 0
-
-		width=3
-		height=2
-		command = self.moveBup if self.isLathe else self.moveZup
-		name = "Move +{}".format(aName)
-		b = Button(frame, text=Unicode.BLACK_UP_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
-		command = self.moveZdownXup if self.isLathe else self.moveXdownYup
-		name = "Move -{} +{}".format(bName, cName)
-		b = Button(frame, text=Unicode.UPPER_LEFT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveXup if self.isLathe else self.moveYup
-		name = "Move +{}".format(cName)
-		b = Button(frame, text=Unicode.BLACK_UP_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveZupXup if self.isLathe else self.moveXupYup
-		name = "Move +{} +{}".format(bName, cName)
-		b = Button(frame, text=Unicode.UPPER_RIGHT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
-		b = Button(frame, text=u"\u00D710",
+		f3 = Frame(f2)
+		b = Button(f3, text=u"\u00D710",
 				command=self.mulStep,
 				width=3,
-				padx=1, pady=1)
-		b.grid(row=row, column=col, sticky=EW+S)
+				padx=1, pady=1, font="Helvetica, 14")
+		b.pack(side=LEFT)
 		tkExtra.Balloon.set(b, _("Multiply step by 10"))
 		self.addWidget(b)
-
-		col += 1
-		b = Button(frame, text=_("+"),
+		b = Button(f3, text=_("+"),
 				command=self.incStep,
 				width=3,
-				padx=1, pady=1)
-		b.grid(row=row, column=col, sticky=EW+S)
+				padx=1, pady=1, font="Helvetica, 14")
+		b.pack(side=LEFT)
 		tkExtra.Balloon.set(b, _("Increase step by 1 unit"))
 		self.addWidget(b)
 
-		# ---
-		row += 1
-
-		col = 1
-		Label(frame, text=_(bName), width=3, anchor=E).grid(row=row, column=col, sticky=E)
-
-		col += 1
-		command = self.moveZdown if self.isLathe else self.moveXdown
-		name = "Move -{}".format(bName)
-		b = Button(frame, text=Unicode.BLACK_LEFT_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		b = Utils.UserButton(frame, self.app, 0, text=Unicode.LARGE_CIRCLE,
-					command=self.go2origin,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _("Move to Origin.\nUser configurable button.\nRight click to configure."))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveZup if self.isLathe else self.moveXup
-		name = "Move +{}".format(bName)
-		b = Button(frame, text=Unicode.BLACK_RIGHT_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		# --
-		col += 1
-		Label(frame,"",width=2).grid(row=row,column=col)
-		
-		col += 1
-		self.step = tkExtra.Combobox(frame, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		self.step.grid(row=row, column=col, columnspan=2, sticky=EW)
+		self.step = tkExtra.Combobox(f3, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, font="Helvetica, 14")
+		self.step.pack(side=LEFT)
 		self.step.set(Utils.config.get("Control","step"))
 		self.step.fill(map(float, Utils.config.get("Control","steplist").split()))
 		tkExtra.Balloon.set(self.step, _("Step for every move operation"))
 		self.addWidget(self.step)
 
+		b = Button(f3, text=_("-"),
+					command=self.decStep,
+					width=3,
+					padx=1, pady=1, font="Helvetica, 14")
+		b.pack(side=LEFT)
+		tkExtra.Balloon.set(b, _("Decrease step by 1 unit"))
+		self.addWidget(b)
+		b = Button(f3, text=u"\u00F710",
+					command=self.divStep,
+					padx=1, pady=1, font="Helvetica, 14")
+		b.pack(side=LEFT)
+		tkExtra.Balloon.set(b, _("Divide step by 10"))
+		self.addWidget(b)
+
+		f3.pack(side=TOP, fill=X, expand=TRUE)
+
+		f3 = Frame(f2)
+		Label(f3, text=_("Jog Speed: "), font=DROFrame.dro_mpos).pack(side=LEFT)
+
+		self.jogSpeedEntry = tkExtra.FloatEntry(f3, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black",width=5, font=DROFrame.dro_mpos)
+		self.jogSpeedEntry.pack(side=LEFT)
+		self.jogSpeedEntry.bind('<Return>',self.setJogSpeed)
+		self.jogSpeedEntry.bind('<KP_Enter>',self.setJogSpeed)
+		tkExtra.Balloon.set(self.jogSpeedEntry,_("Jog Speed"))
+		self.addWidget(self.jogSpeedEntry)
+
+		speeds = ["1", "30", "100", "5000"]
+		buttonSpeed = []
+		def selectSpeed(value):
+			self.jogSpeedEntry.set(value)
+			self.setJogSpeed()
+			self.app.focus()
+		for speed in speeds:
+			b = Button(f3, text=speed,
+						width=2, height=1,
+						activebackground="LightYellow",
+						command=functools.partial(selectSpeed, speed),
+						font=DROFrame.dro_mpos)
+			b.pack(side=LEFT)
+			tkExtra.Balloon.set(b, _(speed))
+			self.addWidget(b)
+			buttonSpeed += [b]
+		f3.pack(side=TOP,fill=X, expand=TRUE)
+		# A+        C+
+		#    B+ crossAxis   B-
+		# A-        C-
+
+
+		f2.pack(side=TOP, fill=X, expand=TRUE)
+
+		f2 = Frame(self)
+
+		def makeButton(frame, axe, dire, text, *args):
+			b = Button(frame, text=text.upper(),
+						command=functools.partial(self.move,axe, dire),
+						width=width, height=height,
+						activebackground="LightYellow", 
+						font=DROFrame.dro_status,
+						*args)
+			tkExtra.Balloon.set(b, _(axe))
+			self.addWidget(b)
+			return b #b.pack(side=TOP, fill=BOTH, expand=TRUE)
+		
+		verticalAxis = [w for w in self.axis if w not in self.crossAxis]
+		width=3
+		height=2
+		for axe in verticalAxis:
+			f3 = Frame(f2)
+			makeButton(f3, axe, "+", axe+"+").pack(side=TOP)
+			makeButton(f3, axe, "-", axe+"-").pack(side=BOTTOM)
+			f3.pack(side=LEFT,fill=Y)
+		
+		for i in range(1, len(self.crossAxis),2):
+			horizontal = self.crossAxis[i]
+			vertical = self.crossAxis[i-1]
+			# +
+			#- +
+			# -
+			f3 = Frame(f2)
+			makeButton(f3, vertical, "+", vertical+"+").grid(row=0, column=1)
+			makeButton(f3, vertical, "-", vertical+"-").grid(row=2, column=1)
+			makeButton(f3, horizontal, "-", horizontal+"-").grid(row=1, column=0)
+			makeButton(f3, horizontal, "+", horizontal+"+").grid(row=1, column=2)
+			f3.pack(side=TOP, fill=BOTH, expand=TRUE)
+		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
 		# -- Separate zstep --
 		self.zstep = self.step
@@ -992,69 +824,6 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			self.step3 = Utils.getFloat("Control","step3")
 		except:
 			self.step3 = 10
-
-		# ---
-		row += 1
-		col = 0
-
-		command = self.moveBdown if self.isLathe else self.moveZdown
-		name = "Move -{}".format(aName)
-		b = Button(frame, text=Unicode.BLACK_DOWN_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
-		command = self.moveZdownXdown if self.isLathe else self.moveXdownYdown
-		name ="Move -{} -{}".format(bName,cName)
-		b = Button(frame, text=Unicode.LOWER_LEFT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveXdown if self.isLathe else self.moveYdown
-		name = "Move -{}".format(cName)
-		b = Button(frame, text=Unicode.BLACK_DOWN_POINTING_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 1
-		command = self.moveZdownXup if self.isLathe else self.moveXupYdown
-		name = "Move +{} -{}".format(bName, cName)
-		b = Button(frame, text=Unicode.LOWER_RIGHT_TRIANGLE,
-					command=command,
-					width=width, height=height,
-					activebackground="LightYellow")
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _(name))
-		self.addWidget(b)
-
-		col += 2
-		b = Button(frame, text=u"\u00F710",
-					command=self.divStep,
-					padx=1, pady=1)
-		b.grid(row=row, column=col, sticky=EW+N)
-		tkExtra.Balloon.set(b, _("Divide step by 10"))
-		self.addWidget(b)
-
-		col += 1
-		b = Button(frame, text=_("-"),
-					command=self.decStep,
-					padx=1, pady=1)
-		b.grid(row=row, column=col, sticky=EW+N)
-		tkExtra.Balloon.set(b, _("Decrease step by 1 unit"))
-		self.addWidget(b)
 
 		#self.grid_columnconfigure(6,weight=1)
 		try:
@@ -1089,6 +858,13 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 				return zs
 		else:
 			return self.step.get()
+
+	def move(self, axis:str, dirs:str, event=None):
+		if event is not None and not self.acceptKey(): return
+		cmd = ""
+		for (a,d) in zip(axis,dirs):
+			cmd += a+d+str(self.step.get())
+		self.app.mcontrol.jog(cmd)
 
 	def moveXup(self, event=None):
 		if event is not None and not self.acceptKey(): return
@@ -1687,11 +1463,8 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 
 		# State
 		f = Frame(self)
-		f.pack(side=TOP, fill=X, expand=TRUE)
-
 		# ===
 		f2 = Frame(f)
-		f2.pack(side=TOP, fill=X)
 		for p,w in enumerate(WCS):
 			b = Radiobutton(f2, text=w,
 					foreground="DarkRed",
@@ -1705,199 +1478,174 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 			b.pack(side=LEFT, fill=X, expand=YES)
 			tkExtra.Balloon.set(b, _("Switch to workspace %s")%(w))
 			self.addWidget(b)
-		f = Frame(self)
-		f.pack(side=TOP, fill=X)
-
-		col,row=0,0
-		# Absolute or relative mode
-		row += 1
-		col = 0
-		Label(f, text=_("Distance:")).grid(row=row, column=col, sticky=E)
-		col += 1
-		self.distance = tkExtra.Combobox(f, True,
-					command=self.distanceChange,
-					width=5,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		self.distance.fill(sorted(DISTANCE_MODE.values()))
-		self.distance.grid(row=row, column=col, columnspan=2, sticky=EW)
-		tkExtra.Balloon.set(self.distance, _("Distance Mode [G90,G91]"))
-		self.addWidget(self.distance)
-
+		f2.pack(side=TOP, fill=X, expand=TRUE)
+		f2 = Frame(f)
+		lef = Frame(f2) # side = left
+		rig = Frame(f2) # side = Right
 		# populate gstate dictionary
 		self.gstate = {}	# $G state results widget dictionary
-		for k,v in DISTANCE_MODE.items():
-			self.gstate[k] = (self.distance, v)
-
-		# Units mode
-		col += 2
-		Label(f, text=_("Units:")).grid(row=row, column=col, sticky=E)
-		col += 1
-		self.units = tkExtra.Combobox(f, True,
-					command=self.unitsChange,
-					width=5,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		self.units.fill(sorted(UNITS.values()))
-		self.units.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.units, _("Units [G20, G21]"))
-		for k,v in UNITS.items(): self.gstate[k] = (self.units, v)
-		self.addWidget(self.units)
-
+	
 		# Tool
-		row += 1
-		col = 0
-		Label(f, text=_("Tool:")).grid(row=row, column=col, sticky=E)
-
-		col += 1
-		self.toolEntry = tkExtra.IntegerEntry(f, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, width=5)
-		self.toolEntry.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(self.toolEntry, _("Tool number [T#]"))
-		self.addWidget(self.toolEntry)
-
-		col += 1
-		b = Button(f, text=_("set"),
-				command=self.setTool,
-				padx=1, pady=1)
-		b.grid(row=row, column=col, sticky=W)
-		self.addWidget(b)
+		f3 = Frame(lef)
+		Label(f3, text=_("Tool:"), width=15).pack(side=LEFT)
+		self.tool = Label(f3, 
+				background=tkExtra.GLOBAL_CONTROL_BACKGROUND, 
+				width=7, relief=RAISED)
+		self.tool.pack(side=LEFT)
+		tkExtra.Balloon.set(self.tool, _("Tool number [T#]"))
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 
 		# Plane
-		col += 1
-		Label(f, text=_("Plane:")).grid(row=row, column=col, sticky=E)
-		col += 1
-		self.plane = tkExtra.Combobox(f, True,
+		f3 = Frame(rig)
+		Label(f3, text=_("Plane:"), width=15).pack(side=LEFT)
+		self.plane = tkExtra.Combobox(f3, True,
 					command=self.planeChange,
-					width=5,
+					width=7,
 					background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
 		self.plane.fill(sorted(PLANE.values()))
-		self.plane.grid(row=row, column=col, sticky=EW)
+		self.plane.pack(side=LEFT)
 		tkExtra.Balloon.set(self.plane, _("Plane [G17,G18,G19]"))
 		self.addWidget(self.plane)
-
 		for k,v in PLANE.items(): self.gstate[k] = (self.plane, v)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 
 		# Feed speed
-		row += 1
-		col = 0
-		Label(f, text=_("Feed:")).grid(row=row, column=col, sticky=E)
-
-		col += 1
-		self.feedRate = tkExtra.FloatEntry(f, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black", width=5)
-		self.feedRate.grid(row=row, column=col, sticky=EW)
-		self.feedRate.bind('<Return>',   self.setFeedRate)
-		self.feedRate.bind('<KP_Enter>', self.setFeedRate)
+		f3 = Frame(rig)
+		Label(f3, text=_("Feed:"), width=15).pack(side=LEFT)
+		self.feedRate = Label(f3, 
+				background=tkExtra.GLOBAL_CONTROL_BACKGROUND, 
+				disabledforeground="Black", width=7,
+				relief=RAISED)
+		self.feedRate.pack(side=LEFT)
 		tkExtra.Balloon.set(self.feedRate, _("Feed Rate [F#]"))
-		self.addWidget(self.feedRate)
-
-		col += 1
-		b = Button(f, text=_("set"),
-				command=self.setFeedRate,
-				padx=1, pady=1)
-		b.grid(row=row, column=col, columnspan=2, sticky=W)
-		self.addWidget(b)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 
 		#Feed mode
-		col += 1
-		Label(f, text=_("Mode:")).grid(row=row, column=col, sticky=E)
-
-		col += 1
-		self.feedMode = tkExtra.Combobox(f, True,
+		f3 = Frame(rig)
+		Label(f3, text=_("Mode:"), width=15).pack(side=LEFT)
+		self.feedMode = tkExtra.Combobox(f3, True,
 					command=self.feedModeChange,
-					width=5,
+					width=7,
 					background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
 		self.feedMode.fill(sorted(FEED_MODE.values()))
-		self.feedMode.grid(row=row, column=col, sticky=EW)
+		self.feedMode.pack(side=LEFT)
 		tkExtra.Balloon.set(self.feedMode, _("Feed Mode [G93, G94, G95]"))
 		for k,v in FEED_MODE.items(): self.gstate[k] = (self.feedMode, v)
 		self.addWidget(self.feedMode)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 
 		# TLO
-		row += 1
-		col = 0
-		Label(f, text=_("TLO:")).grid(row=row, column=col, sticky=E)
-
-		col += 1
-		self.tlo = tkExtra.FloatEntry(f, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black", width=5)
-		self.tlo.grid(row=row, column=col, sticky=EW)
-		self.tlo.bind('<Return>',   self.setTLO)
-		self.tlo.bind('<KP_Enter>', self.setTLO)
+		f3 = Frame(lef)
+		Label(f3, text=_("TLO:"), width=15).pack(side=LEFT)
+		self.tlo = Label(f3, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black", 
+				width=7, relief=RAISED)
+		self.tlo.pack(side=LEFT)
 		tkExtra.Balloon.set(self.tlo, _("Tool length offset [G43.1#]"))
 		self.addWidget(self.tlo)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 
-		col += 1
-		b = Button(f, text=_("set"),
-				command=self.setTLO,
-				padx=1, pady=1)
-		b.grid(row=row, column=col, columnspan=2, sticky=W)
-		self.addWidget(b)
+		f3 = Frame(lef)
+		Label(f3, text=_("RealRpm:"), width=15).pack(side=LEFT)
+		self.realRpm = Label(f3, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black", 
+				width=7, relief=RAISED)
+		self.realRpm.pack(side=LEFT)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 
-		# g92
-		col += 1
-		Label(f, text=_("G92:")).grid(row=row, column=col, sticky=E)
-
-		col += 1
-		self.g92 = Label(f, text="")
-		self.g92.grid(row=row, column=col, columnspan=3, sticky=EW)
-		tkExtra.Balloon.set(self.g92, _("Set position [G92 X# Y# Z#]"))
-		self.addWidget(self.g92)
-		col = 0
-		row += 1
-		Label(f, text=_("RealRpm:")).grid(row=row, column=col, sticky=E)
-		col += 1
-		self.realRpm = Label(f, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black", width=5)
-		self.realRpm.grid(row=row, column=col, sticky=EW)
-
-		col += 2
-		Label(f, text=_("Radius Mode:")).grid(row=row, column=col, sticky=E)
-		col += 1
+		f3 = Frame(lef)
+		Label(f3, text=_("Radius Mode:"), width=15).pack(side=LEFT)
 		self.radiusSt = StringVar()
 		self.radiusSt.set(CNC.vars["radius"])
-		self.radius = Label(f, textvariable=self.radiusSt)
-		self.radius.grid(row=row, column=col, columnspan=3, sticky=EW)
+		self.radius = Label(f3, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, 
+				disabledforeground="Black", 
+				width=7, relief=RAISED,
+				textvariable=self.radiusSt)
+		self.radius.pack(side=LEFT)
 		self.addWidget(self.radius)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 
-		# ---
-		f.grid_columnconfigure(1, weight=1)
-		f.grid_columnconfigure(4, weight=1)
+		# Coolant control
 
+		self.coolant = BooleanVar()
+		self.mist = BooleanVar()
+		self.flood = BooleanVar()
+
+		f3 = Frame(rig)
+		Label(f3, text=_("Coolant:"),width=15).pack(side=LEFT)
+
+		floodToogle = Button(f3, text=_("Flood"),
+				command=self.coolantFlood,
+				padx=1,
+				pady=0)
+		tkExtra.Balloon.set(floodToogle, _("Start flood (M8)"))
+		floodToogle.pack(side=LEFT)
+		mistToogle = Button(f3, text=_("Mist"),
+				command=self.coolantMist,
+				padx=1,
+				pady=0)
+		tkExtra.Balloon.set(mistToogle, _("Start mist (M7)"))
+		mistToogle.pack(side=LEFT)
+
+		f3.pack(side=TOP,fill=X, expand=TRUE)
+
+		lef.pack(side=LEFT, fill=BOTH, expand=TRUE)
+		rig.pack(side=LEFT, fill=BOTH, expand=TRUE)
+
+		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 		# Spindle
-		f = Frame(self)
-		f.pack(side=BOTTOM, fill=X)
+		f2 = Frame(f)
 
-		self.override = IntVar()
-		self.override.set(100)
+		self.feedOverride = IntVar()
+		self.feedOverride.set(100)
+		self.rapidOverride = IntVar()
+		self.rapidOverride.set(100)
+		self.spindleOverride = IntVar()
+		self.spindleOverride.set(100)
 		self.spindle = BooleanVar()
 		self.spindleSpeed = IntVar()
 
-		col,row=0,0
-		self.overrideCombo = tkExtra.Combobox(f, width=8, command=self.overrideComboChange)
-		self.overrideCombo.fill(OVERRIDES)
-		self.overrideCombo.grid(row=row, column=col, pady=0, sticky=EW)
-		tkExtra.Balloon.set(self.overrideCombo, _("Select override type."))
+		def makeScale(frame, name:str, override):
+			f = Frame(frame)
+			f2 = Frame(f)
+			Label(f2, text=name+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
+			b = Button(f2, text=_("Reset"), pady=0, 
+					command=functools.partial(self.resetOverride, override,name))
+			b.pack(side=LEFT)
+			tkExtra.Balloon.set(b, _("Reset override to 100%"))
+			f2.pack(side=TOP,fill=BOTH, expand=TRUE)
 
-		b = Button(f, text=_("Reset"), pady=0, command=self.resetOverride)
-		b.grid(row=row+1, column=col, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Reset override to 100%"))
+			scale = Scale(f,
+					command=functools.partial(self.overrideChange, override,name),
+					variable=override,
+					showvalue=True,
+					orient=HORIZONTAL,
+					from_=1,
+					to_=200,
+					resolution=1)
+			scale.pack(side=TOP, fill=BOTH, expand=TRUE)
+			f.pack(side=TOP, fill=BOTH, expand=TRUE)
+			return scale
 
-		col += 1
-		self.overrideScale = Scale(f,
-				command=self.overrideChange,
-				variable=self.override,
-				showvalue=True,
-				orient=HORIZONTAL,
-				from_=1,
-				to_=200,
-				resolution=1)
-		self.overrideScale.bind("<Double-1>", self.resetOverride)
-		self.overrideScale.bind("<Button-3>", self.resetOverride)
-		self.overrideScale.grid(row=row, column=col, rowspan=2, columnspan=4, sticky=EW)
-		tkExtra.Balloon.set(self.overrideScale, _("Set Feed/Rapid/Spindle Override. Right or Double click to reset."))
-
-		self.overrideCombo.set(OVERRIDES[0])
+		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
+		f3 = Frame(f2)
+		f4 = Frame(f3)
+		self.feedScale = makeScale(f4, "Feed", self.feedOverride)
+		f4.pack(side=LEFT, fill=BOTH)
+		ttk.Separator(f3, orient=VERTICAL).pack(side=LEFT, fill=BOTH, padx=5, expand=TRUE)
+		f4 = Frame(f3)
+		self.rapidScale = makeScale(f3, "Rapid", self.rapidOverride)
+		f4.pack(side=LEFT, fill=BOTH)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
+		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
+		f3 = Frame(f2)
+		self.spindleScale = makeScale(f3, "Spindle", self.spindleOverride)
+		f3.pack(side=TOP, fill=X, expand=TRUE)
+		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
+		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 
 		# ---
-		row += 2
-		col = 0
-		b = Checkbutton(f, text=_("Spindle"),
+		f2 = Frame(f)
+		f3 = Frame(f2)
+		b = Checkbutton(f3, text=_("Spindle"),
 				image=Utils.icons["spinningtop"],
 				command=self.spindleControl,
 				compound=LEFT,
@@ -1906,70 +1654,42 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 				padx=1,
 				pady=0)
 		tkExtra.Balloon.set(b, _("Start/Stop spindle (M3/M5)"))
-		b.grid(row=row, column=col, pady=0, sticky=NSEW)
+		b.pack(side=LEFT, fill=BOTH)
 		self.addWidget(b)
-
-		col += 1
-		b = Scale(f,	variable=self.spindleSpeed,
+		b = Scale(f3,	variable=self.spindleSpeed,
 				command=self.spindleControl,
 				showvalue=True,
 				orient=HORIZONTAL,
 				from_=Utils.config.get("CNC","spindlemin"),
 				to_=Utils.config.get("CNC","spindlemax"))
 		tkExtra.Balloon.set(b, _("Set spindle RPM"))
-		b.grid(row=row, column=col, sticky=EW, columnspan=3)
+		b.pack(side=LEFT, fill=X, expand=TRUE)
 		self.addWidget(b)
-
-		f.grid_columnconfigure(1, weight=1)
-
-		# Coolant control
-
-		self.coolant = BooleanVar()
-		self.mist = BooleanVar()
-		self.flood = BooleanVar()
+		f3.pack(side=TOP, fill=BOTH, expand=TRUE)
 
 
-		row += 1
-		col = 0
-		Label(f, text=_("Coolant:")).grid(row=row, column=col, columnspan=2, sticky=E)
+		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
-		col += 2
-		floodToogle = Button(f, text=_("Flood"),
-				command=self.coolantFlood,
-				padx=1,
-				pady=0)
-		tkExtra.Balloon.set(floodToogle, _("Start flood (M8)"))
-		floodToogle.grid(row=row, column=col, pady=0, sticky=NSEW)
+	def setOverride(self, name, value):
+		name = name.lower()
+		override = self.feedOverride
+		if name == "feed": override = self.feedOverride
+		elif name == "rapid": override = self.rapidOverride
+		elif name == "spindle": override = self.spindleOverride
 
-		col += 1
-		mistToogle = Button(f, text=_("Mist"),
-				command=self.coolantMist,
-				padx=1,
-				pady=0)
-		tkExtra.Balloon.set(mistToogle, _("Start mist (M7)"))
-		mistToogle.grid(row=row, column=col, pady=0, sticky=NSEW)
-		f.grid_columnconfigure(1, weight=1)
+		override.set(value)
+		self.overrideChange(override, name)
 
 	#----------------------------------------------------------------------
-	def overrideChange(self, event=None):
-		n = self.overrideCombo.get()
-		c = self.override.get()
-		CNC.vars["_Ov"+n] = c
+	def overrideChange(self, override, name, event=None):
+		CNC.vars["_Ov"+name] = override.get()
 		CNC.vars["_OvChanged"] = True
 
 	#----------------------------------------------------------------------
-	def resetOverride(self, event=None):
-		self.override.set(100)
-		self.overrideChange()
-
-	#----------------------------------------------------------------------
-	def overrideComboChange(self):
-		n = self.overrideCombo.get()
-		if n=="Rapid":
-			self.overrideScale.config(to_=100, resolution=25)
-		else:
-			self.overrideScale.config(to_=200, resolution=1)
-		self.override.set(CNC.vars["_Ov"+n])
+	def resetOverride(self, override, name, event=None):
+		override.set(100)
+		self.overrideChange(override, name)
 
 	#----------------------------------------------------------------------
 	def _gChange(self, value, dictionary):
@@ -1981,12 +1701,10 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 	#----------------------------------------------------------------------
 	def distanceChange(self):
 		if self._gUpdate: return
-		self._gChange(self.distance.get(), DISTANCE_MODE)
 
 	#----------------------------------------------------------------------
 	def unitsChange(self):
 		if self._gUpdate: return
-		self._gChange(self.units.get(), UNITS)
 
 	#----------------------------------------------------------------------
 	def feedModeChange(self):
@@ -2002,7 +1720,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 	def setFeedRate(self, event=None):
 		if self._gUpdate: return
 		try:
-			feed = float(self.feedRate.get())
+			feed = float(self.feedRate['text'])
 			self.sendGCode("F%g"%(feed))
 			self.event_generate("<<CanvasFocus>>")
 		except ValueError:
@@ -2012,7 +1730,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 	def setTLO(self, event=None):
 		#if self._probeUpdate: return
 		try:
-			tlo = float(self.tlo.get())
+			tlo = float(self.tlo['text'])
 			#print("G43.1Z%g"%(tlo))
 			self.sendGCode("G43.1Z%g"%(tlo))
 			self.app.mcontrol.viewParameters()
@@ -2059,7 +1777,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		self.sendGCode("M9")
 
 	def updateRpm(self):
-		self.realRpm.config(text=str(CNC.vars["realRpm"]))
+		self.realRpm['text'] = str(CNC.vars["realRpm"])
 
 	#----------------------------------------------------------------------
 	def updateG(self):
@@ -2073,29 +1791,23 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		try:
 			self.radiusSt.set(CNC.vars["radius"])
 			wcsvar.set(WCS.index(CNC.vars["WCS"]))
-			self.feedRate.set(str(CNC.vars["feed"]))
+			self.feedRate['text'] = str(CNC.vars["feed"])
 			self.feedMode.set(FEED_MODE[CNC.vars["feedmode"]])
 			self.spindle.set(CNC.vars["spindle"]=="M3")
 			self.spindleSpeed.set(int(CNC.vars["rpm"]))
-			self.toolEntry.set(CNC.vars["tool"])
-			self.units.set(UNITS[CNC.vars["units"]])
-			self.distance.set(DISTANCE_MODE[CNC.vars["distance"]])
+			self.tool['text'] = str(CNC.vars["tool"])
 			self.plane.set(PLANE[CNC.vars["plane"]])
-			self.tlo.set(str(CNC.vars["TLO"]))
-			self.g92.config(text=str(CNC.vars["G92"]), width=10)
-			self.realRpm.config(text=str(CNC.vars["realRpm"]))
-		except KeyError:
+			self.tlo['text'] = str(CNC.vars["TLO"])
+			self.realRpm['text'] = str(CNC.vars["realRpm"])
+		except KeyError as e:
+			print(e)
 			pass
 
 		self._gUpdate = False
 
 	#----------------------------------------------------------------------
 	def updateFeed(self):
-		if self.feedRate.cget("state") == DISABLED:
-			self.feedRate.config(state=NORMAL)
-			self.feedRate.delete(0,END)
-			self.feedRate.insert(0, CNC.vars["curfeed"])
-			self.feedRate.config(state=DISABLED)
+		self.feedRate['text'] = CNC.vars["curfeed"]
 
 	#----------------------------------------------------------------------
 	def wcsChange(self):
