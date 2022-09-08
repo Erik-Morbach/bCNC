@@ -216,9 +216,9 @@ class Selector(MemberImpl):
         self.currentVar = self.variableOptions[0]
 
     def load_pins(self):
-        selPins = Utils.getInt("Selector", "pins",0)
+        pinsLen = Utils.getInt(self.selectorName, "pinsLen", 0)
         pins = getArrayIntFromUtils("Selector", 
-                            ["pin{}".format(i) for i in range(0,selPins)])
+                            ["pin{}".format(i) for i in range(0,pinsLen)])
         inversion = Utils.getInt("Selector", "inversion", 0)
         return pins, inversion
 
@@ -356,8 +356,7 @@ class Panel:
                 "clampbutton":ClampButton, "safetydoorbutton":SafetyDoorButton,
                 "barendbutton":BarEndButton, "resetbutton": ResetButton}
         self.members = []
-        self.selectorCounter = 0
-        self.buttonCounter = 0
+        self.members += [Jog(app)]
         index = 0
         while 1:
             name = Utils.getStr("Panel", "selector{}".format(index), "").lower()
