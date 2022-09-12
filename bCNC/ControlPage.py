@@ -762,6 +762,13 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			self.addWidget(b)
 			buttonSpeed += [b]
 		f3.pack(side=TOP,fill=X, expand=TRUE)
+		f3 = Frame(f2)
+		b = Button(f3, text="Ativa teclado",
+				command=self.app.focus_set,
+				activebackground="LightYellow")
+		b.pack(side=TOP, fill=X)
+		tkExtra.Balloon.set(b, _("Focus"))
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 		# A+        C+
 		#    B+ crossAxis   B-
 		# A-        C-
