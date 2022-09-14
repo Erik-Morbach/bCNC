@@ -308,6 +308,7 @@ class StartPauseButton(ButtonPanel):
          super().__init__(app, index)
     def on(self):
         if CNC.vars["state"] == "Idle" and not self.app.running:
+            self.app.focus_set()
             self.app.event_generate("<<Run>>", when="tail")
         else:
             self.app.focus_set()

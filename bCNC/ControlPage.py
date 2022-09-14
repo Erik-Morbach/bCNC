@@ -886,20 +886,67 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 		tkMessageBox.showinfo(_("State: %s")%(state), msg, parent=self)
 
 #===============================================================================
-# ToolFrame
+# ToolGroup
 #===============================================================================
-class ToolFrame(CNCRibbon.PageLabelFrame):
+class ToolGroup(CNCRibbon.ButtonGroup):
 	def __init__(self, master, app):
-		CNCRibbon.PageLabelFrame.__init__(self, master, "Tool", _("Tool"), app)
-		self.app = app
-		f = Frame(self)
-		Button(f, text="Change Tool", command=self.onChange).pack(side=TOP, fill=BOTH, expand=TRUE)
-		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+		CNCRibbon.ButtonGroup.__init__(self, master, "Tool", app)
+		self.master = master
+		b = Ribbon.LabelButton(self.frame, self, "<<ChangeTool>>",
+				image=Utils.icons["config"],
+				text=_("Change Tool"),
+				compound=TOP,
+				background=Ribbon._BACKGROUND)
+		b.pack(side=LEFT, fill=BOTH)
+		tkExtra.Balloon.set(b, _("Change your tool"))
+		self.addWidget(b)
+		self.app.bind("<<ChangeTool>>", self.onChange)
 	def onChange(self, *args):
 		toolNumber = askinteger("Tool change", "Enter the tool number",
-				parent=self.app,
+				parent=self.master,
 				minvalue=0, maxvalue=10)
 		self.app.sendGCode("M6T{}G43".format(toolNumber))
+
+#===============================================================================
+# MdiFrame
+#===============================================================================
+class MdiFrame(CNCRibbon.PageLabelFrame):
+	def __init__(self, master, app):
+		CNCRibbon.PageLabelFrame.__init__(self, master, "Mdi", _("Mdi"), app)
+		self.master = master
+		self.app = app
+		f = Frame(self)
+		Label(f, text="MDI:", width=5).pack(side=LEFT, fill=X)
+		self.mdiVar = StringVar(value="")
+		e = Entry(f, textvariable=self.mdiVar, font=DROFrame.dro_mpos)
+		e.pack(side=LEFT, fill=X, expand=TRUE)
+		e.bind("<Return>", self.onEnter)
+		e.bind("<Up>", self.onUp)
+		e.bind("<Down>", self.onDown)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+		self.values = [""]
+		self.counter = 0
+
+	def updateEntry(self):
+		if self.counter >=0 and self.counter < len(self.values):
+			self.mdiVar.set(self.values[self.counter])
+
+	def onUp(self, *args):
+		self.counter = max(self.counter-1,0)
+		self.updateEntry()
+
+	def onDown(self, *args):
+		self.counter = min(self.counter+1,len(self.values))
+		self.updateEntry()
+
+	def onEnter(self, *args):
+		if len(self.mdiVar.get())==0:
+			self.app.focus_set()
+		self.app.sendGCode(self.mdiVar.get())
+		self.values += [self.mdiVar.get()]
+		self.mdiVar.set("")
+		self.counter = len(self.values)
+
 
 #===============================================================================
 # ControlFrame
@@ -999,6 +1046,8 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		f2 = Frame(self)
 
 		def makeButton(frame, axe, dire, text, *args):
+			width=3
+			height=2
 			b = Button(frame, text=text.upper(),
 						command=functools.partial(self.move,axe, dire),
 						width=width, height=height,
@@ -1010,26 +1059,26 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			return b #b.pack(side=TOP, fill=BOTH, expand=TRUE)
 		
 		verticalAxis = [w for w in self.axis if w not in self.crossAxis]
-		width=3
-		height=2
-		for axe in verticalAxis:
-			f3 = Frame(f2)
-			makeButton(f3, axe, "+", axe+"+").pack(side=TOP)
-			makeButton(f3, axe, "-", axe+"-").pack(side=BOTTOM)
-			f3.pack(side=LEFT,fill=Y)
-		
+
+		f3 = Frame(f2)
 		for i in range(1, len(self.crossAxis),2):
 			horizontal = self.crossAxis[i]
 			vertical = self.crossAxis[i-1]
 			# +
 			#- +
 			# -
-			f3 = Frame(f2)
-			makeButton(f3, vertical, "+", vertical+"+").grid(row=0, column=1)
-			makeButton(f3, vertical, "-", vertical+"-").grid(row=2, column=1)
-			makeButton(f3, horizontal, "-", horizontal+"-").grid(row=1, column=0)
-			makeButton(f3, horizontal, "+", horizontal+"+").grid(row=1, column=2)
-			f3.pack(side=TOP, fill=BOTH, expand=TRUE)
+			f4 = Frame(f3)
+			makeButton(f4, vertical, "+", vertical+"+").grid(row=0, column=1)
+			makeButton(f4, vertical, "-", vertical+"-").grid(row=2, column=1)
+			makeButton(f4, horizontal, "-", horizontal+"-").grid(row=1, column=0)
+			makeButton(f4, horizontal, "+", horizontal+"+").grid(row=1, column=2)
+			f4.pack(side=LEFT, fill=Y, expand=TRUE)
+		for axe in verticalAxis:
+			f4 = Frame(f3)
+			makeButton(f4, axe, "+", axe+"+").pack(side=TOP)
+			makeButton(f4, axe, "-", axe+"-").pack(side=BOTTOM)
+			f4.pack(side=LEFT,fill=Y, expand=TRUE)
+		f3.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
@@ -1680,6 +1729,60 @@ class NotebookFrame(CNCRibbon.PageLabelFrame):
                 self.notebook.add(self.pidLogFrame, text="PidLog")
 
 #===============================================================================
+# SpindleFrame
+#===============================================================================
+class SpindleFrame(CNCRibbon.PageLabelFrame):
+	def __init__(self, master, app):
+		self._gUpdate = False
+		CNCRibbon.PageLabelFrame.__init__(self, master, "Spindle", _("Spindle"), app)
+		self.spindle = BooleanVar()
+		self.spindleSpeed = IntVar()
+		f = Frame(self)
+		f2 = Frame(f)
+		f3 = Frame(f2)
+		b = Checkbutton(f3, text=_("Spindle"),
+				image=Utils.icons["spinningtop"],
+				command=self.spindleControl,
+				compound=LEFT,
+				indicatoron=False,
+				variable=self.spindle,
+				padx=1,
+				pady=0)
+		tkExtra.Balloon.set(b, _("Start/Stop spindle (M3/M5)"))
+		b.pack(side=LEFT, fill=BOTH)
+		self.addWidget(b)
+		b = Scale(f3,	variable=self.spindleSpeed,
+				command=self.spindleControl,
+				showvalue=True,
+				orient=HORIZONTAL,
+				from_=Utils.config.get("CNC","spindlemin"),
+				to_=Utils.config.get("CNC","spindlemax"))
+		tkExtra.Balloon.set(b, _("Set spindle RPM"))
+		b.pack(side=LEFT, fill=X, expand=TRUE)
+		self.addWidget(b)
+		f3.pack(side=TOP, fill=BOTH, expand=TRUE)
+		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+
+	def updateG(self):
+		self._gUpdate = True
+		try:
+			self.spindle.set(CNC.vars["spindle"]=="M3")
+			self.spindleSpeed.set(int(CNC.vars["rpm"]))
+		except KeyError as e:
+			print(e)
+		self._gUpdate = False
+	#----------------------------------------------------------------------
+	def spindleControl(self, event=None):
+		if self._gUpdate: return
+		# Avoid sending commands before unlocking
+		if CNC.vars["state"] in (Sender.CONNECTED, Sender.NOT_CONNECTED): return
+		if self.spindle.get():
+			self.sendGCode("M3 S%d"%(self.spindleSpeed.get()))
+		else:
+			self.sendGCode("M5")
+
+#===============================================================================
 # StateFrame
 #===============================================================================
 class StateFrame(CNCRibbon.PageLabelFrame):
@@ -1747,20 +1850,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		tkExtra.Balloon.set(self.feedRate, _("Feed Rate [F#]"))
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 
-		#Feed mode
-		f3 = Frame(rig)
-		Label(f3, text=_("Mode:"), width=15).pack(side=LEFT)
-		self.feedMode = tkExtra.Combobox(f3, True,
-					command=self.feedModeChange,
-					width=7,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		self.feedMode.fill(sorted(FEED_MODE.values()))
-		self.feedMode.pack(side=LEFT)
-		tkExtra.Balloon.set(self.feedMode, _("Feed Mode [G93, G94, G95]"))
-		for k,v in FEED_MODE.items(): self.gstate[k] = (self.feedMode, v)
-		self.addWidget(self.feedMode)
-		f3.pack(side=TOP, fill=X, expand=TRUE)
-
 		# TLO
 		f3 = Frame(lef)
 		Label(f3, text=_("TLO:"), width=15).pack(side=LEFT)
@@ -1776,18 +1865,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		self.realRpm = Label(f3, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black", 
 				width=7, relief=RAISED)
 		self.realRpm.pack(side=LEFT)
-		f3.pack(side=TOP, fill=X, expand=TRUE)
-
-		f3 = Frame(lef)
-		Label(f3, text=_("Radius Mode:"), width=15).pack(side=LEFT)
-		self.radiusSt = StringVar()
-		self.radiusSt.set(CNC.vars["radius"])
-		self.radius = Label(f3, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, 
-				disabledforeground="Black", 
-				width=7, relief=RAISED,
-				textvariable=self.radiusSt)
-		self.radius.pack(side=LEFT)
-		self.addWidget(self.radius)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 
 		# Coolant control
@@ -1827,8 +1904,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		self.rapidOverride.set(100)
 		self.spindleOverride = IntVar()
 		self.spindleOverride.set(100)
-		self.spindle = BooleanVar()
-		self.spindleSpeed = IntVar()
 
 		def makeScale(frame, name:str, override):
 			f = Frame(frame)
@@ -1852,6 +1927,28 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 			f.pack(side=TOP, fill=BOTH, expand=TRUE)
 			return scale
 
+		def makeScaleInline(frame, name, override):
+			f = Frame(frame)
+			f2 = Frame(f)
+			Label(f2, text=name+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
+			b = Button(f2, text=_("Reset"), pady=0, 
+					command=functools.partial(self.resetOverride, override,name))
+			b.pack(side=LEFT)
+			tkExtra.Balloon.set(b, _("Reset override to 100%"))
+			f2.pack(side=LEFT,fill=BOTH, expand=TRUE)
+
+			scale = Scale(f,
+					command=functools.partial(self.overrideChange, override,name),
+					variable=override,
+					showvalue=True,
+					orient=HORIZONTAL,
+					from_=1,
+					to_=200,
+					resolution=1)
+			scale.pack(side=LEFT, fill=BOTH, expand=TRUE)
+			f.pack(side=TOP, fill=BOTH, expand=TRUE)
+			return scale
+
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f3 = Frame(f2)
 		f4 = Frame(f3)
@@ -1864,38 +1961,11 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f3 = Frame(f2)
-		self.spindleScale = makeScale(f3, "Spindle", self.spindleOverride)
+		self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 
-		# ---
-		f2 = Frame(f)
-		f3 = Frame(f2)
-		b = Checkbutton(f3, text=_("Spindle"),
-				image=Utils.icons["spinningtop"],
-				command=self.spindleControl,
-				compound=LEFT,
-				indicatoron=False,
-				variable=self.spindle,
-				padx=1,
-				pady=0)
-		tkExtra.Balloon.set(b, _("Start/Stop spindle (M3/M5)"))
-		b.pack(side=LEFT, fill=BOTH)
-		self.addWidget(b)
-		b = Scale(f3,	variable=self.spindleSpeed,
-				command=self.spindleControl,
-				showvalue=True,
-				orient=HORIZONTAL,
-				from_=Utils.config.get("CNC","spindlemin"),
-				to_=Utils.config.get("CNC","spindlemax"))
-		tkExtra.Balloon.set(b, _("Set spindle RPM"))
-		b.pack(side=LEFT, fill=X, expand=TRUE)
-		self.addWidget(b)
-		f3.pack(side=TOP, fill=BOTH, expand=TRUE)
-
-
-		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
 	def setOverride(self, name, value):
@@ -1934,11 +2004,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		if self._gUpdate: return
 
 	#----------------------------------------------------------------------
-	def feedModeChange(self):
-		if self._gUpdate: return
-		self._gChange(self.feedMode.get(), FEED_MODE)
-
-	#----------------------------------------------------------------------
 	def planeChange(self):
 		if self._gUpdate: return
 		self._gChange(self.plane.get(), PLANE)
@@ -1968,16 +2033,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 	#----------------------------------------------------------------------
 	def setTool(self, event=None):
 		pass
-
-	#----------------------------------------------------------------------
-	def spindleControl(self, event=None):
-		if self._gUpdate: return
-		# Avoid sending commands before unlocking
-		if CNC.vars["state"] in (Sender.CONNECTED, Sender.NOT_CONNECTED): return
-		if self.spindle.get():
-			self.sendGCode("M3 S%d"%(self.spindleSpeed.get()))
-		else:
-			self.sendGCode("M5")
 
 	#----------------------------------------------------------------------
 	def coolantMist(self, event=None):
@@ -2016,12 +2071,8 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 			focus = None
 
 		try:
-			self.radiusSt.set(CNC.vars["radius"])
 			wcsvar.set(WCS.index(CNC.vars["WCS"]))
 			self.feedRate['text'] = str(CNC.vars["feed"])
-			self.feedMode.set(FEED_MODE[CNC.vars["feedmode"]])
-			self.spindle.set(CNC.vars["spindle"]=="M3")
-			self.spindleSpeed.set(int(CNC.vars["rpm"]))
 			self.tool['text'] = str(CNC.vars["tool"])
 			self.plane.set(PLANE[CNC.vars["plane"]])
 			self.tlo['text'] = str(CNC.vars["TLO"])
@@ -2080,8 +2131,8 @@ class JogPage(CNCRibbon.Page):
 		wcsvar = IntVar()
 		wcsvar.set(0)
 
-		self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup),
-			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, ToolFrame))
+		self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup, ToolGroup),
+			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, SpindleFrame, MdiFrame))
 	def activate(self, **kwargs):
 		CNC.vars["JogActive"] = True
 

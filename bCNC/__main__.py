@@ -249,6 +249,7 @@ class Application(Toplevel, Sender):
         self.dro = Page.lframes["DRO"]
         self.abcdro = Page.lframes["abcDRO"]
         self.gstate = Page.lframes["State"]
+        self.spindleState = Page.lframes["Spindle"]
         self.control = Page.rframes["Control"]
         self.abccontrol = Page.lframes["abcControl"]
         self.editor = Page.lframes["Editor"].editor
