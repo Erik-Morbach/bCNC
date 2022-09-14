@@ -1767,6 +1767,10 @@ class SpindleFrame(CNCRibbon.PageLabelFrame):
 	def updateG(self):
 		self._gUpdate = True
 		try:
+			focus = self.focus_get()
+		except:
+			focus = None
+		try:
 			self.spindle.set(CNC.vars["spindle"]=="M3")
 			self.spindleSpeed.set(int(CNC.vars["rpm"]))
 		except KeyError as e:
