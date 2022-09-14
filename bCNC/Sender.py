@@ -42,6 +42,7 @@ import Utils
 import Pendant
 from _GenericGRBL import ERROR_CODES
 from RepeatEngine import RepeatEngine
+from Table import Table
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
@@ -110,6 +111,9 @@ class Sender:
 		self.gcode = GCode()
 		self.cnc   = self.gcode.cnc
 		self.gcode.repeatEngine.app = self
+		self.workTable = Table("WorkTable.csv")
+		self.toolTable = Table("ToolTable.csv")
+		self.compensationTable = Table("CompensationTable.csv")
 
 		self.log	 = Queue()	# Log queue returned from GRBL
 		self.queue	 = Queue()	# Command queue to be send to GRBL
@@ -858,9 +862,10 @@ class Sender:
 					line = str(self.serial.readline().decode()).strip()
 				except:
 					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
-					self.emptyQueue()
-					self.close()
-					return
+					continue
+					#self.emptyQueue()
+					#self.close()
+					#return
 
 				#print "<R<",repr(line)
 				#print "*-* stack=",sline,"sum=",sum(cline),"wait=",wait,"pause=",self._pause
@@ -906,7 +911,7 @@ class Sender:
 
 				tosend = None
 				if not self.running and t-tg > G_POLL:
-					tosend = b'$G\n' #FIXME: move to controller specific class
+					tosend = '$G\n' #FIXME: move to controller specific class
 					sline.append(tosend)
 					cline.append(len(tosend))
 					tg = t
