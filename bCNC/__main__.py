@@ -2196,12 +2196,14 @@ class Application(Toplevel, Sender):
             self.event_generate("<<OrientUpdate>>")
 
         else:
-            self.editor.selectClear()
-            self.editor.fill()
-            self.canvas.reset()
-            self.draw()
-            self.canvas.fit2Screen()
-            Page.lframes["CAM"].populate()
+            def canvDraw():
+                    self.editor.selectClear()
+                    self.editor.fill()
+                    self.canvas.reset()
+                    self.draw()
+                    self.canvas.fit2Screen()
+                    Page.lframes["CAM"].populate()
+            threading.Thread(target=canvDraw).start()
 
         if autoloaded:
             self.setStatus(_("'%s' reloaded at '%s'") % (filename, str(datetime.now())))

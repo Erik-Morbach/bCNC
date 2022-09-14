@@ -2324,19 +2324,7 @@ class GCode:
 			return
 
 		self.cnc.motionStart(cmds)
-
-		# rapid move up = end of block
-		if self._blocksExist:
-			self.blocks[-1].append(line)
-		elif self.cnc.gcode == 0 and self.cnc.dz > 0.0:
-			self.blocks[-1].append(line)
-			self.blocks.append(Block())
-		elif self.cnc.gcode == 0 and len(self.blocks)==1:
-			self.blocks.append(Block())
-			self.blocks[-1].append(line)
-		else:
-			self.blocks[-1].append(line)
-
+		self.blocks[-1].append(line)
 		self.cnc.motionEnd()
 
 	#----------------------------------------------------------------------
@@ -2351,7 +2339,7 @@ class GCode:
 		self._lastModified = os.stat(self.filename).st_mtime
 		self.cnc.initPath()
 		self.cnc.resetAllMargins()
-		self._blocksExist = False
+		self._blocksExist = True
 		self.repeatEngine.cleanState()
 		for line in f:
 			self._addLine(line[:-1].replace("\x0d",""))
