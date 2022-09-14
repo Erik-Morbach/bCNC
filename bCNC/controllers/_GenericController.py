@@ -72,7 +72,8 @@ class _GenericController:
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.master.notBusy()
 		self.sendSettings()
-		self.sendParameters()
+		self.sendWorkTable()
+		self.sendToolTable()
 		self.viewParameters()
 
 	#----------------------------------------------------------------------
@@ -83,18 +84,21 @@ class _GenericController:
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.sendSettings()
-		self.sendParameters()
+		self.sendToolTable()
+		self.sendWorkTable()
 		self.viewParameters()
 
 	#----------------------------------------------------------------------
 	def unlock(self, clearAlarm=True):
 		if clearAlarm: self.master._alarm = False
-		self.master.sendGCode("$X")
-		self.sendSettings()
-		self.sendParameters()
-		self.master.sendGCode("$X")
-		self.sendSettings()
-		self.sendParameters()
+		for _ in range(2):
+			self.master.sendGCode('?')
+			self.master.sendGCode("$X")
+			self.master.sendGCode('?')
+			self.sendSettings()
+			self.master.sendGCode('?')
+		self.sendToolTable()
+		self.sendWorkTable()
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
@@ -134,70 +138,39 @@ class _GenericController:
 	def viewParameters(self):
 		self.master.sendGCode("$#")
 
-	def getParameters(self):
-		axis = Utils.getStr("CNC", "axis", "XYZABC").upper()
-		lineLen = 1 + len(axis) # +1 optional
-		if not os.path.isfile("WorkCoordinates.txt"):
-			self.saveParameters()
-				
-		workPositions = {}
-		with open("WorkCoordinates.txt", 'r') as workFile:
-			for line in workFile.readlines():
-				positions = line.split(' ')
-				if len(positions) < lineLen:
-					continue
-				positions[-1] = positions[-1].replace('\n','')
-				positionIndex = int(positions[0])
-				positions = positions[1:]
-				radiusMode = "G90"
-				if len(positions) > lineLen:
-					radiusMode = positions[-1]
-					del positions[-1]
-				workPositions[positionIndex] = {}
-				workPositions[positionIndex]["R"] = radiusMode
-				for (index, currentAxis) in enumerate(axis):
-					workPositions[positionIndex][currentAxis] = positions[index]
-		return workPositions
-
-	def saveParameters(self, workPositions=None):
-		axis = Utils.getStr("CNC", "axis", "XYZABC").upper()
-		if workPositions == None:
-			workPositions = {}
-		flag = 'x'
-		if os.path.isfile("WorkCoordinates.txt"):
-			flag = 'w'
-
-		with open("WorkCoordinates.txt",flag) as file:
-			for workIndex in range(1, 9):
-				file.write(str(workIndex))
-				if workIndex not in workPositions.keys():
-					workPositions[workIndex] = {}
-				if "R" not in workPositions[workIndex].keys():
-					workPositions[workIndex]["R"] = "G90"
-				for currentAxis in axis:
-					if currentAxis not in workPositions[workIndex].keys():
-						workPositions[workIndex][currentAxis] = "0"
-					else:
-						try:
-							workPositions[workIndex][currentAxis] = "%.3f" % float(workPositions[workIndex][currentAxis])
-						except:
-							workPositions[workIndex][currentAxis] = "0"
-					file.write(" {}".format(workPositions[workIndex][currentAxis]))
-				file.write(" {}".format(workPositions[workIndex]["R"]))
-				file.write("\n")
-		
-	def sendParameters(self):
-		axis = Utils.getStr("CNC", "axis", "XYZABC").upper()
-		parameters = self.getParameters()
-		time.sleep(0.05)
-		currentMode = CNC.vars["radius"]
-		for workIndex in parameters.keys():
-			self.master.sendGCode(parameters[workIndex]["R"])
-			cmd = "G10L2P" + str(workIndex)
-			for currentAxis in axis:
-				cmd += currentAxis + parameters[workIndex][currentAxis]
+	def sendToolTable(self):
+		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
+		compensationTable = self.master.compensationTable.getTable()
+		toolTable = self.master.toolTable.getTable()
+		for tool, compensation in zip(toolTable, compensationTable):
+			cmd = "G10L1P{}".format(tool['index'])
+			for axe in axis:
+				if axe in tool.keys():
+					val = float(tool[axe]) + float(compensation[axe])
+					cmd += "{}{}".format(axe.upper(), val)
 			self.master.sendGCode(cmd)
+		self.master.sendGCode("G43")
+		self.master.sendGCode("$")
+		self.master.sendGCode("?")
+		self.sendWorkTable()
+
+	def sendWorkTable(self):
+		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
+		workTable = self.master.workTable.getTable()
+		currentMode = CNC.vars["radius"]
+		for work in workTable:
+			if "r" in work.keys():
+				self.master.sendGCode(work["r"])
+			cmd = "G10L2P{}".format(int(work['index']))
+			for axe in axis:
+				if axe in work.keys():
+					cmd += "{}{}".format(axe.upper(), work[axe])
+			self.master.sendGCode(cmd)
+		self.master.sendGCode("$")
+		self.master.sendGCode("?")
 		self.master.sendGCode(currentMode)
+		self.master.sendGCode("$")
+		self.master.sendGCode("?")
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')
@@ -218,13 +191,51 @@ class _GenericController:
 		if b is not None: cmd += "B%g"%(b)
 		if c is not None: cmd += "C%g"%(c)
 		self.master.sendGCode("%s"%(cmd))
+	
+	def _toolCompensate(self, index:int|None=None, x:float|None=None, y:float|None=None, 
+			z:float|None=None, a:float|None=None, b:float|None=None, c:float|None=None):
+		compensation = self.master.compensationTable
+		table = compensation.getTable()
+		row, index = compensation.getRow(index)
+		if index==-1: #assume that this function only adds one entry to tool table
+			table.append({'index', index})
+		axis = "xyzabc"
+		vars = [x,y,z,a,b,c]
+		for (name,value) in zip(axis, vars):
+			if value is not None:
+				table[index][name] = value
+		compensation.save(table)
+		self.sendToolTable()
+
+	def getCurrentToolOffset(self):
+		index = CNC.vars["tool"]
+		tool, index = self.master.toolTable.getRow(index)
+		return tool
+
+	def _tloSet(self, index:int|None=None, x:float|None=None, y:float|None=None, 
+			z:float|None=None, a:float|None=None, b:float|None=None, c:float|None=None):
+		tools = self.master.toolTable
+		table = tools.getTable()
+		if index is None:
+			index = int(CNC.vars["tool"])
+		tool, index = tools.getRow(index)
+		if index==-1: #assume that this function only adds one entry to tool table
+			table.append({'index':index})
+		print(tool)
+		axis = "xyzabc"
+		vars = [x,y,z,a,b,c]
+		for (name,value) in zip(axis, vars):
+			if value is not None:
+				table[index][name] = value
+		tools.save(table)
+		self.sendToolTable()
 
 	#----------------------------------------------------------------------
 	def _wcsSet(self, x=None, y=None, z=None, a=None, b=None, c=None, wcsIndex=None):
-		
-		# Updating WorkCoordinates.txt file
-		parameters = self.getParameters()
+		currentTool = self.getCurrentToolOffset()
+		workTable = self.master.workTable.getTable()
 		radiusMode = CNC.vars["radius"]
+		print(currentTool)
 
 		#global wcsvar
 		#p = wcsvar.get()
@@ -232,7 +243,10 @@ class _GenericController:
 			p = WCS.index(CNC.vars["WCS"])
 		else: p = wcsIndex
 
-		parameters[p+1]["R"] = radiusMode
+		work, index = self.master.workTable.getRow(p+1)
+		workTable[index]["r"] = radiusMode
+
+		cmd = ""
 		if p<6:
 			cmd = "G10L20P%d"%(p+1)
 		elif p==6:
@@ -245,26 +259,26 @@ class _GenericController:
 		pos = ""
 		if x is not None and abs(float(x))<10000.0: 
 			pos += "X"+str(x)
-			parameters[p+1]['X'] = str(CNC.vars['mx'] - float(x))
+			workTable[index]['x'] = str(CNC.vars['mx'] - float(currentTool['x']) - float(x))
 		if y is not None and abs(float(y))<10000.0: 
 			pos += "Y"+str(y)
-			parameters[p+1]['Y'] = str(CNC.vars['my'] - float(y))
+			workTable[index]['y'] = str(CNC.vars['my'] - float(currentTool['y']) - float(y))
 		if z is not None and abs(float(z))<10000.0: 
 			pos += "Z"+str(z)
-			parameters[p+1]['Z'] = str(CNC.vars['mz'] - float(z))
+			workTable[index]['z'] = str(CNC.vars['mz'] - float(currentTool['z']) - float(z))
 		if a is not None and abs(float(a))<10000.0: 
 			pos += "A"+str(a)
-			parameters[p+1]['A'] = str(CNC.vars['ma'] - float(a))
+			workTable[index]['a'] = str(CNC.vars['ma'] - float(currentTool['a']) - float(a))
 		if b is not None and abs(float(b))<10000.0: 
 			pos += "B"+str(b)
-			parameters[p+1]['B'] = str(CNC.vars['mb'] - float(b))
+			workTable[index]['b'] = str(CNC.vars['mb'] - float(currentTool['b']) - float(b))
 		if c is not None and abs(float(c))<10000.0: 
 			pos += "C"+str(c)
-			parameters[p+1]['C'] = str(CNC.vars['mc'] - float(c))
+			workTable[index]['c'] = str(CNC.vars['mc'] - float(currentTool['c']) - float(c))
 		cmd += pos
 		self.master.sendGCode(cmd)
 
-		self.saveParameters(parameters)
+		self.master.workTable.save(workTable)
 
 
 		self.viewParameters()

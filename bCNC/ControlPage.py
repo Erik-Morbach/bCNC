@@ -13,12 +13,12 @@ try:
 	import Tkinter
 	from Tkinter import *
 	import tkMessageBox
-	from Tkinter.simpledialog import Dialog
+	from Tkinter.simpledialog import Dialog, askfloat, askinteger
 except ImportError:
 	import tkinter
 	from tkinter import *
 	import tkinter.messagebox as tkMessageBox
-	from tkinter.simpledialog import Dialog
+	from tkinter.simpledialog import Dialog, askfloat, askinteger
 
 import tkinter.ttk as ttk
 import math
@@ -116,32 +116,24 @@ class UserGroup(CNCRibbon.ButtonGroup):
 			b.grid(row=row, column=col, sticky=NSEW)
 			self.addWidget(b)
 
-
-class SetZeroDialog(Dialog):
+class SetCompensationDialog(Dialog):
 	def __init__(self, parent, title, app):
 		self.app = app
-		self.wcs = StringVar(value="")
-		self.wcsOptions = ["G54","G55","G56","G57","G58","G59"]
-		self.x = StringVar(value='0')
-		self.y = StringVar(value='0')
-		self.z = StringVar(value='0')
-		self.a = StringVar(value='0')
-		self.b = StringVar(value='0')
-		self.c = StringVar(value='0')
-		self.axes = Utils.getStr("CNC", "axis", "XYZABC").upper()
-		self.var = [self.x, self.y, self.z, self.a, self.b, self.c]
+		self.compensation = self.app.compensationTable
+		self.compensationTable = self.app.compensationTable.getTable()
+		self.tool = StringVar(value="1")
+		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
+		self.var = [StringVar(value='0'), StringVar(value='0'),
+				StringVar(value='0'), StringVar(value='0'),
+				StringVar(value='0'), StringVar(value='0')]
 		Dialog.__init__(self, parent, title)
+
 	def body(self, frame):
 		f = Frame(frame)
-		Label(f, text="WCS").pack(side=LEFT, fill=X)
-		cb = ttk.Combobox(f, textvariable=self.wcs)
-		cb["state"] = 'readonly'
-		cb["values"] = self.wcsOptions
+		Label(f, text="TOOL").pack(side=LEFT, fill=X)
+		cb = Label(f, textvariable=self.tool, font=DROFrame.dro_wpos)
 		cb.pack(side=RIGHT)
-		cb.bind("<Return>", lambda x, s=self: s.focus_set())
-		cb.bind("<<ComboboxSelected>>", self.onWcs)
-		cb.set(CNC.vars["WCS"])
-		self.onWcs() # ComboboxSelected not trigger
+		self.tool.set(CNC.vars["tool"])
 		f.pack(side=TOP, fill=X, expand=TRUE)
 
 		f = Frame(frame)
@@ -158,14 +150,204 @@ class SetZeroDialog(Dialog):
 			f2.pack(side=TOP, fill=X, expand=TRUE)
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
+		self.onLoadTable()
+
+	def zero(self, strVar: StringVar):
+		strVar.set("0.00")
+
+	def newCompensation(self, index):
+		return {'index':index, 'x':0, 'y':0,'z':0,'a':0,'b':0,'c':0}
+
+	def getCompensationFromTable(self, index):
+		comp, id = self.compensation.getRow(index)
+		if id==-1:
+			self.compensationTable.append(self.newCompensation(index))
+		return self.compensationTable[id]
+
+	def onLoadTable(self, *args):
+		index = int(self.tool.get())
+		tool = self.getCompensationFromTable(index)
+		print(tool)
+		for (id, w) in enumerate(self.axes):
+			self.var[id].set("%.03f" % float(tool[w]))
+
+	def valid(self, future_value):
+		if len(future_value)==0: return True
+		if future_value == "-": return True
+		try:
+			float(future_value)
+			return True
+		except ValueError:
+			return False
+
+	def getCompensationFromScreen(self):
+		values = {}
+		for (id, w) in enumerate(self.axes):
+			s = self.var[id].get()
+			if s=="" or s=="-": # only cornerCases not treated
+				s = "0"
+			values[w.lower()] = float(s)
+		return values 
+
+	def onOk(self):
+		index = int(self.tool.get())
+		compensate = self.getCompensationFromScreen()
+		self.app.mcontrol._toolCompensate(index, **compensate)
+
+	def onExit(self):
+		self.destroy()
+
+	def buttonbox(self,*args):
+		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
+		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+class SetToolZeroDialog(Dialog):
+	def __init__(self, parent, title, app):
+		self.app = app
+		self.tool = self.app.toolTable
+		self.toolTable = self.app.toolTable.getTable()
+		self.toolNumber = StringVar(value="1")
+		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
+		self.var = [StringVar(value='0'), StringVar(value='0'),
+				StringVar(value='0'), StringVar(value='0'),
+				StringVar(value='0'), StringVar(value='0')]
+		Dialog.__init__(self, parent, title)
+
+	def body(self, frame):
+		f = Frame(frame)
+		Label(f, text="TLO").pack(side=LEFT, fill=X)
+		cb = Label(f, textvariable=self.toolNumber, font=DROFrame.dro_wpos)
+		cb.pack(side=RIGHT)
+		self.toolNumber.set(CNC.vars["tool"])
+		f.pack(side=TOP, fill=X, expand=TRUE)
+
+		f = Frame(frame)
+		vcmd = (self.parent.register(self.valid), '%P')
+		for (id,w) in enumerate(self.axes):
+			f2 = Frame(f)
+			Label(f2, text=w).pack(side=LEFT, fill=X)
+			e = Entry(f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
+			e.pack(side=LEFT, expand=TRUE, fill=X)
+			e.bind("<Return>", lambda x, s=self: s.focus_set())
+
+			b = Button(f2, text="Zero", command=functools.partial(self.zero, self.var[id]))
+			b.pack(side=RIGHT, fill=X)
+			f2.pack(side=TOP, fill=X, expand=TRUE)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+
+		if Utils.getBool("CNC", "lathe", False):
+			f = Frame(frame)
+			if 'x' in self.axes:
+				Button(f, text="X Diameter", command=functools.partial(self.enterDiameter,'x', f)).pack(side=LEFT, fill=BOTH, expand=TRUE)
+			if 'b' in self.axes:
+				Button(f, text="B Diameter", command=functools.partial(self.enterDiameter,'b', f)).pack(side=LEFT, fill=BOTH, expand=TRUE)
+			f.pack(side=TOP, fill=BOTH, expand=TRUE)
+
+		self.onLoadTable()
+
+	def enterDiameter(self, axis, frame, *args):
+		if axis not in self.axes:
+			return
+		id = self.axes.index(axis)
+		self.var[id].set("%.03f" % askfloat("{} Diameter set".format(axis), "Diameter measured",
+					parent=frame,
+					minvalue=-100000.0, maxvalue=100000.0))
+
+	def zero(self, strVar: StringVar):
+		strVar.set("0.00")
+
+	def newTool(self, index):
+		return {'index':index, 'x':0, 'y':0,'z':0,'a':0,'b':0,'c':0}
+
+	def getTool(self, index):
+		tool, id = self.tool.getRow(index)
+		if id==-1:
+			self.toolTable.append(self.newTool(index))
+		return self.toolTable[id]
+
+	def onLoadTable(self, *args):
+		index = int(self.toolNumber.get())
+		tlo = self.getTool(index)
+		print(tlo)
+		for (id, w) in enumerate(self.axes):
+			self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w])))
+
+	def valid(self, future_value):
+		if len(future_value)==0: return True
+		if future_value == "-": return True
+		try:
+			float(future_value)
+			return True
+		except ValueError:
+			return False
+
+	def getTlo(self):
+		values = {}
+		for (id, w) in enumerate(self.axes):
+			s = self.var[id].get()
+			if s=="" or s=="-": # only cornerCases not treated
+				s = "0"
+			values[w.lower()] = float(s)
+		return values 
+
+	def onOk(self):
+		index = int(self.toolNumber.get())
+		tlo = self.getTlo()
+		for axe in self.axes:
+			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe]
+		self.app.mcontrol._tloSet(index, **tlo)
+
+	def onExit(self):
+		self.destroy()
+
+	def buttonbox(self,*args):
+		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
+		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+class SetWorkZeroDialog(Dialog):
+	def __init__(self, parent, title, app):
+		self.app = app
+		self.wcs = StringVar(value="G54")
+		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
+		if Utils.getBool("CNC", "lathe", False):
+			self.axes = [w for w in self.axes if w in "z"]
+		self.var = [StringVar(value='0'), StringVar(value='0'),
+				StringVar(value='0'), StringVar(value='0'),
+				StringVar(value='0'), StringVar(value='0')]
+		Dialog.__init__(self, parent, title)
+	def body(self, frame):
+		f = Frame(frame)
+		Label(f, text="WCS").pack(side=LEFT, fill=X)
+		cb = Label(f, textvariable=self.wcs, font=DROFrame.dro_wpos)
+		cb.pack(side=RIGHT)
+
+		self.wcs.set(CNC.vars['WCS'])
+		f.pack(side=TOP, fill=X, expand=TRUE)
+
+		f = Frame(frame)
+		f.pack(side=TOP, fill=X, expand=TRUE)
+
+		f = Frame(frame)
+		vcmd = (self.parent.register(self.valid), '%P')
+		for (id,w) in enumerate(self.axes):
+			f2 = Frame(f)
+			Label(f2, text=w).pack(side=LEFT, fill=X)
+			e = Entry(f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
+			e.pack(side=LEFT, expand=TRUE, fill=X)
+			e.bind("<Return>", lambda x, s=self: s.focus_set())
+
+			b = Button(f2, text="Zero", command=functools.partial(self.zero, self.var[id]))
+			b.pack(side=RIGHT, fill=X)
+			f2.pack(side=TOP, fill=X, expand=TRUE)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+		self.onWcs() # ComboboxSelected not trigger
+
 	def zero(self, strVar: StringVar):
 		strVar.set("0.00")
 
 	def onWcs(self, *args):
-		index = self.wcsOptions.index(self.wcs.get()) + 1
-		wco = self.app.mcontrol.getParameters()[index]
 		for (id, w) in enumerate(self.axes):
-			self.var[id].set(round(CNC.vars["m%s" % w.lower()] - float(wco[w]), 3))
+			self.var[id].set("%.03f" % float(CNC.vars["w"+w]))
 
 	def valid(self, future_value):
 		if len(future_value)==0: return True
@@ -186,7 +368,7 @@ class SetZeroDialog(Dialog):
 		return values 
 
 	def onOk(self):
-		index = self.wcsOptions.index(self.wcs.get())
+		index = WCS.index(self.wcs.get())
 		wco = self.getWco()
 		print(wco)
 		self.app.mcontrol._wcsSet(**wco, wcsIndex=index)
@@ -203,18 +385,41 @@ class ZeroGroup(CNCRibbon.ButtonGroup):
 	def __init__(self, master, app):
 		CNCRibbon.ButtonGroup.__init__(self, master, "Zero", app)
 		self.master = master
-		b = Ribbon.LabelButton(self.frame, self, "<<SetZero>>",
+		b = Ribbon.LabelButton(self.frame, self, "<<SetWorkOffset>>",
 				image=Utils.icons["config"],
-				text=_("Set Zeros"),
+				text=_("Set Work Offset"),
 				compound=TOP,
 				background=Ribbon._BACKGROUND)
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Set your WCS"))
 		self.addWidget(b)
-		app.bind("<<SetZero>>", self.onClick)
+		b = Ribbon.LabelButton(self.frame, self, "<<SetToolOffset>>",
+				image=Utils.icons["config"],
+				text=_("Set Tool Offset"),
+				compound=TOP,
+				background=Ribbon._BACKGROUND)
+		b.pack(side=LEFT, fill=BOTH)
+		tkExtra.Balloon.set(b, _("Set your TLO"))
+		self.addWidget(b)
+		b = Ribbon.LabelButton(self.frame, self, "<<SetCompensationOffset>>",
+				image=Utils.icons["config"],
+				text=_("Set Compensation"),
+				compound=TOP,
+				background=Ribbon._BACKGROUND)
+		b.pack(side=LEFT, fill=BOTH)
+		tkExtra.Balloon.set(b, _("Set your Compensation"))
+		self.addWidget(b)
 
-	def onClick(self, *args):
-		SetZeroDialog(self.app, "Set Zero", self.app)
+		app.bind("<<SetWorkOffset>>", self.onWorkClick)
+		app.bind("<<SetToolOffset>>", self.onToolClick)
+		app.bind("<<SetCompensationOffset>>", self.onCompensationClick)
+
+	def onWorkClick(self, *args):
+		SetWorkZeroDialog(self.app, "Set WorkSystem", self.app)
+	def onToolClick(self, *args):
+		SetToolZeroDialog(self.app, "Set Tool", self.app)
+	def onCompensationClick(self, *args):
+		SetCompensationDialog(self.app, "Set Compensation", self.app)
 
 
 
@@ -680,6 +885,21 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 				_("No info available.\nPlease contact the author."))
 		tkMessageBox.showinfo(_("State: %s")%(state), msg, parent=self)
 
+#===============================================================================
+# ToolFrame
+#===============================================================================
+class ToolFrame(CNCRibbon.PageLabelFrame):
+	def __init__(self, master, app):
+		CNCRibbon.PageLabelFrame.__init__(self, master, "Tool", _("Tool"), app)
+		self.app = app
+		f = Frame(self)
+		Button(f, text="Change Tool", command=self.onChange).pack(side=TOP, fill=BOTH, expand=TRUE)
+		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+	def onChange(self, *args):
+		toolNumber = askinteger("Tool change", "Enter the tool number",
+				parent=self.app,
+				minvalue=0, maxvalue=10)
+		self.app.sendGCode("M6T{}G43".format(toolNumber))
 
 #===============================================================================
 # ControlFrame
@@ -1861,7 +2081,7 @@ class JogPage(CNCRibbon.Page):
 		wcsvar.set(0)
 
 		self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup),
-			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame))
+			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, ToolFrame))
 	def activate(self, **kwargs):
 		CNC.vars["JogActive"] = True
 
