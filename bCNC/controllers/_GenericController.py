@@ -192,8 +192,8 @@ class _GenericController:
 		if c is not None: cmd += "C%g"%(c)
 		self.master.sendGCode("%s"%(cmd))
 	
-	def _toolCompensate(self, index:int|None=None, x:float|None=None, y:float|None=None, 
-			z:float|None=None, a:float|None=None, b:float|None=None, c:float|None=None):
+	def _toolCompensate(self, index=None, x=None, y=None, z=None,
+		a=None, b=None, c=None):
 		compensation = self.master.compensationTable
 		table = compensation.getTable()
 		row, index = compensation.getRow(index)
@@ -212,8 +212,8 @@ class _GenericController:
 		tool, index = self.master.toolTable.getRow(index)
 		return tool
 
-	def _tloSet(self, index:int|None=None, x:float|None=None, y:float|None=None, 
-			z:float|None=None, a:float|None=None, b:float|None=None, c:float|None=None):
+	def _tloSet(self, index=None, x=None, y=None, 
+			z=None, a=None, b=None, c=None):
 		tools = self.master.toolTable
 		table = tools.getTable()
 		if index is None:
