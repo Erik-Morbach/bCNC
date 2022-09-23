@@ -233,7 +233,10 @@ class _GenericController:
 		currentTool = self.getCurrentToolOffset()
 		workTable = self.master.workTable.getTable()
 		radiusMode = CNC.vars["radius"]
-		print(currentTool)
+		if currentTool is None:
+			currentTool = {}
+			for w in "xyzabc":
+				currentTool[w] = 0.00
 
 		#global wcsvar
 		#p = wcsvar.get()
