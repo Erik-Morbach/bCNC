@@ -167,7 +167,6 @@ class SetCompensationDialog(Dialog):
 	def onLoadTable(self, *args):
 		index = int(self.tool.get())
 		tool = self.getCompensationFromTable(index)
-		print(tool)
 		for (id, w) in enumerate(self.axes):
 			self.var[id].set("%.03f" % float(tool[w]))
 
@@ -193,6 +192,7 @@ class SetCompensationDialog(Dialog):
 		index = int(self.tool.get())
 		compensate = self.getCompensationFromScreen()
 		self.app.mcontrol._toolCompensate(index, **compensate)
+		self.app.event_generate("<<LoadTables>>", when='tail')
 
 	def onExit(self):
 		self.destroy()
@@ -268,7 +268,6 @@ class SetToolZeroDialog(Dialog):
 	def onLoadTable(self, *args):
 		index = int(self.toolNumber.get())
 		tlo = self.getTool(index)
-		print(tlo)
 		for (id, w) in enumerate(self.axes):
 			self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w])))
 
@@ -296,6 +295,7 @@ class SetToolZeroDialog(Dialog):
 		for axe in self.axes:
 			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe]
 		self.app.mcontrol._tloSet(index, **tlo)
+		self.app.event_generate("<<LoadTables>>", when='tail')
 
 	def onExit(self):
 		self.destroy()
@@ -370,8 +370,8 @@ class SetWorkZeroDialog(Dialog):
 	def onOk(self):
 		index = WCS.index(self.wcs.get())
 		wco = self.getWco()
-		print(wco)
 		self.app.mcontrol._wcsSet(**wco, wcsIndex=index)
+		self.app.event_generate("<<LoadTables>>", when='tail')
 
 	def onExit(self):
 		self.destroy()
@@ -999,6 +999,11 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		b.pack(side=LEFT)
 		tkExtra.Balloon.set(b, _("Divide step by 10"))
 		self.addWidget(b)
+		b = Button(f3, text="Ativa teclado",
+				command=self.app.focus_set,
+				activebackground="LightYellow")
+		b.pack(side=LEFT, fill=X, padx=20)
+		tkExtra.Balloon.set(b, _("Focus"))
 
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 
@@ -1029,13 +1034,6 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			self.addWidget(b)
 			buttonSpeed += [b]
 		f3.pack(side=TOP,fill=X, expand=TRUE)
-		f3 = Frame(f2)
-		b = Button(f3, text="Ativa teclado",
-				command=self.app.focus_set,
-				activebackground="LightYellow")
-		b.pack(side=TOP, fill=X)
-		tkExtra.Balloon.set(b, _("Focus"))
-		f3.pack(side=TOP, fill=X, expand=TRUE)
 		# A+        C+
 		#    B+ crossAxis   B-
 		# A-        C-

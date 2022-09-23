@@ -60,6 +60,14 @@ class _GenericController:
 	def overrideSet(self):
 		pass
 
+	def loadTables(self):
+		self.sendSettings()
+		self.sendToolTable()
+		self.sendWorkTable()
+
+	def resetSettings(self):
+		self.loadTables()
+
 	def hardReset(self):
 		self.master.busy()
 		if self.master.serial is not None:
@@ -71,9 +79,7 @@ class _GenericController:
 		self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.master.notBusy()
-		self.sendSettings()
-		self.sendWorkTable()
-		self.sendToolTable()
+		self.resetSettings()
 		self.viewParameters()
 
 	#----------------------------------------------------------------------
@@ -83,22 +89,18 @@ class _GenericController:
 		self.master.stopProbe()
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
-		self.sendSettings()
-		self.sendToolTable()
-		self.sendWorkTable()
+		self.resetSettings()
 		self.viewParameters()
+
+	#----------------------------------------------------------------------
+	def clearError(self):
+		self.master.sendGCode("$X")
 
 	#----------------------------------------------------------------------
 	def unlock(self, clearAlarm=True):
 		if clearAlarm: self.master._alarm = False
-		for _ in range(2):
-			self.master.sendGCode('?')
-			self.master.sendGCode("$X")
-			self.master.sendGCode('?')
-			self.sendSettings()
-			self.master.sendGCode('?')
-		self.sendToolTable()
-		self.sendWorkTable()
+		self.clearError()
+		self.resetSettings()
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
@@ -121,6 +123,7 @@ class _GenericController:
 
 	def sendSettings(self):
 		settings = self.getSettings()
+		self.clearError()
 		for settingsUnit in settings:
 			self.master.sendGCode(settingsUnit)
 			if "G7" in settingsUnit:
@@ -142,6 +145,7 @@ class _GenericController:
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
 		compensationTable = self.master.compensationTable.getTable()
 		toolTable = self.master.toolTable.getTable()
+		self.clearError()
 		for tool, compensation in zip(toolTable, compensationTable):
 			cmd = "G10L1P{}".format(tool['index'])
 			for axe in axis:
@@ -149,15 +153,14 @@ class _GenericController:
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
 			self.master.sendGCode(cmd)
+		self.clearError()
 		self.master.sendGCode("G43")
-		self.master.sendGCode("$")
-		self.master.sendGCode("?")
-		self.sendWorkTable()
 
 	def sendWorkTable(self):
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
 		workTable = self.master.workTable.getTable()
 		currentMode = CNC.vars["radius"]
+		self.clearError()
 		for work in workTable:
 			if "r" in work.keys():
 				self.master.sendGCode(work["r"])
@@ -166,11 +169,8 @@ class _GenericController:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
 			self.master.sendGCode(cmd)
-		self.master.sendGCode("$")
-		self.master.sendGCode("?")
+		self.clearError()
 		self.master.sendGCode(currentMode)
-		self.master.sendGCode("$")
-		self.master.sendGCode("?")
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')
@@ -205,7 +205,6 @@ class _GenericController:
 			if value is not None:
 				table[index][name] = value
 		compensation.save(table)
-		self.sendToolTable()
 
 	def getCurrentToolOffset(self):
 		index = CNC.vars["tool"]
@@ -228,7 +227,6 @@ class _GenericController:
 			if value is not None:
 				table[index][name] = value
 		tools.save(table)
-		self.sendToolTable()
 
 	#----------------------------------------------------------------------
 	def _wcsSet(self, x=None, y=None, z=None, a=None, b=None, c=None, wcsIndex=None):
@@ -248,7 +246,7 @@ class _GenericController:
 
 		cmd = ""
 		if p<6:
-			cmd = "G10L20P%d"%(p+1)
+			cmd = "G10L2P%d"%(p+1)
 		elif p==6:
 			cmd = "G28.1"
 		elif p==7:
@@ -258,23 +256,23 @@ class _GenericController:
 
 		pos = ""
 		if x is not None and abs(float(x))<10000.0: 
-			pos += "X"+str(x)
 			workTable[index]['x'] = str(CNC.vars['mx'] - float(currentTool['x']) - float(x))
+			pos += "X"+workTable[index]['x']
 		if y is not None and abs(float(y))<10000.0: 
-			pos += "Y"+str(y)
 			workTable[index]['y'] = str(CNC.vars['my'] - float(currentTool['y']) - float(y))
+			pos += "Y"+workTable[index]['y']
 		if z is not None and abs(float(z))<10000.0: 
-			pos += "Z"+str(z)
 			workTable[index]['z'] = str(CNC.vars['mz'] - float(currentTool['z']) - float(z))
+			pos += "Z"+workTable[index]['z']
 		if a is not None and abs(float(a))<10000.0: 
-			pos += "A"+str(a)
 			workTable[index]['a'] = str(CNC.vars['ma'] - float(currentTool['a']) - float(a))
+			pos += "A"+workTable[index]['a']
 		if b is not None and abs(float(b))<10000.0: 
-			pos += "B"+str(b)
 			workTable[index]['b'] = str(CNC.vars['mb'] - float(currentTool['b']) - float(b))
+			pos += "B"+workTable[index]['b']
 		if c is not None and abs(float(c))<10000.0: 
-			pos += "C"+str(c)
 			workTable[index]['c'] = str(CNC.vars['mc'] - float(currentTool['c']) - float(c))
+			pos += "C"+workTable[index]['c']
 		cmd += pos
 		self.master.sendGCode(cmd)
 
@@ -320,7 +318,7 @@ class _GenericController:
 	def purgeController(self):
 		self.master.serial_write(b'!')
 		self.master.serial.flush()
-		time.sleep(1)
+		time.sleep(0.5)
 		# remember and send all G commands
 		G = " ".join([x for x in CNC.vars["G"] if x[0]=="G"])	# remember $G
 		TLO = CNC.vars["TLO"]
@@ -328,6 +326,9 @@ class _GenericController:
 		self.purgeControllerExtra()
 		self.master.runEnded()
 		self.master.stopProbe()
+		self.master.sendGCode("?")
+		self.master.sendGCode("$X")
+		self.master.sendGCode("?")
 		if G: self.master.sendGCode(G)			# restore $G
 		self.master.sendGCode("G43.1Z%s"%(TLO))	# restore TLO
 		self.viewState()

@@ -50,7 +50,7 @@ SERIAL_POLL    = 0.05	# s
 OVERRIDE_POLL  = 0.06
 SERIAL_TIMEOUT = 0.06	# s
 G_POLL	       = 10	# s
-RX_BUFFER_SIZE = 512
+RX_BUFFER_SIZE = 256
 GCODE_POLL = 0.1
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
@@ -601,9 +601,9 @@ class Sender:
 	def sendGCode(self, cmd):
 		if self.serial and not self.running:
 			if isinstance(cmd,tuple):
-				self.queue.put(cmd)
+				self.queue.put(cmd, block=True)
 			else:
-				self.queue.put(cmd+"\n")
+				self.queue.put(cmd+"\n", block=True)
 			return True
 		return False
 
@@ -772,6 +772,9 @@ class Sender:
 				to = t
 				self.mcontrol.overrideSet()
 
+			if not self.running and t-tg > G_POLL:
+				tg = t
+				self.mcontrol.viewGState()
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:
 				try:
@@ -910,8 +913,3 @@ class Sender:
 				self.log.put((Sender.MSG_SEND, tosend))
 
 				tosend = None
-				if not self.running and t-tg > G_POLL:
-					tosend = '$G\n' #FIXME: move to controller specific class
-					sline.append(tosend)
-					cline.append(len(tosend))
-					tg = t

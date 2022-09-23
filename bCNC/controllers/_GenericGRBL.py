@@ -162,6 +162,9 @@ class _GenericGRBL(_GenericController):
 	def viewStartup(self):
 		self.master.sendGCode("$N")
 
+	def viewGState(self):
+		self.master.sendHex('0x83')
+
 	def checkGcode(self):
 		self.master.sendGCode("$C")
 

@@ -129,6 +129,7 @@ class Jog(MemberImpl):
         debounce = Utils.getFloat("Jog", "debounce", 0.05)
 
         pins, inversion = self.load_pins()
+        self.lastPinValues = []
 
         print("JOG", end=' ')
         super().__init__(app, pins, inversion, debounce, self.callback, self.active)
@@ -166,23 +167,34 @@ class Jog(MemberImpl):
                 return
 
     def directMode(self, pinValues):
+        data = ""
         for id, val in enumerate(pinValues):
             if val == 1:
                 con = self.directMappings[id]
-                mutex = threading.Lock()
-                mutex.acquire()
-                self.app.jogMutex = mutex
-                self.app.focus_set()
-                self.app.event_generate("<<"+con+">>", when="tail")
-                self.jogLastAction = self.JOGMOTION
-                mutex.acquire(blocking=True, timeout=0.5)
-                self.app.jogMutex = None
-                return
+                if len(data)>2:
+                    if data[-2]==con[0]:
+                        continue
+                data += con[0]
+                data += '+' if con[1:] == "Up" else '-'
+        mutex = threading.Lock()
+        mutex.acquire()
+        self.app.jogMutex = mutex
+        self.app.focus_set()
+        self.app.event_generate("<<JOG>>", when="tail", data=data)
+        self.jogLastAction = self.JOGMOTION
+        mutex.acquire(blocking=True, timeout=0.5)
+        self.app.jogMutex = None
 
     def callback(self, pinValues):
         if self.app.running or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
             return
-        if max(pinValues) == 0 and self.jogLastAction != self.JOGSTOP:
+        shouldStop = False
+        if len(self.lastPinValues) == len(pinValues):
+            for (a,b) in zip(self.lastPinValues, pinValues):
+                if a==1 and b==0:
+                    shouldStop = True
+        self.lastPinValues = pinValues
+        if shouldStop and self.jogLastAction != self.JOGSTOP:
             mutex = threading.Lock()
             mutex.acquire()
             self.app.jogMutex = mutex

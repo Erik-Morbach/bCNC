@@ -442,6 +442,15 @@ class Application(Toplevel, Sender):
         def bDown(*args):
             self.control.moveBdown()
             releaseJogMutex()
+        def jog(data="", *args):
+            axis = ""
+            directions = ""
+            for i in range(len(data)):
+                axis += data[i]
+                directions += data[i+1]
+            self.control.move(axis, directions, 1)
+
+        self.bind('<<JOG>>', jog)
 
         self.bind('<<XUp>>', xUp)
         self.bind('<<XDown>>', xDown)
@@ -493,6 +502,7 @@ class Application(Toplevel, Sender):
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
 
+        self.bind('<<LoadTables>>', lambda x,s=self: s.mcontrol.loadTables())
         self.bind('<Key-exclam>', self.feedHold)
         self.bind('<Key-asciitilde>', self.resume)
 
