@@ -12,7 +12,7 @@ __email__  = "vvlachoudis@gmail.com"
 try:
 	import Tkinter
 	from Tkinter import *
-	import tkMessageBox
+	import tkMessageBox 
 	from Tkinter.simpledialog import Dialog, askfloat, askinteger
 except ImportError:
 	import tkinter
@@ -206,6 +206,8 @@ class SetToolZeroDialog(Dialog):
 		self.app = app
 		self.tool = self.app.toolTable
 		self.toolTable = self.app.toolTable.getTable()
+		self.workTable = self.app.workTable
+		self.wcs = 1
 		self.toolNumber = StringVar(value="1")
 		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
 		self.var = [StringVar(value='0'), StringVar(value='0'),
@@ -219,6 +221,7 @@ class SetToolZeroDialog(Dialog):
 		cb = Label(f, textvariable=self.toolNumber, font=DROFrame.dro_wpos)
 		cb.pack(side=RIGHT)
 		self.toolNumber.set(CNC.vars["tool"])
+		self.wcs = WCS.index(CNC.vars["WCS"])+1
 		f.pack(side=TOP, fill=X, expand=TRUE)
 
 		f = Frame(frame)
@@ -268,8 +271,9 @@ class SetToolZeroDialog(Dialog):
 	def onLoadTable(self, *args):
 		index = int(self.toolNumber.get())
 		tlo = self.getTool(index)
+		wcs, id = self.workTable.getRow(self.wcs)
 		for (id, w) in enumerate(self.axes):
-			self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w])))
+			self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w]) - float(wcs[w])))
 
 	def valid(self, future_value):
 		if len(future_value)==0: return True
@@ -292,8 +296,9 @@ class SetToolZeroDialog(Dialog):
 	def onOk(self):
 		index = int(self.toolNumber.get())
 		tlo = self.getTlo()
+		wcs, id = self.workTable.getRow(self.wcs)
 		for axe in self.axes:
-			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe]
+			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe] - float(wcs[axe])
 		self.app.mcontrol._tloSet(index, **tlo)
 		self.app.event_generate("<<LoadTables>>", when='tail')
 
@@ -376,9 +381,26 @@ class SetWorkZeroDialog(Dialog):
 	def onExit(self):
 		self.destroy()
 
+	def onClearTable(self):
+		response = tkMessageBox.askokcancel("Clear table warning", "Do you want to continue?")
+		if not response:
+			return
+		table = self.app.workTable
+		rows = table.getTable()
+		allAxis = "xyzabcuvw"
+		for row in rows:
+			for (field, value) in row.items():
+				if field in allAxis:
+					row[field] = '0'
+		table.save(rows)
+		self.app.event_generate("<<LoadTables>>", when='tail')
+		self.destroy()
+
+
 	def buttonbox(self,*args):
-		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
-		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT, fill=X, expand=True)
+		Button(self, text="ClearTable", command=self.onClearTable).pack(side=RIGHT, fill=X, expand=True)
+		Button(self, text="Exit", command=self.onExit).pack(side=RIGHT, fill=X, expand=True)
 
 
 class ZeroGroup(CNCRibbon.ButtonGroup):

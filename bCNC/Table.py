@@ -9,6 +9,13 @@ class Table:
         fields = []
         if len(table)==0: fields = ['index']
         else: fields = table[0].keys()
+        for row in table:
+            for field in fields:
+                if field == 'index': continue
+                try:
+                    row[field] = "%.03f" % float(row[field])
+                except:
+                    pass
         flag = 'x'
         if os.path.isfile(self.name): flag = 'w'
         with open(self.name, flag, newline='') as tableFile:

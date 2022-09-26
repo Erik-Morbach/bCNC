@@ -46,11 +46,11 @@ from Table import Table
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = 0.05	# s
+SERIAL_POLL    = 0.02	# s
 OVERRIDE_POLL  = 0.06
-SERIAL_TIMEOUT = 0.06	# s
+SERIAL_TIMEOUT = 0.000#0.06	# s
 G_POLL	       = 10	# s
-RX_BUFFER_SIZE = 256
+RX_BUFFER_SIZE = 1024
 GCODE_POLL = 0.1
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
@@ -119,7 +119,8 @@ class Sender:
 		self.queue	 = Queue()	# Command queue to be send to GRBL
 		self.pendant	 = Queue()	# Command queue to be executed from Pendant
 		self.serial	 = None
-		self.thread	 = None
+		self.writeThread= None
+		self.readThread= None
 
 
 		self._updateChangedState = time.time()
@@ -543,17 +544,11 @@ class Sender:
 						baudrate,
 						bytesize=serial.EIGHTBITS,
 						parity=serial.PARITY_NONE,
-						stopbits=serial.STOPBITS_ONE,
+						stopbits=serial.STOPBITS_TWO,
 						timeout=SERIAL_TIMEOUT,
 						xonxoff=False,
 						rtscts=False)
-		# Toggle DTR to reset Arduino
-		try:
-			pass
-			#self.serial.setDTR(0)
-		except IOError:
-			pass
-		time.sleep(1)
+		time.sleep(0.2)
 		CNC.vars["state"] = CONNECTED
 		CNC.vars["color"] = STATECOLOR[CNC.vars["state"]]
 		#self.state.config(text=CNC.vars["state"],
@@ -561,17 +556,13 @@ class Sender:
 		# toss any data already received, see
 		# http://pyserial.sourceforge.net/pyserial_api.html#serial.Serial.flushInput
 		self.serial.flushInput()
-		try:
-			self.serial.setDTR(1)
-		except IOError:
-			pass
-		time.sleep(1)
-#		self.serial_write(b"\n\n") # serial_write should be handling this
 		self.serial_write("\n\n")
 		self._gcount = 0
 		self._alarm  = True
-		self.thread  = threading.Thread(target=self.serialIO)
-		self.thread.start()
+		self.writeThread  = threading.Thread(target=self.serialIOWrite)
+		self.readThread = threading.Thread(target=self.serialIORead)
+		self.writeThread.start()
+		self.readThread.start()
 		return True
 
 	#----------------------------------------------------------------------
@@ -584,7 +575,8 @@ class Sender:
 		except:
 			pass
 		self._runLines = 0
-		self.thread = None
+		self.writeThread = None
+		self.readThread = None
 		time.sleep(1)
 		try:
 			self.serial.close()
@@ -748,18 +740,40 @@ class Sender:
 			self.cleanAfter = False
 			self.jobDone()
 
+	def serialIORead(self):
+		self._cline = []
+		self._sline = []
+		buff = ""
+		while self.readThread:
+			time.sleep(0.0001)
+			# Anything to receive?
+			try:
+				line = str(self.serial.read(max(self.serial.in_waiting,1)).decode())
+				buff += str(line)
+			except:
+				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+			if (index:=buff.find('\n'))!=-1:
+				line = buff[:index+1].strip()
+				buff = buff[index+1:]
+			else:
+				continue
+			if self.mcontrol.parseLine(line, self._cline, self._sline):
+				pass
+			else:
+				self.log.put((Sender.MSG_RECEIVE, line))
+
 	#----------------------------------------------------------------------
 	# thread performing I/O on serial line
 	#----------------------------------------------------------------------
-	def serialIO(self):
+	def serialIOWrite(self):
 		self.sio_wait   = False		# wait for commands to complete (status change to Idle)
 		self.sio_status = False		# waiting for status <...> report
-		cline  = []		# length of pipeline commands
-		sline  = []			# pipeline commands
+		self._cline  = []		# length of pipeline commands
+		self._sline  = []			# pipeline commands
 		tosend = None			# next string to send
 		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
 
-		while self.thread:
+		while self.writeThread:
 			time.sleep(0.001)
 			t = time.time()
 			# refresh machine position?
@@ -775,6 +789,7 @@ class Sender:
 			if not self.running and t-tg > G_POLL:
 				tg = t
 				self.mcontrol.viewGState()
+
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:
 				try:
@@ -807,8 +822,8 @@ class Sender:
 						try:
 							tosend = self.gcode.evaluate(tosend, self)
 #							if isinstance(tosend, list):
-#								cline.append(len(tosend[0]))
-#								sline.append(tosend[0])
+#								self._cline.append(len(tosend[0]))
+#								self._sline.append(tosend[0])
 							if isinstance(tosend,str):
 								tosend += "\n"
 							else:
@@ -827,7 +842,7 @@ class Sender:
 
 				if tosend is not None:
 					# All modification in tosend should be
-					# done before adding it to cline
+					# done before adding it to self._cline
 
 					# Keep track of last feed
 					pat = FEEDPAT.match(tosend)
@@ -856,29 +871,8 @@ class Sender:
 									pass
 
 					# Bookkeeping of the buffers
-					sline.append(tosend)
-					cline.append(len(tosend))
-
-			# Anything to receive?
-			if self.serial.inWaiting() or tosend is None:
-				try:
-					line = str(self.serial.readline().decode()).strip()
-				except:
-					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
-					continue
-					#self.emptyQueue()
-					#self.close()
-					#return
-
-				#print "<R<",repr(line)
-				#print "*-* stack=",sline,"sum=",sum(cline),"wait=",wait,"pause=",self._pause
-				if not line:
-					pass
-				elif self.mcontrol.parseLine(line, cline, sline):
-					pass
-				else:
-					self.log.put((Sender.MSG_RECEIVE, line))
-
+					self._sline.append(tosend)
+					self._cline.append(len(tosend))
 			# Received external message to stop
 			if self._stop:
 				self.emptyQueue()
@@ -896,15 +890,15 @@ class Sender:
 						if w in str(tosend).upper():
 							tosend = None
 							break
-			#print "tosend='%s'"%(repr(tosend)),"stack=",sline,
-			#	"sum=",sum(cline),"wait=",wait,"pause=",self._pause
-			if tosend is not None and sum(cline) < RX_BUFFER_SIZE:
-				self._sumcline = sum(cline)
+			#print "tosend='%s'"%(repr(tosend)),"stack=",self._sline,
+			#	"sum=",sum(self._cline),"wait=",wait,"pause=",self._pause
+			if tosend is not None and sum(self._cline) < RX_BUFFER_SIZE:
+				self._sumcline = sum(self._cline)
 #				if isinstance(tosend, list):
 #					self.serial_write(str(tosend.pop(0)))
 #					if not tosend: tosend = None
 
-				#print ">S>",repr(tosend),"stack=",sline,"sum=",sum(cline)
+				#print ">S>",repr(tosend),"stack=",self._sline,"sum=",sum(self._cline)
 				if self.mcontrol.gcode_case > 0: tosend = tosend.upper()
 				if self.mcontrol.gcode_case < 0: tosend = tosend.lower()
 
