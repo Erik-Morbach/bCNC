@@ -964,7 +964,7 @@ class MdiFrame(CNCRibbon.PageLabelFrame):
 	def onEnter(self, *args):
 		if len(self.mdiVar.get())==0:
 			self.app.focus_set()
-		self.app.sendGCode(self.mdiVar.get())
+		self.app.execute(self.mdiVar.get())
 		self.values += [self.mdiVar.get()]
 		self.mdiVar.set("")
 		self.counter = len(self.values)
