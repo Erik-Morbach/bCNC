@@ -2048,7 +2048,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		try:
 			tlo = float(self.tlo['text'])
 			#print("G43.1Z%g"%(tlo))
-			self.sendGCode("G43.1Z%g"%(tlo))
+			#self.sendGCode("G43.1Z%g"%(tlo))
 			self.app.mcontrol.viewParameters()
 			self.event_generate("<<CanvasFocus>>")
 		except ValueError:

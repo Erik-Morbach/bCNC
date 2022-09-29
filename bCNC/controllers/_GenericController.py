@@ -61,11 +61,11 @@ class _GenericController:
 		pass
 
 	def loadTables(self):
-		self.sendSettings()
 		self.sendToolTable()
 		self.sendWorkTable()
 
 	def resetSettings(self):
+		self.sendSettings()
 		self.loadTables()
 
 	def hardReset(self):
@@ -333,7 +333,6 @@ class _GenericController:
 		self.master.sendGCode("$X")
 		self.master.sendGCode("?")
 		if G: self.master.sendGCode(G)			# restore $G
-		self.master.sendGCode("G43.1Z%s"%(TLO))	# restore TLO
 		self.viewState()
 
 

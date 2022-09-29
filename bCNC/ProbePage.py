@@ -304,8 +304,8 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 	def tloSet(self, event=None):
 		try:
 			CNC.vars["TLO"] = float(ProbeCommonFrame.tlo.get())
-			cmd = "G43.1Z%s"%(ProbeCommonFrame.tlo.get())
-			self.sendGCode(cmd)
+			#cmd = "G43.1Z%s"%(ProbeCommonFrame.tlo.get())
+			#self.sendGCode(cmd)
 		except:
 			pass
 		self.app.mcontrol.viewParameters()

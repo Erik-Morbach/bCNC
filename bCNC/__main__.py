@@ -2396,6 +2396,7 @@ class Application(Toplevel, Sender):
             device = _device or serialPage.portCombo.get()  # .split("\t")[0]
             baudrate = _baud or serialPage.baudCombo.get()
             if self.open(device, baudrate):
+                self.mcontrol.resetSettings()
                 serialPage.connectBtn.config(text=_("Close"),
                                              background="LightGreen",
                                              activebackground="LightGreen")
