@@ -472,7 +472,7 @@ class Application(Toplevel, Sender):
         global clampToggleCounter
         clampToggleCounter = 0
         def clampToggle(*args):
-            if self.serial is None: return
+            if self.serial is None or CNC.vars['state'].lower() not in ["idle"]: return
             global clampToggleCounter
             if clampToggleCounter % 2 == 0: self.serial_write(chr(0xA5))
             else: self.serial_write(chr(0xA6))
