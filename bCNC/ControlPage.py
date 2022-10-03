@@ -2004,7 +2004,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 
 	#----------------------------------------------------------------------
 	def overrideChange(self, override, name, event=None):
-		CNC.vars["_Ov"+name] = override.get()
+		CNC.vars["_Ov"+name.capitalize()] = override.get()
 		CNC.vars["_OvChanged"] = True
 
 	#----------------------------------------------------------------------
