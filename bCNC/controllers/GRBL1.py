@@ -9,26 +9,26 @@ from CNCRibbon    import Page
 import time
 import Utils
 
-OV_FEED_100     = chr(0x90)        # Extended override commands
-OV_FEED_i10     = chr(0x91)
-OV_FEED_d10     = chr(0x92)
-OV_FEED_i1      = chr(0x93)
-OV_FEED_d1      = chr(0x94)
+OV_FEED_100     = b'\x90'       # Extended override commands
+OV_FEED_i10     = b'\x91'
+OV_FEED_d10     = b'\x92'
+OV_FEED_i1      = b'\x93'
+OV_FEED_d1      = b'\x94'
 
-OV_RAPID_100    = chr(0x95)
-OV_RAPID_50     = chr(0x96)
-OV_RAPID_25     = chr(0x97)
+OV_RAPID_100    = b'\x95'
+OV_RAPID_50     = b'\x96'
+OV_RAPID_25     = b'\x97'
 
-OV_SPINDLE_100  = chr(0x99)
-OV_SPINDLE_i10  = chr(0x9A)
-OV_SPINDLE_d10  = chr(0x9B)
-OV_SPINDLE_i1   = chr(0x9C)
-OV_SPINDLE_d1   = chr(0x9D)
+OV_SPINDLE_100  = b'\x99'
+OV_SPINDLE_i10  = b'\x9A'
+OV_SPINDLE_d10  = b'\x9B'
+OV_SPINDLE_i1   = b'\x9C'
+OV_SPINDLE_d1   = b'\x9D'
 
-OV_SPINDLE_STOP = chr(0x9E)
+OV_SPINDLE_STOP = b'\x9E'
 
-OV_FLOOD_TOGGLE = chr(0xA0)
-OV_MIST_TOGGLE  = chr(0xA1)
+OV_FLOOD_TOGGLE = b'\xA0'
+OV_MIST_TOGGLE  = b'\xA1'
 
 
 class Controller(_GenericGRBL):

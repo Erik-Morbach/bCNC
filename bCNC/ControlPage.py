@@ -979,6 +979,13 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		self.isLathe = Utils.getBool("CNC","lathe",False)
 		self.axis = Utils.getStr("CNC", "axis", "XYZ")
 		self.crossAxis = Utils.getStr("CNC", "jogCross", "XY")
+		self.jogSpeeds = []
+		i = 0
+		while 1:
+			speed = Utils.getStr("CNC", "jogSpeed{}".format(i), "-")
+			if speed == "-": break
+			self.jogSpeeds += [speed]
+			i += 1
 
 		f = Frame(self)
 		
@@ -1039,13 +1046,12 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		tkExtra.Balloon.set(self.jogSpeedEntry,_("Jog Speed"))
 		self.addWidget(self.jogSpeedEntry)
 
-		speeds = ["1", "30", "100", "5000"]
 		buttonSpeed = []
 		def selectSpeed(value):
 			self.jogSpeedEntry.set(value)
 			self.setJogSpeed()
 			self.app.focus()
-		for speed in speeds:
+		for speed in self.jogSpeeds:
 			b = Button(f3, text=speed,
 						width=2, height=1,
 						activebackground="LightYellow",
@@ -1141,6 +1147,7 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		try:
 			jogSpeed = float(self.jogSpeedEntry.get())
 			CNC.vars["JogSpeed"] = jogSpeed
+			self.app.focus_set()
 		except ValueError:
 			pass
 
