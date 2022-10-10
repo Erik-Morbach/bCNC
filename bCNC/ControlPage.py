@@ -2143,6 +2143,13 @@ class ExecutionPage(CNCRibbon.Page):
 
 		self._register((ConnectionGroup, UserGroup, RunGroup),
 			(DROFrame, abcDROFrame, NotebookFrame, StateFrame))
+	def activate(self, **kwargs):
+		CNC.vars["execution"] = True
+		return super().activate()
+
+	def release(self, **kwargs):
+		CNC.vars["execution"] = False
+		return super().release()
 
 
 

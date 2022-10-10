@@ -742,6 +742,7 @@ class CNC:
 			"realRpm"    : 0.0,
 			"JogSpeed"   : 3000.0,
 			"JogActive"  : False,
+			"execution"  : False,
 
 			"planner"    : -1,
 			"rxbytes"    : 0,
