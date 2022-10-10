@@ -386,13 +386,18 @@ class Sender:
 		else:
 			return _("unknown command"),_("Invalid command %s")%(oline)
 
+	def _getIndex(self, line):
+		index = line[1:line.find('=')]
+		return index.strip()
+
 	#----------------------------------------------------------------------
 	def modifyConfiguration(self, name, value):
 		settingsFile = open("Settings.txt",'r')
 		lines = settingsFile.readlines()
 		settingsFile.close()
+		name = self._getIndex(name + '=' + value)
 		for id,w in enumerate(lines):
-			if w.startswith(name):
+			if str(self._getIndex(w)) == str(name):
 				lines[id] = w[:w.find('=')] + "= {}\n".format(value)
 		settingsFile = open("Settings.txt",'w')
 		settingsFile.writelines(lines)
