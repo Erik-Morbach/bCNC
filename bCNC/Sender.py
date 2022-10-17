@@ -7,6 +7,8 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+import requests
 __author__  = "Vasilis Vlachoudis"
 __email__   = "vvlachoudis@gmail.com"
 
@@ -230,6 +232,29 @@ class Sender:
 			return True
 		return False
 
+	def testHomeSingle(self):
+		id = 0
+		self.sendGCode("$?$X?")
+		self.mcontrol.home()
+		time.sleep(1)
+		while "home" in CNC.vars["state"].lower():
+			time.sleep(0.1)
+		response =  requests.get("http://192.168.4.1/Dros", timeout=2)
+		response = response.json()
+		axes = 'xyz'
+		typ = 'wm'
+		values = []
+		for a in axes:
+			for t in typ:
+				values += [response[t+a]]
+		values = bytes(values)
+		file = open("teste{}".format(id),'ab')
+		file.write(values)
+		file.close()
+
+	def testHome(self, n):
+		for _ in range(n):
+			self.testHomeSingle()
 	#----------------------------------------------------------------------
 	# Execute a single command
 	#----------------------------------------------------------------------
@@ -251,6 +276,10 @@ class Sender:
 		# ABS*OLUTE: Set absolute coordinates
 		if rexx.abbrev("ABSOLUTE",cmd,3):
 			self.sendGCode("G90")
+
+		if cmd == "TEST":
+			n = int(line[1])
+			threading.Thread(target=self.testHome, args=(n,)).start()
 
 		# HELP: open browser to display help
 		elif cmd == "HELP":
@@ -700,6 +729,7 @@ class Sender:
 		self.feedHold()
 		self._stop = True
 		self.gcode.repeatEngine.cleanState()
+		self.emptyQueue()
 		# if we are in the process of submitting do not do anything
 		if self._runLines != sys.maxsize:
 			self.purgeController()
