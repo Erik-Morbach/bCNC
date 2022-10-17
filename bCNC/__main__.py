@@ -2208,12 +2208,15 @@ class Application(Toplevel, Sender):
 
         else:
             def canvDraw():
+                try:
                     self.editor.selectClear()
                     self.editor.fill()
                     self.canvas.reset()
                     self.draw()
                     self.canvas.fit2Screen()
                     Page.lframes["CAM"].populate()
+                except BaseException as err:
+                        print(err)
             threading.Thread(target=canvDraw).start()
 
         if autoloaded:
