@@ -22,9 +22,8 @@ for (index,vector) in zip(indexes, vectors):
     work = [w[0] for w in vector]
     machine = [w[1] for w in vector]
     for i in range(len(machine)):
-        work[i] -= machine[0]
         if i > 1:
-            work[i] -= work[i-1]
+            work[i] = machine[i] - machine[i-1]
         machine[i] -= machine[0]
     plt.plot(work, c='blue')
     plt.plot(machine, c='red')
