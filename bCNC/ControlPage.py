@@ -80,22 +80,10 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 				text=_("Unlock/Startup"),
 				compound=LEFT,
 				anchor=W,
-				command=app.unlock,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Unlock controller [$X]"))
-		self.addWidget(b)
-
-		row += 2
-		b = Ribbon.LabelButton(self.frame,
-				image=Utils.icons["reset"],
-				text=_("Reset"),
-				compound=LEFT,
-				anchor=W,
 				command=app.softReset,
 				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Software reset of controller [ctrl-x]"))
+		b.grid(row=row, column=col, padx=0, pady=0, rowspan=2, sticky=NSEW)
+		tkExtra.Balloon.set(b, _("Unlock controller [$X]"))
 		self.addWidget(b)
 
 

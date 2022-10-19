@@ -89,7 +89,7 @@ class _GenericController:
 		self.master.stopProbe()
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
-		self.resetSettings()
+		self.unlock()
 		self.viewParameters()
 
 	#----------------------------------------------------------------------
