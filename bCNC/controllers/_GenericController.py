@@ -94,7 +94,9 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def clearError(self):
-		self.master.sendGCode("$X")
+		self.master.sendGCode("$X?")
+		self.master.sendGCode("$")
+		self.master.sendGCode("$X?")
 
 	#----------------------------------------------------------------------
 	def unlock(self, clearAlarm=True):

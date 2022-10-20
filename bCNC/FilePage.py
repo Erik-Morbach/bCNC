@@ -105,7 +105,7 @@ class FileGroup(CNCRibbon.ButtonGroup):
 
 		# ---
 		col,row=3,0
-		b = Ribbon.LabelButton(self.frame, self, "<<Save>>",
+		b = Ribbon.LabelButton(self.frame, self, "<<SaveAs>>",
 				image=Utils.icons["save32"],
 				command=app.save,
 				background=Ribbon._BACKGROUND)

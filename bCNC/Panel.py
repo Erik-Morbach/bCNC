@@ -45,7 +45,7 @@ class Member:
             print(" " + str(pin), end='')
             if pin < 0: continue
             wp.pinMode(pin, wp.INPUT)
-            wp.pullUpDnControl(pin, wp.PUD_OFF)
+            wp.pullUpDnControl(pin, wp.PUD_DOWN)
         print()
 
         self.inversion = inversion

@@ -102,7 +102,8 @@ MAX_HISTORY = 500
 
 # ZERO = ["G28", "G30", "G92"]
 
-FILETYPES = [(_("All accepted"),
+FILETYPES = [(_("All"), "*"),
+             (_("All accepted"),
               ("*.ngc", "*.cnc", "*.nc", "*.tap", "*.gcode", "*.dxf", "*.probe", "*.orient", "*.stl", "*.svg")),
              (_("G-Code"), ("*.ngc", "*.cnc", "*.nc", "*.tap", "*.gcode")),
              (_("G-Code clean"), ("*.txt")),
@@ -110,8 +111,7 @@ FILETYPES = [(_("All accepted"),
              ("SVG", "*.svg"),
              (_("Probe"), ("*.probe", "*.xyz")),
              (_("Orient"), "*.orient"),
-             ("STL", "*.stl"),
-             (_("All"), "*")]
+             ("STL", "*.stl")]
 
 geometry = None
 
@@ -2342,9 +2342,7 @@ class Application(Toplevel, Sender):
                                                    initialfile=os.path.join(
                                                        Utils.getUtf("File", "dir"),
                                                        Utils.getUtf("File", "file")),
-                                                   filetypes=[(_("G-Code"), ("*.ngc", "*.nc", "*.gcode")),
-                                                              ("DXF", "*.dxf"),
-                                                              ("All", "*")])
+                                                   filetypes=[FILETYPES])
         if filename:
             fn, ext = os.path.splitext(filename)
             ext = ext.lower()
