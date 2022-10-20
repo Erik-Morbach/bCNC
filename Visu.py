@@ -1,9 +1,15 @@
 import matplotlib.pyplot as plt
 import sys
+import struct
 
 file = open(sys.argv[1],'rb')
-
-values = list(file.read())
+raw = file.read()
+file.close()
+print(len(raw))
+quantity = len(raw)//8
+print(struct.calcsize(quantity*'q'))
+values = list(struct.unpack(quantity * 'q',raw))
+print(values)
 x = []
 y = []
 z = []

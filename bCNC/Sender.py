@@ -21,6 +21,7 @@ import rexx
 import time
 import threading
 import webbrowser
+import struct
 
 from datetime import datetime
 
@@ -143,6 +144,7 @@ class Sender:
 		self._sumcline	 = 0
 		self._lastFeed	 = 0
 		self._newFeed	 = 0
+		self._stopHomeTest = 0
 
 		self._onStart    = ""
 		self._onStop     = ""
@@ -241,19 +243,23 @@ class Sender:
 			time.sleep(0.1)
 		response =  requests.get("http://192.168.4.1/Dros", timeout=2)
 		response = response.json()
+		print(response)
 		axes = 'xyz'
 		typ = 'wm'
 		values = []
 		for a in axes:
 			for t in typ:
 				values += [response[t+a]]
-		values = bytes(values)
+		values = struct.pack(len(values)*'q', *values)
 		file = open("teste{}".format(id),'ab')
 		file.write(values)
 		file.close()
 
 	def testHome(self, n):
 		for _ in range(n):
+			if self._stopHomeTest:
+				self._stopHomeTest = 0
+				break
 			self.testHomeSingle()
 	#----------------------------------------------------------------------
 	# Execute a single command
@@ -277,7 +283,10 @@ class Sender:
 		if rexx.abbrev("ABSOLUTE",cmd,3):
 			self.sendGCode("G90")
 
-		if cmd == "TEST":
+		if cmd == "STOPHOME":
+			self._stopHomeTest = 1
+
+		elif cmd == "TEST":
 			n = int(line[1])
 			threading.Thread(target=self.testHome, args=(n,)).start()
 
