@@ -236,13 +236,15 @@ class Sender:
 
 	def testHomeSingle(self):
 		id = 0
-		self.sendGCode("$?$X?")
+		self.mcontrol.clearError()
 		self.mcontrol.home()
 		time.sleep(1)
 		while "home" in CNC.vars["state"].lower():
 			time.sleep(0.1)
+		self.mcontrol.clearError()
 		self.sendGCode("G0X-20")
 		self.sendGCode("G0X-5")
+		self.mcontrol.clearError()
 		time.sleep(1)
 		while "run" in CNC.vars["state"].lower():
 			time.sleep(0.1)
