@@ -241,6 +241,10 @@ class Sender:
 		time.sleep(1)
 		while "home" in CNC.vars["state"].lower():
 			time.sleep(0.1)
+		self.sendGCode("G0X-20")
+		time.sleep(1)
+		while "run" in CNC.vars["state"].lower():
+			time.sleep(0.1)
 		response =  requests.get("http://192.168.4.1/Dros", timeout=2)
 		response = response.json()
 		print(response)

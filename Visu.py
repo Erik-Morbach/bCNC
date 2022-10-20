@@ -25,12 +25,15 @@ indexes = [1,2,3]
 
 for (index,vector) in zip(indexes, vectors):
     plt.subplot(3,1, index)
-    work = [w[0] for w in vector]
+    work = [w[1] for w in vector]
     machine = [w[1] for w in vector]
+    if len(machine)>1:
+        machine = machine[1:]
+        work = work[1:]
     for i in range(len(machine)):
+        machine[i] -= machine[0]
         if i > 1:
             work[i] = machine[i] - machine[i-1]
-        machine[i] -= machine[0]
     plt.plot(work, c='blue')
     plt.plot(machine, c='red')
 plt.show()
