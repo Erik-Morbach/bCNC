@@ -7,6 +7,7 @@ import Utils
 
 class JogController:
     def __init__(self, app, keys):
+        print(sys.path)
         myConfigFile = open("jogConf.txt","r")
         self.mapKeyToCode = {}
         self.mapCodeToKey = {}

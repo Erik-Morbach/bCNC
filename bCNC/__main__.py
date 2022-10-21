@@ -25,7 +25,6 @@ import traceback
 import threading
 import requests
 from ftplib import FTP
-from externalLib.ymodem.Modem import Modem
 
 from datetime import datetime
 
@@ -2248,34 +2247,6 @@ class Application(Toplevel, Sender):
         file.close()
         ftp.quit()
 
-    def sendWithYModem(self, sdFileName, fileName):
-        self.close()
-        serialPage = Page.lframes["Serial"]
-        device = _device or serialPage.portCombo.get()  # .split("\t")[0]
-        baudrate = _baud or serialPage.baudCombo.get()
-        mySerial = serial.serial_for_url(
-            device.replace('\\', '\\\\'),  # Escape for windows
-            baudrate,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            timeout=1,
-            xonxoff=False,
-            rtscts=False)
-        while mySerial.read(1024):
-            pass
-        time.sleep(0.4)
-        ymodem = Modem(mySerial)
-        file_info = {"name": sdFileName}
-        try:
-            ymodem.send(open(fileName), info=file_info)
-        except BaseException as err:
-            print(err)
-            self.setStatus("Error while sending! Check your connection and try again")
-        finally:
-            time.sleep(0.2)
-            self.openClose()
-
     def sendWithHttp(self, sdFileName, fileName):
         postArgs = {}
         postArgs['path'] = '/'
@@ -2309,7 +2280,7 @@ class Application(Toplevel, Sender):
                 computeFile(tmpFileName)
                 self.setStatus("Sending File to SD...")
                 if firmware == GRBL_HAL:
-                    self.sendWithYModem(sdFileName, tmpFileName)
+                    self.sendWithFTP(sdFileName, tmpFileName)
                 else:
                     self.sendWithHttp(sdFileName, tmpFileName)
                 self.setStatus("File Send complete!")
