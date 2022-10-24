@@ -235,19 +235,24 @@ class Sender:
 		return False
 
 	def testHomeSingle(self):
+		def wait():
+			time.sleep(1)
+			while not ("idle" in CNC.vars["state"].lower()):
+				time.sleep(0.1)
 		id = 0
-		self.mcontrol.clearError()
-		self.mcontrol.home()
-		time.sleep(1)
-		while "home" in CNC.vars["state"].lower():
-			time.sleep(0.1)
-		self.mcontrol.clearError()
+		self.mcontrol.softReset()
+		self.sendGCode("$HZ")
+		wait()
+		self.mcontrol.softReset()
+		self.sendGCode("G0Z-20")
+		wait()
+		self.mcontrol.softReset()
+		self.sendGCode("$HX")
+		wait()
+		self.mcontrol.softReset()
 		self.sendGCode("G0X-20Z-20")
 		self.sendGCode("G0X-5Z-5")
-		self.mcontrol.clearError()
-		time.sleep(1)
-		while "run" in CNC.vars["state"].lower():
-			time.sleep(0.1)
+		wait()
 		response =  requests.get("http://192.168.4.1/Dros", timeout=2)
 		response = response.json()
 		print(response)
