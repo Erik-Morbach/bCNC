@@ -236,12 +236,12 @@ class Sender:
 
 	def testHomeSingle(self):
 		def wait():
-			time.sleep(1)
+			time.sleep(0.5)
 			while not ("idle" in CNC.vars["state"].lower()):
 				time.sleep(0.1)
 			time.sleep(0.05)
 			self.mcontrol.softReset()
-			time.sleep(1)
+			time.sleep(0.5)
 		id = 0
 		wait()
 		self.sendGCode("$HZ")
