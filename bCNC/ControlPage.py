@@ -205,7 +205,7 @@ class SetToolZeroDialog(Dialog):
 
 	def body(self, frame):
 		f = Frame(frame)
-		Label(f, text="TLO").pack(side=LEFT, fill=X)
+		Label(f, text="TOOL").pack(side=LEFT, fill=X)
 		cb = Label(f, textvariable=self.toolNumber, font=DROFrame.dro_wpos)
 		cb.pack(side=RIGHT)
 		self.toolNumber.set(CNC.vars["tool"])
