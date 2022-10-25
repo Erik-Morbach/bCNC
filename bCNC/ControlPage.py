@@ -118,7 +118,7 @@ class SetCompensationDialog(Dialog):
 
 	def body(self, frame):
 		f = Frame(frame)
-		Label(f, text="TOOL").pack(side=LEFT, fill=X)
+		Label(f, text="Compensate TOOL").pack(side=LEFT, fill=X)
 		cb = Label(f, textvariable=self.tool, font=DROFrame.dro_wpos)
 		cb.pack(side=RIGHT)
 		self.tool.set(CNC.vars["tool"])
@@ -396,7 +396,7 @@ class ZeroGroup(CNCRibbon.ButtonGroup):
 		CNCRibbon.ButtonGroup.__init__(self, master, "Zero", app)
 		self.master = master
 		b = Ribbon.LabelButton(self.frame, self, "<<SetWorkOffset>>",
-				image=Utils.icons["config"],
+				image=Utils.icons["WCS"],
 				text=_("Set Work Offset"),
 				compound=TOP,
 				background=Ribbon._BACKGROUND)
@@ -404,7 +404,7 @@ class ZeroGroup(CNCRibbon.ButtonGroup):
 		tkExtra.Balloon.set(b, _("Set your WCS"))
 		self.addWidget(b)
 		b = Ribbon.LabelButton(self.frame, self, "<<SetToolOffset>>",
-				image=Utils.icons["config"],
+				image=Utils.icons["TOOL"],
 				text=_("Set Tool Offset"),
 				compound=TOP,
 				background=Ribbon._BACKGROUND)
@@ -412,7 +412,7 @@ class ZeroGroup(CNCRibbon.ButtonGroup):
 		tkExtra.Balloon.set(b, _("Set your TLO"))
 		self.addWidget(b)
 		b = Ribbon.LabelButton(self.frame, self, "<<SetCompensationOffset>>",
-				image=Utils.icons["config"],
+				image=Utils.icons["COMPENSATE"],
 				text=_("Set Compensation"),
 				compound=TOP,
 				background=Ribbon._BACKGROUND)
