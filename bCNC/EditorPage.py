@@ -211,44 +211,7 @@ class EditGroup(CNCRibbon.ButtonMenuGroup):
 		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
 		tkExtra.Balloon.set(b, _("Delete selected lines or blocks [Del]"))
 		self.addWidget(b)
-
-		# ---
-		col,row=2,0
-		b = Ribbon.LabelButton(self.frame, self.app, "<<EnableToggle>>",
-				image=Utils.icons["toggle"],
-				#text=_("Toggle"),
-				#compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Toggle enable/disable block of g-code [Ctrl-L]"))
-		self.addWidget(b)
-
-		menulist = [	(_("Enable"),   "enable",
-				lambda a=self.app : a.event_generate("<<Enable>>")),
-				(_("Disable"),  "disable",
-				lambda a=self.app : a.event_generate("<<Disable>>"))]
-		b = Ribbon.MenuButton(self.frame, menulist,
-				text=_("Active"),
-				image=Utils.icons["triangle_down"],
-				compound=RIGHT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col+1, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Enable or disable blocks of gcode"))
-
-		# ---
-		row += 1
-		b = Ribbon.LabelButton(self.frame, self.app, "<<Expand>>",
-				image=Utils.icons["expand"],
-				text=_("Expand"),
-				compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Toggle expand/collapse blocks of gcode [Ctrl-E]"))
-		self.addWidget(b)
-
+		col, row = 2,0
 		# ---
 		row += 1
 		b = Ribbon.LabelButton(self.frame, self.app,  "<<Comment>>",
@@ -259,29 +222,6 @@ class EditGroup(CNCRibbon.ButtonMenuGroup):
 				background=Ribbon._BACKGROUND)
 		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
 		tkExtra.Balloon.set(b, _("(Un)Comment selected lines"))
-		self.addWidget(b)
-		# ---
-		col += 2
-		row = 0
-		b = Ribbon.LabelButton(self.frame, self.app,  "<<Join>>",
-				image=Utils.icons["union"],
-				text=_("Join"),
-				compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Join selected blocks"))
-		self.addWidget(b)
-		# ---
-		row += 1
-		b = Ribbon.LabelButton(self.frame, self.app,  "<<Split>>",
-				image=Utils.icons["cut"],
-				text=_("Split"),
-				compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Split selected blocks"))
 		self.addWidget(b)
 
 

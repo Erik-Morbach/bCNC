@@ -7,8 +7,9 @@ raw = file.read()
 file.close()
 print(len(raw))
 quantity = len(raw)//8
-print(struct.calcsize(quantity*'q'))
-values = list(struct.unpack(quantity * 'q',raw))
+desired =  struct.calcsize(quantity*'q')
+print(desired)
+values = list(struct.unpack(quantity * 'q',raw[:desired]))
 print(values)
 x = []
 y = []
@@ -27,11 +28,11 @@ for (index,vector) in zip(indexes, vectors):
     plt.subplot(3,1, index)
     work = [w[1] for w in vector]
     machine = [w[1] for w in vector]
-    if len(machine)>1:
-        machine = machine[1:]
-        work = work[1:]
     for i in range(len(machine)):
         machine[i] -= machine[0]
+        if abs(machine[i]) > 1000:
+            sign = machine[i]/abs(machine[i])
+            machine[i] += - (sign * 1000 * abs(machine[i])/1000)
         if i > 1:
             work[i] = machine[i] - machine[i-1]
     plt.plot(work, c='blue')

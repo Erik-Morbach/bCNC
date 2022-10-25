@@ -842,10 +842,6 @@ class Sender:
 				to = t
 				self.mcontrol.overrideSet()
 
-			if not self.running and t-tg > G_POLL:
-				tg = t
-				self.mcontrol.viewGState()
-
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:
 				try:
@@ -946,6 +942,9 @@ class Sender:
 						if w in str(tosend).upper():
 							tosend = None
 							break
+			if tosend is not None and not self.running and t-tg > G_POLL:
+				tg = t
+				self.mcontrol.viewGState()
 			#print "tosend='%s'"%(repr(tosend)),"stack=",self._sline,
 			#	"sum=",sum(self._cline),"wait=",wait,"pause=",self._pause
 			if tosend is not None and sum(self._cline) < RX_BUFFER_SIZE:
