@@ -404,6 +404,14 @@ class Sender:
 			except: z = ""
 			self._wcsSet(None,None,z)
 
+		elif cmd == "ACTIVATE":
+			index = int(line[1])
+			self.sendGCode("M64 P{}".format(index))
+
+		elif cmd == "DEACTIVATE":
+			index = int(line[1])
+			self.sendGCode("M65 P{}".format(index))
+
 		# STOP: stop current run
 		elif cmd == "STOP":
 			self.stopRun()
