@@ -2313,7 +2313,9 @@ class Application(Toplevel, Sender):
                                                    initialfile=os.path.join(
                                                        Utils.getUtf("File", "dir"),
                                                        Utils.getUtf("File", "file")),
-                                                   filetypes=[FILETYPES])
+                                                   filetypes=[("All", "*"),
+                                                              (_("G-Code"), ("*.ngc", "*.nc", "*.gcode")),
+                                                              ("DXF", "*.dxf")])
         if filename:
             fn, ext = os.path.splitext(filename)
             ext = ext.lower()
