@@ -94,9 +94,12 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def clearError(self):
-		self.master.sendGCode("$X?")
-		self.master.sendGCode("$")
-		self.master.sendGCode("$X?")
+		time.sleep(0.003)
+		self.master.queue.put("$X?\n",block=True)
+		time.sleep(0.003)
+		self.master.queue.put("$\n",block=True)
+		time.sleep(0.003)
+		self.master.queue.put("$X?\n",block=True)
 
 	#----------------------------------------------------------------------
 	def unlock(self, clearAlarm=True):
@@ -124,11 +127,11 @@ class _GenericController:
 			file.write("$0 = 5\n")
 
 	def sendSettings(self):
-		time.sleep(0.01)
 		settings = self.getSettings()
 		self.clearError()
 		for settingsUnit in settings:
-			self.master.queue.put(settingsUnit, block=True)
+			time.sleep(0.003)
+			self.master.queue.put(settingsUnit+'\n', block=True)
 			if "G7" in settingsUnit:
 				CNC.vars["radius"] = "G7"
 
@@ -145,7 +148,6 @@ class _GenericController:
 		self.master.sendGCode("$#")
 
 	def sendToolTable(self):
-		time.sleep(0.01)
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
 		compensationTable = self.master.compensationTable.getTable()
 		toolTable = self.master.toolTable.getTable()
@@ -156,26 +158,30 @@ class _GenericController:
 				if axe in tool.keys():
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
-			self.master.queue.put(cmd,block=True)
+			time.sleep(0.003)
+			self.master.queue.put(cmd+'\n',block=True)
 		self.clearError()
-		self.master.queue.put("G43",block=True)
+		time.sleep(0.003)
+		self.master.queue.put("G43\n",block=True)
 
 	def sendWorkTable(self):
-		time.sleep(0.01)
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
 		workTable = self.master.workTable.getTable()
 		currentMode = CNC.vars["radius"]
 		self.clearError()
 		for work in workTable:
 			if "r" in work.keys():
-				self.master.queue.put(work["r"],block=True)
+				time.sleep(0.003)
+				self.master.queue.put(work["r"]+'\n',block=True)
 			cmd = "G10L2P{}".format(int(work['index']))
 			for axe in axis:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
-			self.master.queue.put(cmd, block=True)
+			time.sleep(0.003)
+			self.master.queue.put(cmd+'\n', block=True)
 		self.clearError()
-		self.master.queue.put(currentMode, block=True)
+		time.sleep(0.003)
+		self.master.queue.put(currentMode+'\n', block=True)
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')

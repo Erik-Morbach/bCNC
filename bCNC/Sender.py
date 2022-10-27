@@ -51,9 +51,9 @@ WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
 SERIAL_POLL    = 0.02	# s
 OVERRIDE_POLL  = 0.06
-SERIAL_TIMEOUT = 0.000#0.06	# s
+SERIAL_TIMEOUT = 0.03	# s
 G_POLL	       = 10	# s
-RX_BUFFER_SIZE = 1024
+RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
