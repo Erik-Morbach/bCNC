@@ -124,10 +124,11 @@ class _GenericController:
 			file.write("$0 = 5\n")
 
 	def sendSettings(self):
+		time.sleep(0.01)
 		settings = self.getSettings()
 		self.clearError()
 		for settingsUnit in settings:
-			self.master.sendGCode(settingsUnit)
+			self.master.queue.put(settingsUnit, block=True)
 			if "G7" in settingsUnit:
 				CNC.vars["radius"] = "G7"
 
@@ -144,6 +145,7 @@ class _GenericController:
 		self.master.sendGCode("$#")
 
 	def sendToolTable(self):
+		time.sleep(0.01)
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
 		compensationTable = self.master.compensationTable.getTable()
 		toolTable = self.master.toolTable.getTable()
@@ -154,25 +156,26 @@ class _GenericController:
 				if axe in tool.keys():
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
-			self.master.sendGCode(cmd)
+			self.master.queue.put(cmd,block=True)
 		self.clearError()
-		self.master.sendGCode("G43")
+		self.master.queue.put("G43",block=True)
 
 	def sendWorkTable(self):
+		time.sleep(0.01)
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
 		workTable = self.master.workTable.getTable()
 		currentMode = CNC.vars["radius"]
 		self.clearError()
 		for work in workTable:
 			if "r" in work.keys():
-				self.master.sendGCode(work["r"])
+				self.master.queue.put(work["r"],block=True)
 			cmd = "G10L2P{}".format(int(work['index']))
 			for axe in axis:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
-			self.master.sendGCode(cmd)
+			self.master.queue.put(cmd, block=True)
 		self.clearError()
-		self.master.sendGCode(currentMode)
+		self.master.queue.put(currentMode, block=True)
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')
