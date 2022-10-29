@@ -21,12 +21,12 @@ def generateGCode(rpm, startZ, startX, endZ, beginThreadCutOnX, pitch, depth, in
 	r = degression
 	q = slideAngle
 	h = springPasses
-	e = 0
+	l = 0
 	if entryTaper:
-		e += 1
+		l += 1
 	if exitTaper:
-		e += 2
-	l = taperLenght
+		l += 2
+	e = taperLenght
 	gcode += "G76 Z%.4f I%.4f P%.4f K%.4f J%.4f R%.2f Q%.2f H%d E%d L%.4f\n" % (z, i, p, k, j, r, q, h, e, l)
 	gcode += "G0Z%.4fX%.4f\n" % (startZ, startX)
 	return gcode
@@ -209,6 +209,7 @@ class ThreadConfigurator(Dialog):
 				r = m - 0.01
 			else:
 				l = m + 0.01
+		self.move("M5")
 
 		gcode = generateGCode(self.info.rpm.get(),
 							  self.info.startZ.get(),
