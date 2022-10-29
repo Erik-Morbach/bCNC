@@ -80,6 +80,7 @@ from ControlPage import ExecutionPage, JogPage
 from TerminalPage import TerminalPage
 from ProbePage import ProbePage
 from EditorPage import EditorPage
+from ThreadConfigurator import ThreadConfigurator
 import CNCCanvas
 
 
@@ -1396,12 +1397,16 @@ class Application(Toplevel, Sender):
                 feedz = None
             self.executeOnSelection("CUT", True, depth, step, surface, feed, feedz)
 
+
+
         # DOWN: move downward in cutting order the selected blocks
         # UP: move upwards in cutting order the selected blocks
         elif cmd == "DOWN":
             self.editor.orderDown()
         elif cmd == "UP":
             self.editor.orderUp()
+        elif cmd == "CONFIGTHREAD":
+            ThreadConfigurator(self, "Thread Configuration", self);
 
         # DIR*ECTION
         elif rexx.abbrev("DIRECTION", cmd, 3):

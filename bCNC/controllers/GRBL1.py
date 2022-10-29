@@ -282,5 +282,10 @@ class Controller(_GenericGRBL):
 					self.pidActual += [float(wP)]
 			except:
 				pass
+		elif word[0] == "Pitch":
+			try:
+				CNC.vars["pitch"] = float(word[1])
+			except:
+				CNC.vars["pitch"] = -1
 		else:
 			CNC.vars[word[0]] = word[1:]

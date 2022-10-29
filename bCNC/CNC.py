@@ -735,6 +735,7 @@ class CNC:
 			"inputs"     : 0,
 			"barEnd"     : 1,
 			"SafeDoor"   : 0,
+			"pitch"      : -1,
 
 			"tool"       : 0,
 			"feed"       : 0.0,
