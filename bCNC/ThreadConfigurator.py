@@ -54,6 +54,8 @@ class ThreadConfigurator(Dialog):
 		self.parent = parent
 		self.info = ThreadInfo()
 		self.text = None
+		self.myThread = None
+		self.stopThread = False
 		Dialog.__init__(self, parent, title)
 
 	def body(self, frame):
@@ -161,14 +163,27 @@ class ThreadConfigurator(Dialog):
 			return False
 
 	def onExit(self):
+		self.stopThread = 1
+		self.myThread.join()
 		self.destroy()
+
 	def move(self, gcode, wait=False):
+		timeout = 0
 		while CNC.vars["planner"] < 100:
 			time.sleep(0.1)
+			timeout += 0.1
+			if timeout >= 5:
+				self.stopThread = 1
+				return
 		self.app.sendGCode(gcode)
 		if wait:
+			timeout = 0
 			while "run" not in CNC.vars["state"].lower():
 				time.sleep(0.01)
+				timeout += 0.01
+				if timeout >= 5:
+					self.stopThread = 1
+					return
 		else:
 			time.sleep(1)
 		while "idle" not in CNC.vars["state"].lower() and "alarm" not in CNC.vars["state"].lower():
@@ -176,7 +191,11 @@ class ThreadConfigurator(Dialog):
 
 	def calibrateRoutine(self):
 		self.move("M3S{}".format(self.info.rpm.get()))
+		if self.stopThread:
+			return
 		self.move("G4P2")
+		if self.stopThread:
+			return
 		l = self.info.pitch.get()/2
 		r = self.info.pitch.get() + max(10, self.info.pitch.get())
 		if r*self.info.rpm.get() > 9000:
@@ -186,14 +205,20 @@ class ThreadConfigurator(Dialog):
 			return "G33Z{}K{}\n".format(zPosition, pitch)
 
 		self.move("G0Z{}".format(self.info.startZ.get()))
+		if self.stopThread:
+			return
 
 		positions = [self.info.startZ.get(),  self.info.endZ.get()]
 		id = 1
 		currentPitch = self.info.pitch.get()
 		currentError = 1000
 		for _ in range(20):
+			if self.stopThread:
+				return
 			m = (l+r)/2
 			self.move(getG33(positions[id], m), True)
+			if self.stopThread:
+				return
 			id = not id
 			if "alarm" in CNC.vars["state"].lower():
 				return
@@ -210,6 +235,8 @@ class ThreadConfigurator(Dialog):
 			else:
 				l = m + 0.01
 		self.move("M5")
+		if self.stopThread:
+			return
 
 		gcode = generateGCode(self.info.rpm.get(),
 							  self.info.startZ.get(),
@@ -235,7 +262,8 @@ class ThreadConfigurator(Dialog):
 		ok = askokcancel("WARNING",msg)
 		if not ok:
 			return
-		threading.Thread(target=self.calibrateRoutine).start()
+		self.myThread = threading.Thread(target=self.calibrateRoutine)
+		self.myThread.start()
 
 
 	def buttonbox(self,*args):
