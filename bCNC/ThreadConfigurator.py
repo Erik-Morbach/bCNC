@@ -8,7 +8,7 @@ from tkinter.messagebox import askokcancel
 from ControlPage import DROFrame
 import Utils
 
-from CNC import WCS, CNC
+from CNC import WAIT, WCS, CNC
 
 class ThreadInfo:
 	def __init__(self):
@@ -185,28 +185,13 @@ class ThreadConfigurator(Dialog):
 		self.destroy()
 
 	def move(self, gcode, wait=False):
-		timeout = 0
-		while "idle" not in CNC.vars["state"].lower() and "alarm" not in CNC.vars["state"].lower():
-			if self.stopThread:
-				return
-			time.sleep(0.1)
 		self.app.sendGCode(gcode)
-		if wait:
-			timeout = 0
-			while "run" not in CNC.vars["state"].lower():
-				if self.stopThread:
-					return
-				time.sleep(0.01)
-				timeout += 0.01
-				if timeout >= 5:
-					self.stopThread = 1
-					return
-		else:
-			time.sleep(1)
-		while "idle" not in CNC.vars["state"].lower() and "alarm" not in CNC.vars["state"].lower():
+		self.app.sendGCode((WAIT,))
+		time.sleep(0.1)
+		while self.app.sio_wait:
+			time.sleep(0.01)
 			if self.stopThread:
 				return
-			time.sleep(0.1)
 
 	def calibrateRoutine(self):
 		self.move("M3S{}".format(self.info.rpm.get()))
@@ -256,10 +241,11 @@ class ThreadConfigurator(Dialog):
 		self.move("M5")
 		if self.stopThread:
 			return
-		modifiedInfo = copy.deepcopy(self.info)
-		modifiedInfo.pitch.set(currentPitch)
-		gcode = modifiedInfo.generateGCode()
+		originalPitch = self.info.pitch.get()
+		self.info.pitch.set(currentPitch)
+		gcode = self.info.generateGCode()
 		self.setText(gcode)
+		self.info.pitch.set(originalPitch)
 
 	def setText(self, text):
 		self.text.configure(state='normal')
