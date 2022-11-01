@@ -49,6 +49,8 @@ class ThreadInfo:
 		e = self.taperDistance.get()
 		gcode += "G76 Z%.4f I%.4f P%.4f K%.4f J%.4f R%.2f Q%.2f H%d E%d L%.4f\n" % (z, i, p, k, j, r, q, h, e, l)
 		gcode += "G0 Z%.4f X%.4f\n" % (self.startZ.get(), self.startX.get())
+		gcode += "M48\n"
+		gcode += "M53\n"
 		return gcode
 
 
@@ -105,7 +107,7 @@ class ThreadConfigurator(Dialog):
 		lFrame.pack(side=LEFT, fill=BOTH, expand=FALSE)
 		rFrame.pack(side=LEFT,fill=BOTH, expand=FALSE)
 		baseFrame.pack(side=TOP, fill=BOTH, expand=FALSE)
-		self.text = Text(frame, width=70, height=6, state='disabled', font=DROFrame.dro_wpos)
+		self.text = Text(frame, width=70, height=8, state='disabled', font=DROFrame.dro_wpos)
 		self.text.pack(side=TOP, fill=Y, expand=FALSE)
 
 
