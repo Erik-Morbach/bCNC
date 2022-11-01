@@ -1,38 +1,20 @@
 from tkinter import *
 import tkinter
 import threading
-import Utils
+import copy
 import time
 from tkinter.simpledialog import Dialog
 from tkinter.messagebox import askokcancel
 from ControlPage import DROFrame
+import Utils
 
 from CNC import WCS, CNC
 
-def generateGCode(rpm, startZ, startX, endZ, beginThreadCutOnX, pitch, depth, incrementDepth, degression, slideAngle, springPasses, entryTaper, exitTaper, taperLenght):
-	gcode = ""
-	gcode += "M3 S%.1f\n" % rpm
-	gcode += "G0Z%.4fX%.4f\n" % (startZ, startX)
-	z = endZ
-	i = beginThreadCutOnX - startX
-	p = pitch
-	k = depth
-	j = incrementDepth
-	r = degression
-	q = slideAngle
-	h = springPasses
-	l = 0
-	if entryTaper:
-		l += 1
-	if exitTaper:
-		l += 2
-	e = taperLenght
-	gcode += "G76 Z%.4f I%.4f P%.4f K%.4f J%.4f R%.2f Q%.2f H%d E%d L%.4f\n" % (z, i, p, k, j, r, q, h, e, l)
-	gcode += "G0Z%.4fX%.4f\n" % (startZ, startX)
-	return gcode
 class ThreadInfo:
 	def __init__(self):
 		self.rpm = DoubleVar(value=1000)
+		self.tool = IntVar(value=0)
+		self.m3Wait = DoubleVar(value=2)
 		self.pitch = DoubleVar(value=1)
 		self.depth = DoubleVar(value=1)
 		self.depthIncrementPerPass = DoubleVar(value=0.2)
@@ -46,6 +28,28 @@ class ThreadInfo:
 		self.exitTaper = BooleanVar(value=True)
 		self.slideAngle = DoubleVar(value=30)
 		self.springPasses = IntVar(value=2)
+	def generateGCode(self):
+		gcode = "M6 T{} G43 H{}\n".format(self.tool.get(), self.tool.get())
+		gcode += "M3 S%.1f\n" % self.rpm.get()
+		gcode += "G4 P%.1f\n" % self.m3Wait.get()
+		gcode += "G0 Z%.4f X%.4f\n" % (self.startZ.get(), self.startX.get())
+		z = self.endZ.get()
+		i = self.beginThreadCutOnX.get() - self.startX.get()
+		p = self.pitch.get()
+		k = self.depth.get()
+		j = self.depthIncrementPerPass.get()
+		r = self.depthDegression.get()
+		q = self.slideAngle.get()
+		h = self.springPasses.get()
+		l = 0
+		if self.entryTaper.get():
+			l += 1
+		if self.exitTaper.get():
+			l += 2
+		e = self.taperDistance.get()
+		gcode += "G76 Z%.4f I%.4f P%.4f K%.4f J%.4f R%.2f Q%.2f H%d E%d L%.4f\n" % (z, i, p, k, j, r, q, h, e, l)
+		gcode += "G0 Z%.4f X%.4f\n" % (self.startZ.get(), self.startX.get())
+		return gcode
 
 
 class ThreadConfigurator(Dialog):
@@ -61,95 +65,107 @@ class ThreadConfigurator(Dialog):
 	def body(self, frame):
 		baseFrame = Frame(frame)
 		f = Frame(baseFrame)
-		Label(f, text="Configuração da Rosca.").pack(side=LEFT, fill=X)
+		Label(f, text="Configuração da Rosca.", font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		vcmd = (frame.register(self.valid), '%P')
 
 		f = Frame(baseFrame)
-		Label(f, text="Passo da rosca:").pack(side=LEFT)
+		Label(f, text="Ferramenta de rosca:", font=DROFrame.dro_mpos).pack(side=LEFT)
+		e = Entry(f, textvariable=self.info.tool, validate='all', validatecommand=vcmd)
+		e.pack(side=LEFT, expand=TRUE, fill=X)
+		e.bind("<Return>", lambda x, s=self: s.focus_set())
+		f.pack(side=TOP, fill=X, expand=TRUE)
+		f = Frame(baseFrame)
+		Label(f, text="Tempo de espera para após ligar spindle:", font=DROFrame.dro_mpos).pack(side=LEFT)
+		e = Entry(f, textvariable=self.info.m3Wait, validate='all', validatecommand=vcmd)
+		e.pack(side=LEFT, expand=TRUE, fill=X)
+		e.bind("<Return>", lambda x, s=self: s.focus_set())
+		f.pack(side=TOP, fill=X, expand=TRUE)
+		f = Frame(baseFrame)
+		Label(f, text="Passo da rosca:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.pitch, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Profundidade Total da rosca:").pack(side=LEFT)
+		Label(f, text="Profundidade Total da rosca:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.depth, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Incremento de profundidade por passe inicial:").pack(side=LEFT)
+		Label(f, text="Incremento de profundidade por passe inicial:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.depthIncrementPerPass, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Degressão de profundidade por passe:").pack(side=LEFT)
+		Label(f, text="Degressão de profundidade por passe:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.depthDegression, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="RPM do eixo arvore:").pack(side=LEFT)
+		Label(f, text="RPM do eixo arvore:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.rpm, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Posição inicial do eixo Z:").pack(side=LEFT)
+		Label(f, text="Posição inicial do eixo Z:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.startZ, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Posição final do eixo Z:").pack(side=LEFT)
+		Label(f, text="Posição final do eixo Z:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.endZ, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Posição inicial do eixo X:").pack(side=LEFT)
+		Label(f, text="Posição inicial do eixo X:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.startX, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Posição do inicio da rosca no eixo X:").pack(side=LEFT)
+		Label(f, text="Posição do inicio da rosca no eixo X:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.beginThreadCutOnX, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Distância do chanfro:").pack(side=LEFT)
+		Label(f, text="Distância do chanfro:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.taperDistance, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Chanfro inicial:").pack(side=LEFT)
+		Label(f, text="Chanfro inicial:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Checkbutton(f, variable=self.info.entryTaper)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Chanfro final:").pack(side=LEFT)
+		Label(f, text="Chanfro final:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Checkbutton(f, variable=self.info.exitTaper)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Passes de acabamento:").pack(side=LEFT)
+		Label(f, text="Passes de acabamento:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.springPasses, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 		f = Frame(baseFrame)
-		Label(f, text="Angulo de ajuste:").pack(side=LEFT)
+		Label(f, text="Angulo de ajuste:", font=DROFrame.dro_mpos).pack(side=LEFT)
 		e = Entry(f, textvariable=self.info.slideAngle, validate='all', validatecommand=vcmd)
 		e.pack(side=LEFT, expand=TRUE, fill=X)
 		e.bind("<Return>", lambda x, s=self: s.focus_set())
 		f.pack(side=TOP, fill=X, expand=TRUE)
 
-		baseFrame.pack(side=LEFT, fill=BOTH, expand=TRUE)
-		self.text = Text(frame,width=50, state='disabled')
+		baseFrame.pack(side=LEFT, fill=Y, expand=TRUE)
+		self.text = Text(frame,width=50, state='disabled', font=DROFrame.dro_wpos)
 		self.text.pack(side=LEFT, fill=BOTH, expand=TRUE)
 
 
@@ -163,22 +179,23 @@ class ThreadConfigurator(Dialog):
 			return False
 
 	def onExit(self):
-		self.stopThread = 1
-		self.myThread.join()
+		if self.myThread is not None and self.myThread.is_alive():
+			self.stopThread = 1
+			self.myThread.join()
 		self.destroy()
 
 	def move(self, gcode, wait=False):
 		timeout = 0
-		while CNC.vars["planner"] < 100:
-			time.sleep(0.1)
-			timeout += 0.1
-			if timeout >= 5:
-				self.stopThread = 1
+		while "idle" not in CNC.vars["state"].lower() and "alarm" not in CNC.vars["state"].lower():
+			if self.stopThread:
 				return
+			time.sleep(0.1)
 		self.app.sendGCode(gcode)
 		if wait:
 			timeout = 0
 			while "run" not in CNC.vars["state"].lower():
+				if self.stopThread:
+					return
 				time.sleep(0.01)
 				timeout += 0.01
 				if timeout >= 5:
@@ -187,6 +204,8 @@ class ThreadConfigurator(Dialog):
 		else:
 			time.sleep(1)
 		while "idle" not in CNC.vars["state"].lower() and "alarm" not in CNC.vars["state"].lower():
+			if self.stopThread:
+				return
 			time.sleep(0.1)
 
 	def calibrateRoutine(self):
@@ -237,24 +256,15 @@ class ThreadConfigurator(Dialog):
 		self.move("M5")
 		if self.stopThread:
 			return
+		modifiedInfo = copy.deepcopy(self.info)
+		modifiedInfo.pitch.set(currentPitch)
+		gcode = modifiedInfo.generateGCode()
+		self.setText(gcode)
 
-		gcode = generateGCode(self.info.rpm.get(),
-							  self.info.startZ.get(),
-							  self.info.startX.get(),
-							  self.info.endZ.get(),
-							  self.info.beginThreadCutOnX.get(),
-							  currentPitch,
-							  self.info.depth.get(),
-							  self.info.depthIncrementPerPass.get(),
-							  self.info.depthDegression.get(),
-							  self.info.slideAngle.get(),
-							  self.info.springPasses.get(),
-							  self.info.entryTaper.get(),
-							  self.info.exitTaper.get(),
-							  self.info.taperDistance.get())
+	def setText(self, text):
 		self.text.configure(state='normal')
 		self.text.delete("1.0", "end")
-		self.text.insert('end', gcode)
+		self.text.insert('end', text)
 		self.text.configure(state='disabled')
 
 	def onCalibrate(self):
@@ -265,7 +275,10 @@ class ThreadConfigurator(Dialog):
 		self.myThread = threading.Thread(target=self.calibrateRoutine)
 		self.myThread.start()
 
+	def onGenerate(self):
+		self.setText(self.info.generateGCode())
 
 	def buttonbox(self,*args):
+		Button(self, text="Generate", command=self.onGenerate).pack(side=LEFT)
 		Button(self, text="Calibrate", command=self.onCalibrate).pack(side=LEFT)
 		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
