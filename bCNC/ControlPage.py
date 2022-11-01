@@ -302,8 +302,8 @@ class SetWorkZeroDialog(Dialog):
 		self.app = app
 		self.wcs = StringVar(value="G54")
 		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
-		if Utils.getBool("CNC", "lathe", False):
-			self.axes = [w for w in self.axes if w in "z"]
+		#if Utils.getBool("CNC", "lathe", False):
+		#	self.axes = [w for w in self.axes if w in "z"]
 		self.var = [StringVar(value='0'), StringVar(value='0'),
 				StringVar(value='0'), StringVar(value='0'),
 				StringVar(value='0'), StringVar(value='0')]
