@@ -1880,7 +1880,7 @@ class ToolFrame(CNCRibbon.PageFrame):
 	def policyChange(self):
 #		CNC.toolPolicy = int(TOOL_POLICY.index(self.toolPolicy.get()))
 		b = to_unicode(self.toolPolicy.get())
-		CNC.toolPolicy = int(TOOL_POLICY.index(b))
+		#CNC.toolPolicy = int(TOOL_POLICY.index(b))
 
 	#-----------------------------------------------------------------------
 	def waitChange(self):

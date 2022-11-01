@@ -781,7 +781,7 @@ class CNC:
 		}
 
 	drillPolicy    = 1		# Expand Canned cycles
-	toolPolicy     = 1		# Should be in sync with ProbePage
+	toolPolicy     = 0		# Should be in sync with ProbePage
 					# 0 - send to grbl
 					# 1 - skip those lines
 					# 2 - manual tool change (WCS)
