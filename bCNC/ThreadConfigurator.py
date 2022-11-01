@@ -63,6 +63,7 @@ class ThreadConfigurator(Dialog):
 		Dialog.__init__(self, parent, title)
 
 	def body(self, frame):
+		vcmd = (frame.register(self.valid), '%P')
 		def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
 			f = Frame(frame)
 			Label(f, text=labelText, font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
@@ -77,7 +78,6 @@ class ThreadConfigurator(Dialog):
 		f = Frame(lFrame)
 		Label(f, text="Configuração da Rosca.", font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
 		f.pack(side=TOP, fill=X, expand=TRUE)
-		vcmd = (frame.register(self.valid), '%P')
 
 		makeLabelEntry(lFrame, "Ferramenta de rosca:", self.info.tool, side=TOP, fill=X, expand=TRUE)
 		makeLabelEntry(lFrame, "Tempo de espera após M3:", self.info.m3Wait, side=TOP, fill=X, expand=TRUE)

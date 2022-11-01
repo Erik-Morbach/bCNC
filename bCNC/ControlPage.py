@@ -432,7 +432,38 @@ class ZeroGroup(CNCRibbon.ButtonGroup):
 		SetCompensationDialog(self.app, "Set Compensation", self.app)
 
 
+class StartLineDialog(Dialog):
+	def __init__(self, parent, title, app, lineNumberVariable):
+		self.app = app
+		self.parent = parent
+		self.lineNumber = lineNumberVariable
+		Dialog.__init__(self, parent, title)
+	def body(self, frame):
+		vcmd = (frame.register(self.valid), '%P')
+		def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
+			f = Frame(frame)
+			Label(f, text=labelText, font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
+			e = Entry(f, width=4, textvariable=entryVariable, validate='all', validatecommand=vcmd)
+			e.pack(side=LEFT, fill=X, expand=TRUE)
+			e.bind("<Return>", lambda x, s=self: s.focus_set())
+			f.pack(*args, **kwargs) #side=TOP, fill=X, expand=TRUE)
 
+		makeLabelEntry(frame, "Linha de inicio: ", self.lineNumber, side=TOP, fill=BOTH, expand=TRUE)
+
+	def onExit(self):
+		self.destroy()
+
+	def buttonbox(self,*args):
+		CNC.vars["beginLine"] = self.lineNumber.get()
+		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+	def valid(self, future_value):
+		if len(future_value)==0: return True
+		try:
+			float(future_value)
+			return True
+		except ValueError:
+			return False
 
 #===============================================================================
 # Run Group
@@ -482,31 +513,18 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		self.m30CounterLimitSt.set("0")
 		f.pack(side=RIGHT, fill=BOTH)
 
-		self.lineNumber = Entry(self, font=DROFrame.dro_wpos,
-								background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-								relief=FLAT,
-								borderwidth=0,
-								justify=RIGHT)
-		self.lineNumber.pack(side=BOTTOM, fill=BOTH)
-		tkExtra.Balloon.set(self.lineNumber, _("Line Number to begin"))
-		self.lineNumber.bind('<FocusIn>',  self.workFocus)
-		self.lineNumber.bind('<Return>',   self.setLineNumber)
-		self.lineNumber.bind('<KP_Enter>', self.setLineNumber)
-		self.addWidget(self.lineNumber)
-
-	def workFocus(self, event=None):
-		if self.app.running:
-			self.app.focus_set()
-
-	def setLineNumber(self, event=None):
-		line = 0
-		try:
-			line = int(self.lineNumber.get())
-		except BaseException as be:
-			print(be)
-			line = 0
-		CNC.vars["beginLine"] = line
-		self.app.focus_set()
+		b = Ribbon.LabelButton(self.frame, self, "<<LineNumberToStart>>",
+				image=Utils.icons["edit"],
+				text=_("Linha de Inicio"),
+				compound=TOP,
+				background=Ribbon._BACKGROUND)
+		b.pack(side=LEFT, fill=BOTH)
+		self.addWidget(b)
+		tkExtra.Balloon.set(b, _("Linha de inicio"))
+		self.app.bind("<<LineNumberToStart>>", self.onLineNumberClicked)
+		self.lineNumber = IntVar(value=0)
+	def onLineNumberClicked(self, *args):
+		StartLineDialog(self.frame, "Linha de inicio", self.master, self.lineNumber)
 
 	def updateM30State(self, *args):
 		try:
