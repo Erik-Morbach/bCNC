@@ -443,7 +443,7 @@ class StartLineDialog(Dialog):
 		def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
 			f = Frame(frame)
 			Label(f, text=labelText, font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
-			e = Entry(f, width=4, textvariable=entryVariable, validate='all', validatecommand=vcmd)
+			e = Entry(f, width=9, textvariable=entryVariable, validate='all', validatecommand=vcmd)
 			e.pack(side=LEFT, fill=X, expand=TRUE)
 			e.bind("<Return>", lambda x, s=self: s.focus_set())
 			f.pack(*args, **kwargs) #side=TOP, fill=X, expand=TRUE)
@@ -451,10 +451,10 @@ class StartLineDialog(Dialog):
 		makeLabelEntry(frame, "Linha de inicio: ", self.lineNumber, side=TOP, fill=BOTH, expand=TRUE)
 
 	def onExit(self):
+		CNC.vars["beginLine"] = self.lineNumber.get()
 		self.destroy()
 
 	def buttonbox(self,*args):
-		CNC.vars["beginLine"] = self.lineNumber.get()
 		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
 
 	def valid(self, future_value):
