@@ -759,9 +759,7 @@ class Sender:
 		self._stop = True
 		self.gcode.repeatEngine.cleanState()
 		self.emptyQueue()
-		# if we are in the process of submitting do not do anything
-		if self._runLines != sys.maxsize:
-			self.purgeController()
+		self.purgeController()
 
 	#----------------------------------------------------------------------
 	# This should be called everytime that milling of g-code file is finished
