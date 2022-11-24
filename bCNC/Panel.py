@@ -266,6 +266,7 @@ class FeedRapidSelector(Selector):
     def onChange(self):
         for w in self.names:
             self.change(w, self.currentVar)
+        self.app.mcontrol.overrideSet()
 
 class ButtonPanel(MemberImpl):
     def __init__(self, app, index) -> None:
@@ -349,6 +350,7 @@ class BarEndButton(ButtonPanel):
         CNC.vars["barEnd"] = 1
     def off(self):
         CNC.vars["barEnd"] = 0
+        self.app.feedHold()
 
 class ResetButton(ButtonPanel):
     def __init__(self, app, index) -> None:
