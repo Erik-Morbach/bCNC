@@ -2501,6 +2501,9 @@ class Application(Toplevel, Sender):
                                 width=1,
                                 fill=CNCCanvas.ENABLE_COLOR)
             threading.Thread(target=prepareCanvas).start()
+
+            self.gcode.repeatEngine.countRepetition()
+
             if fromSD:
                 self._runLines = 10000
                 self._gcount = 0

@@ -1,4 +1,4 @@
-from CNCRibbon    import Page
+import tkinter
 #==============================================================================
 # BJM Repeat Commands Class 
 #==============================================================================
@@ -8,44 +8,33 @@ class RepeatEngine:
 	TYPE_M47P = 2
 	TIMEOUT_TO_REPEAT = 0.5
 	repeatType: int
-	m30CounterLimit: int
-	m30Counter: int
+	m30CounterLimit: tkinter.IntVar
+	m30Counter: tkinter.IntVar
 	app: any
 	fromSD: bool
 	def __init__(self, CNCRef):
-		self.cleanState()
 		self.CNCRef = CNCRef
+		self.m30Counter = tkinter.IntVar(value=0)
+		self.m30CounterLimit = tkinter.IntVar(value=0)
+		self.cleanState()
 
 	def isRepeatable(self):
 		if self.CNCRef.vars["barEnd"] == 0:
 			return False
 		if self.repeatType == self.TYPE_M47:
 			return True
-		self.updateState()
-		if self.repeatType == self.TYPE_M47P and self.m30CounterLimit > self.m30Counter:
+		if self.repeatType == self.TYPE_M47P and \
+				self.m30Counter.get() < self.m30CounterLimit.get():
 			return True
 		return False
 
 	def countRepetition(self):
-		self.m30Counter += 1
-		self.updateState()
-	
-	def updateState(self):
-		try:
-			if not self.fromSD:
-				self.m30CounterLimit = self.CNCRef.vars["M30CounterLimit"]
-			Page.groups["Run"].setM30Counter(self.m30Counter)
-		except:
-			pass
-	
-	def cleanState(self):
-		self.m30Counter = 0
-		self.m30CounterLimit = 0
-		self.repeatType = self.TYPE_NONE
-		self.fromSD = False
-		self.updateState()
+		self.m30Counter.set(self.m30Counter.get() + 1)
 
-	def isRepeatCommand(self, line:str):
+	def cleanState(self):
+		self.repeatType = self.TYPE_NONE
+
+	def updateEngine(self, line:str):
 		lin = line[:]
 		lin = lin.upper().replace(' ', '')
 		outsideComents = ""
@@ -62,8 +51,5 @@ class RepeatEngine:
 			self.repeatType = self.TYPE_M47
 			if lin.find('P') != -1:
 				self.repeatType = self.TYPE_M47P
-				self.m30CounterLimit = int(lin[lin.find('P') + 1:])
-				Page.groups["Run"].setM30CounterLimit(self.m30CounterLimit)
-				self.CNCRef.vars["M30CounterLimit"] = self.m30CounterLimit
-			return True and not self.fromSD
+			return True
 		return 0

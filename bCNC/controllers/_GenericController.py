@@ -330,12 +330,7 @@ class _GenericController:
 	# a reset to clear the buffer of the controller
 	#---------------------------------------------------------------------
 	def purgeController(self):
-		self.master.serial_write(b'!')
-		self.master.serial.flush()
-		time.sleep(0.5)
 		# remember and send all G commands
-		G = " ".join([x for x in CNC.vars["G"] if x[0]=="G"])	# remember $G
-		TLO = CNC.vars["TLO"]
 		self.softReset(False)			# reset controller
 		self.purgeControllerExtra()
 		self.master.runEnded()
@@ -343,7 +338,6 @@ class _GenericController:
 		self.master.sendGCode("?")
 		self.master.sendGCode("$X")
 		self.master.sendGCode("?")
-		if G: self.master.sendGCode(G)			# restore $G
 		self.viewState()
 
 

@@ -465,6 +465,38 @@ class StartLineDialog(Dialog):
 		except ValueError:
 			return False
 
+class RepeatEngineConfigureDialog(Dialog):
+	def __init__(self, parent, title, app):
+		self.app = app
+		self.engine = self.app.gcode.repeatEngine
+		self.parent = parent
+		Dialog.__init__(self, parent, title)
+	def body(self, frame):
+		vcmd = (frame.register(self.valid), '%P')
+		def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
+			f = Frame(frame)
+			Label(f, text=labelText, font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
+			e = Entry(f, width=9, textvariable=entryVariable, validate='all', validatecommand=vcmd)
+			e.pack(side=LEFT, fill=X, expand=TRUE)
+			e.bind("<Return>", lambda x, s=self: s.focus_set())
+			f.pack(*args, **kwargs) #side=TOP, fill=X, expand=TRUE)
+
+		makeLabelEntry(frame, "Numero atual de execucoes: ", self.engine.m30Counter, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Numero final de execucoes: ", self.engine.m30CounterLimit, side=TOP, fill=BOTH, expand=TRUE)
+
+	def onExit(self):
+		self.destroy()
+
+	def buttonbox(self,*args):
+		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+	def valid(self, future_value):
+		if len(future_value)==0: return True
+		try:
+			float(future_value)
+			return True
+		except ValueError:
+			return False
 #===============================================================================
 # Run Group
 #===============================================================================
@@ -497,62 +529,46 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		b.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Pause running program and soft reset controller to empty the buffer."))
 
+
 		f = Frame(self.frame)
-		self.m30CounterSt = StringVar()
-		self.m30CounterLabel = Label(f,textvariable=self.m30CounterSt,background=Ribbon._BACKGROUND)
-		self.m30CounterLabel.pack(side=TOP,fill=BOTH)
-		tkExtra.Balloon.set(self.m30CounterLabel, _("Number of times already reapeated by a m48 command"))
-		self.m30CounterSt.set("0")
-
-		self.m30CounterLimitSt = StringVar()
-		self.m30CounterLimit = Label(f, textvariable=self.m30CounterLimitSt,
-									 background=Ribbon._BACKGROUND,
-									 justify=RIGHT)
-		self.m30CounterLimit.pack(side=TOP, fill=BOTH)
-		tkExtra.Balloon.set(self.m30CounterLimit, _("Number of times wich a m48 command will repeat"))
-		self.m30CounterLimitSt.set("0")
-		f.pack(side=RIGHT, fill=BOTH)
-
-		b = Ribbon.LabelButton(self.frame, self, "<<LineNumberToStart>>",
+		self.lineNumber = IntVar(value=0)
+		b = Ribbon.LabelButton(f, self, "<<LineNumberToStart>>",
 				image=Utils.icons["edit"],
 				text=_("Linha de Inicio"),
 				compound=TOP,
 				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
+		b.pack(side=TOP, fill=BOTH)
+		f2 = Frame(f)
+		Label(f2, text="Linha: ", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f2, textvariable=self.lineNumber, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f2.pack(side=TOP,expand=TRUE)
+		f.pack(side=LEFT, fill=BOTH)
 		self.addWidget(b)
 		tkExtra.Balloon.set(b, _("Linha de inicio"))
 		self.app.bind("<<LineNumberToStart>>", self.onLineNumberClicked)
-		self.lineNumber = IntVar(value=0)
+
+
+		f = Frame(self.frame)
+		b = Ribbon.LabelButton(f, self, "<<RepeatEngineConfigure>>",
+				image=Utils.icons["edit"],
+				text=_("Repeticoes"),
+				compound=TOP,
+				background=Ribbon._BACKGROUND)
+		b.pack(side=TOP, fill=BOTH)
+		f2 = Frame(f)
+		Label(f2, textvariable=self.app.gcode.repeatEngine.m30Counter, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f2, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f2, textvariable=self.app.gcode.repeatEngine.m30CounterLimit, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f2.pack(side=TOP,expand=TRUE)
+		f.pack(side=LEFT, fill=BOTH)
+		tkExtra.Balloon.set(b, _("Repeticoes"))
+		self.app.bind("<<RepeatEngineConfigure>>", self.onRepeatEngineConfigureClicked)
+
 	def onLineNumberClicked(self, *args):
 		StartLineDialog(self.frame, "Linha de inicio", self.master, self.lineNumber)
 
-	def updateM30State(self, *args):
-		try:
-			limit = int(self.m30CounterLimitSt.get())
-			CNC.vars["M30CounterLimit"] = limit
-
-		except:
-			pass
-
-	def getM30Max(self):
-		try:
-			return int(self.m30CounterLimitSt.get())
-		except:
-			self.m30CounterLimitSt.set("0")
-			return 0
-
-	def setM30CounterLimit(self, number):
-		try:
-			self.m30CounterLimitSt.set(str(int(number)))
-		except:
-			self.m30CounterLimitSt.set("0")
-
-	def setM30Counter(self, number):
-		try:
-			self.m30CounterSt.set(str(int(number)))
-		except:
-			self.m30CounterSt.set("-1")
-
+	def onRepeatEngineConfigureClicked(self, *args):
+		RepeatEngineConfigureDialog(self.frame, "Configuracao de Repeticoes", self.app)
 
 #===============================================================================
 # DRO Frame

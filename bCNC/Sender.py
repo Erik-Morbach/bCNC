@@ -124,6 +124,7 @@ class Sender:
 		self.serial	 = None
 		self.writeThread= None
 		self.readThread= None
+		self.repeatLock = threading.Lock()
 
 
 		self._updateChangedState = time.time()
@@ -730,9 +731,8 @@ class Sender:
 			self.log.put((Sender.MSG_RUNEND, str(datetime.now())))
 			self.log.put((Sender.MSG_RUNEND, str(CNC.vars["msg"])))
 			if self.gcode.repeatEngine.isRepeatable():
-				nThread = threading.Thread(target=self.repeatProgram)
-				nThread._args = [nThread]
-				nThread.start()
+				self.repeatLock = threading.Lock()
+				self.after(500, self.repeatProgram)
 			else:
 				self.after(1000, self.purgeController)
 
@@ -755,10 +755,14 @@ class Sender:
 	# Stop the current run
 	#----------------------------------------------------------------------
 	def stopRun(self, event=None):
-		self.feedHold()
 		self._stop = True
+		self.feedHold()
 		self.gcode.repeatEngine.cleanState()
+		self.purgeController()
 		self.emptyQueue()
+		if self.repeatLock is not None:
+			if not self.repeatLock.locked():
+				self.repeatLock.acquire()
 		self.purgeController()
 
 	#----------------------------------------------------------------------
@@ -769,21 +773,21 @@ class Sender:
 	def jobDone(self):
 		print("Job done. Purging the controller. (Running: %s)"%(self.running))
 		#self.purgeController()
-		
 
-	def repeatProgram(self,thread):
+	def repeatProgram(self):
+		lock = self.repeatLock
+		if lock.locked(): return
 		time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT)
-		if CNC.vars["state"].lower() not in ["idle","hold","hold:0", "hold:1", "run"]:
-			return
-		while CNC.vars["state"].lower() in ["hold","hold:0", "hold:1", "run"]:
-			time.sleep(0.005)
+		self.executeCommand("%wait")
+		if lock.locked(): return
 		if CNC.vars["state"].lower() != "idle":
 			return
-		self.gcode.repeatEngine.countRepetition()
 		if self.gcode.repeatEngine.fromSD:
 			pass
 		else:
-			self.event_generate("<<Run>>",when="tail")
+			self.event_generate("<<Run>>")
+		if lock.locked():
+			lock.release()
 
 	#----------------------------------------------------------------------
 	# This is called everytime that motion controller changes the state
