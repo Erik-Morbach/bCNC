@@ -1878,19 +1878,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		tkExtra.Balloon.set(self.tool, _("Tool number [T#]"))
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 
-		# Plane
-		f3 = Frame(rig)
-		Label(f3, text=_("Plane:"), width=15).pack(side=LEFT)
-		self.plane = tkExtra.Combobox(f3, True,
-					command=self.planeChange,
-					width=7,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		self.plane.fill(sorted(PLANE.values()))
-		self.plane.pack(side=LEFT)
-		tkExtra.Balloon.set(self.plane, _("Plane [G17,G18,G19]"))
-		self.addWidget(self.plane)
-		for k,v in PLANE.items(): self.gstate[k] = (self.plane, v)
-		f3.pack(side=TOP, fill=X, expand=TRUE)
 
 		# Feed speed
 		f3 = Frame(rig)
@@ -1919,6 +1906,17 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 				width=7, relief=RAISED)
 		self.realRpm.pack(side=LEFT)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
+
+		# Plane
+		f3 = Frame(rig)
+		Label(f3, text=_("Spindle:"), width=15).pack(side=LEFT)
+		spinToggle = Button(f3, text=_("Spindle"),
+				command=self.spindleToggle,
+				padx=1,
+				pady=0)
+		tkExtra.Balloon.set(spinToggle, _("Toogle spindle"))
+		spinToggle.pack(side=LEFT)
+		f3.pack(side=TOP,fill=X, expand=TRUE)
 
 		# Coolant control
 
@@ -2104,6 +2102,14 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		self.app.sendHex("0xA0")
 
 	#----------------------------------------------------------------------
+	def spindleToggle(self, event=None):
+		if self._gUpdate: return
+		# Avoid sending commands before unlocking
+		if CNC.vars["state"] in (Sender.CONNECTED, Sender.NOT_CONNECTED):
+			return
+		self.app.sendHex("0x9E")
+
+	#----------------------------------------------------------------------
 	def coolantOff(self, event=None):
 		if self._gUpdate: return
 		# Avoid sending commands before unlocking
@@ -2127,7 +2133,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 			wcsvar.set(WCS.index(CNC.vars["WCS"]))
 			self.feedRate['text'] = str(CNC.vars["feed"])
 			self.tool['text'] = str(CNC.vars["tool"])
-			self.plane.set(PLANE[CNC.vars["plane"]])
 			self.tlo['text'] = str(CNC.vars["TLO"])
 			self.realRpm['text'] = str(CNC.vars["realRpm"])
 		except KeyError as e:
