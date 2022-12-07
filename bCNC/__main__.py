@@ -2422,6 +2422,8 @@ class Application(Toplevel, Sender):
             return
         if cleanRepeat:
             self.gcode.repeatEngine.cleanState()
+        if self.repeatLock is not None and self.repeatLock.locked():
+            self.repeatLock.release()
         self.cleanAfter = True  # Clean when this operation stops
         print("Will clean after this operation")
 

@@ -17,6 +17,7 @@ class Controller(_GenericGRBL):
 
 	def parseBracketAngle(self, line, cline):
 		self.master.sio_status = False
+		self.master.sio_count -= 1
 		pat = STATUSPAT.match(line)
 		if pat:
 			if not self.master._alarm:

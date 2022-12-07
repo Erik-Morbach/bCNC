@@ -23,6 +23,9 @@ DOLLARPAT = re.compile(r"^\[G\d* .*\]$")
 #Only used in this file
 VARPAT    = re.compile(r"^\$(\d+)=(\d*\.?\d*) *\(?.*")
 
+global lastTime
+lastTime = time.time() 
+
 class _GenericController:
 	def test(self):
 		print("test supergen")
@@ -113,7 +116,8 @@ class _GenericController:
 		self.master.sendGCode("$H")
 
 	def viewStatusReport(self):
-		self.master.serial_write(b'?')
+		self.master.serial_write(b'\x80')
+		self.master.serial.flush()
 		self.master.sio_status = True
 
 	def viewConfiguration(self):
@@ -363,7 +367,7 @@ class _GenericController:
 			return True
 
 		elif line[0]=="<":
-			if not self.master.sio_status:
+			if CNC.vars["debug"]:
 				self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.parseBracketAngle(line, cline)
 

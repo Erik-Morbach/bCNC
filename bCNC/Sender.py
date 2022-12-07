@@ -49,9 +49,9 @@ from Table import Table
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = 0.02	# s
+SERIAL_POLL    = 0.03	# s
 OVERRIDE_POLL  = 0.06
-SERIAL_TIMEOUT = 0.03	# s
+SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
@@ -731,7 +731,6 @@ class Sender:
 			self.log.put((Sender.MSG_RUNEND, str(datetime.now())))
 			self.log.put((Sender.MSG_RUNEND, str(CNC.vars["msg"])))
 			if self.gcode.repeatEngine.isRepeatable():
-				self.repeatLock = threading.Lock()
 				self.after(500, self.repeatProgram)
 			else:
 				self.after(1000, self.purgeController)
@@ -775,19 +774,27 @@ class Sender:
 		#self.purgeController()
 
 	def repeatProgram(self):
-		lock = self.repeatLock
-		if lock.locked(): return
-		time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT)
+		if self.repeatLock.locked():
+			self.repeatLock.release()
+			return
 		self.executeCommand("%wait")
-		if lock.locked(): return
+		while CNC.vars["state"].lower() in ["run", "hold"]:
+			if self.repeatLock.locked(): 
+				self.repeatLock.release()
+				return
+		time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT/1000)
+		while CNC.vars["state"].lower() in ["run", "hold"]:
+			if self.repeatLock.locked():
+				self.repeatLock.release()
+				return
 		if CNC.vars["state"].lower() != "idle":
 			return
 		if self.gcode.repeatEngine.fromSD:
 			pass
 		else:
 			self.event_generate("<<Run>>")
-		if lock.locked():
-			lock.release()
+		if self.repeatLock.locked():
+			self.repeatLock.release()
 
 	#----------------------------------------------------------------------
 	# This is called everytime that motion controller changes the state
@@ -834,6 +841,7 @@ class Sender:
 	def serialIOWrite(self):
 		self.sio_wait   = False		# wait for commands to complete (status change to Idle)
 		self.sio_status = False		# waiting for status <...> report
+		self.sio_count = 0
 		self._cline  = []		# length of pipeline commands
 		self._sline  = []			# pipeline commands
 		tosend = None			# next string to send
@@ -843,7 +851,8 @@ class Sender:
 			time.sleep(0.001)
 			t = time.time()
 			# refresh machine position?
-			if t-tr > SERIAL_POLL:
+			if t-tr > SERIAL_POLL and self.sio_count<10:
+				self.sio_count += 1
 				self.mcontrol.viewStatusReport()
 				tr = t
 
@@ -851,6 +860,8 @@ class Sender:
 			if t-to > OVERRIDE_POLL:
 				to = t
 				self.mcontrol.overrideSet()
+
+			self.serial.flush()
 
 			# Fetch new command to send if...
 			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:

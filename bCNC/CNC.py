@@ -744,6 +744,7 @@ class CNC:
 			"JogSpeed"   : 3000.0,
 			"JogActive"  : False,
 			"execution"  : False,
+			"debug"      : False,
 
 			"planner"    : -1,
 			"rxbytes"    : 0,

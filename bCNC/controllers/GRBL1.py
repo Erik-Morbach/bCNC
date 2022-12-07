@@ -52,6 +52,8 @@ class Controller(_GenericGRBL):
 		diff = CNC.vars["_OvFeed"] - CNC.vars["OvFeed"]
 		direction = diff>0
 		diff = abs(diff)
+		if diff > 0:
+			print("will correct {}".format(diff))
 		while diff > 0:
 			if diff >= 10:
 				if direction: self.master.serial_write(OV_FEED_i10)
@@ -95,6 +97,7 @@ class Controller(_GenericGRBL):
 
 	def parseBracketAngle(self, line, cline):
 		self.master.sio_status = False
+		self.master.sio_count = max(0, self.master.sio_count-1)
 		fields = line[1:-1].split("|")
 		CNC.vars["pins"] = ""
 		 
