@@ -1956,7 +1956,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		self.spindleOverride = IntVar()
 		self.spindleOverride.set(100)
 
-		def makeScale(frame, name:str, override):
+		def makeScale(frame, name:str, override, from_, to_, res):
 			f = Frame(frame)
 			f2 = Frame(f)
 			Label(f2, text=name+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
@@ -1971,14 +1971,14 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 					variable=override,
 					showvalue=True,
 					orient=HORIZONTAL,
-					from_=1,
-					to_=200,
-					resolution=1)
+					from_=from_,
+					to_=to_,
+					resolution=res)
 			scale.pack(side=TOP, fill=BOTH, expand=TRUE)
 			f.pack(side=TOP, fill=BOTH, expand=TRUE)
 			return scale
 
-		def makeScaleInline(frame, name, override):
+		def makeScaleInline(frame, name, override, from_, to_, res):
 			f = Frame(frame)
 			f2 = Frame(f)
 			Label(f2, text=name+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
@@ -1993,9 +1993,9 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 					variable=override,
 					showvalue=True,
 					orient=HORIZONTAL,
-					from_=1,
-					to_=200,
-					resolution=1)
+					from_=from_,
+					to_=to_,
+					resolution=res)
 			scale.pack(side=LEFT, fill=BOTH, expand=TRUE)
 			f.pack(side=TOP, fill=BOTH, expand=TRUE)
 			return scale
@@ -2003,16 +2003,16 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f3 = Frame(f2)
 		f4 = Frame(f3)
-		self.feedScale = makeScale(f4, "Feed", self.feedOverride)
+		self.feedScale = makeScale(f4, "Feed", self.feedOverride, 1, 200, 1)
 		f4.pack(side=LEFT, fill=BOTH, expand=TRUE)
 		ttk.Separator(f3, orient=VERTICAL).pack(side=LEFT, fill=BOTH, padx=5)
 		f4 = Frame(f3)
-		self.rapidScale = makeScale(f4, "Rapid", self.rapidOverride)
+		self.rapidScale = makeScale(f4, "Rapid", self.rapidOverride, 0, 100, 25)
 		f4.pack(side=LEFT, fill=BOTH, expand=TRUE)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f3 = Frame(f2)
-		self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride)
+		self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride, 1, 200, 1)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)

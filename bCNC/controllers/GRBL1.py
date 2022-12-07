@@ -18,6 +18,7 @@ OV_FEED_d1      = b'\x94'
 OV_RAPID_100    = b'\x95'
 OV_RAPID_50     = b'\x96'
 OV_RAPID_25     = b'\x97'
+OV_RAPID_1      = b'\x98'
 
 OV_SPINDLE_100  = b'\x99'
 OV_SPINDLE_i10  = b'\x9A'
@@ -70,14 +71,22 @@ class Controller(_GenericGRBL):
 		current = CNC.vars["OvRapid"]
 		if target == current:
 			pass
-		elif target == 100:
-			self.master.serial_write(OV_RAPID_100)
-		elif target == 75:
-			self.master.serial_write(OV_RAPID_50)	# FIXME: GRBL protocol does not specify 75% override command at all
-		elif target == 50:
-			self.master.serial_write(OV_RAPID_50)
-		elif target == 25:
-			self.master.serial_write(OV_RAPID_25)
+		elif target >= 100:
+			print("To 100")
+			if current != 100:
+				self.master.serial_write(OV_RAPID_100)
+		elif target >= 50:
+			print("To 50")
+			if current != 50:
+				self.master.serial_write(OV_RAPID_50)
+		elif target >= 25:
+			print("To 25")
+			if current != 25:
+				self.master.serial_write(OV_RAPID_25)
+		elif target >= 0:
+			print("To 1")
+			if current != 1:
+				self.master.serial_write(OV_RAPID_1)
 		# Check Spindle
 		diff = CNC.vars["_OvSpindle"] - CNC.vars["OvSpindle"]
 		direction = diff>0
