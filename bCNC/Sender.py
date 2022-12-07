@@ -731,7 +731,7 @@ class Sender:
 			self.log.put((Sender.MSG_RUNEND, str(datetime.now())))
 			self.log.put((Sender.MSG_RUNEND, str(CNC.vars["msg"])))
 			if self.gcode.repeatEngine.isRepeatable():
-				self.after(500, self.repeatProgram)
+				self.after(50, self.repeatProgram)
 			else:
 				self.after(1000, self.purgeController)
 

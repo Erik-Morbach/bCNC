@@ -6,7 +6,7 @@ class RepeatEngine:
 	TYPE_NONE = 0
 	TYPE_M47 = 1
 	TYPE_M47P = 2
-	TIMEOUT_TO_REPEAT = 500
+	TIMEOUT_TO_REPEAT = 50
 	repeatType: int
 	m30CounterLimit: tkinter.IntVar
 	m30Counter: tkinter.IntVar
