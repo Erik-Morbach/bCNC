@@ -222,9 +222,18 @@ class Selector(MemberImpl):
         direct = lambda index, id: id
         self.typeFunction = binary if self.selectorType else direct
 
+        self.variableBegin = Utils.getFloat(self.selectorName, "begin", -1)
+        self.variableEnd = Utils.getFloat(self.selectorName, "end", -1)
         self.variableOptions = getArrayWhileExists(self.selectorName, "v", Utils.getFloat, 0)
 
+
+
         pins, inversion = self.load_pins()
+
+        self.useBeginEnd = self.variableBegin!=-1
+        self.resolution = len(pins)
+        if self.selectorType:
+            self.resolution = 2**self.resolution
 
         print(self.selectorName, end= ' ')
         self.currentVar = self.variableOptions[0]
@@ -244,7 +253,12 @@ class Selector(MemberImpl):
 
     def callback(self, selector: list):
         index = self.calculateIndex(selector)
-        var = self.variableOptions[index]
+        var = 0
+        if self.useBeginEnd:
+            var = (self.variableEnd - self.variableBegin)/self.resolution
+            var = var*index + self.variableBegin
+        else:
+            var = self.variableOptions[index]
         if var != self.currentVar:
             self.currentVar = var
             self.onChange()
@@ -255,8 +269,21 @@ class StepSelector(Selector):
     def onChange(self):
         self.app.control.setStep(self.currentVar)
 
-class FeedRapidSelector(Selector):
-    def __init__(self, app, index, names = ["Feed","Rapid"]) -> None:
+class FeedSelector(Selector):
+    def __init__(self, app, index, names = ["Feed"]) -> None:
+         super().__init__(app, index, self.onChange)
+         self.names = names
+
+    def change(self, name, var):
+        self.app.gstate.setOverride(name,var)
+
+    def onChange(self):
+        for w in self.names:
+            self.change(w, self.currentVar)
+        self.app.mcontrol.overrideSet()
+
+class RapidSelector(Selector):
+    def __init__(self, app, index, names = ["Rapid"]) -> None:
          super().__init__(app, index, self.onChange)
          self.names = names
 
@@ -365,8 +392,8 @@ class Panel:
     def __init__(self, app):
         self.app = app
         self.period = Utils.getFloat("Panel", "period", 0.1)
-        self.mapper = {"stepselector":StepSelector,
-                "feedrapidselector":FeedRapidSelector, "startbutton":StartButton,
+        self.mapper = {"stepselector":StepSelector, "rapidselector":RapidSelector,
+                "feedselector":FeedSelector, "startbutton":StartButton,
                 "pausebutton":PauseButton, "startpausebutton":StartPauseButton,
                 "clampbutton":ClampButton, "safetydoorbutton":SafetyDoorButton,
                 "barendbutton":BarEndButton, "resetbutton": ResetButton}
