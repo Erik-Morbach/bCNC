@@ -10,6 +10,7 @@ import Utils
 import os.path
 import time
 import re
+import threading
 
 #GRBLv1
 SPLITPAT  = re.compile(r"[:,]")
@@ -63,6 +64,21 @@ class _GenericController:
 	def overrideSet(self):
 		pass
 
+	def setConnection(self, id, value, buffer=None):
+		if not buffer:
+			self.master.sendGCode("$%d=%d"%(id, value))
+			self.master.execute("%wait")
+		else:
+			buffer.append("$%d=%d" % (id, value))
+			buffer.append("%wait")
+
+	def xConnection(self, connection, buffer=None):
+		self.setConnection(500, connection, buffer)
+	def zConnection(self, connection, buffer=None):
+		self.setConnection(502, connection, buffer)
+	def aConnection(self, connection, buffer=None):
+		self.setConnection(503, connection, buffer)
+
 	def loadTables(self):
 		self.sendToolTable()
 		self.sendWorkTable()
@@ -110,10 +126,61 @@ class _GenericController:
 		self.clearError()
 		self.resetSettings()
 
+	def send(self, gcode):
+		self.master.sendGCode(gcode)
+	def wait(self):
+		self.master.execute("%wait")
+
 	#----------------------------------------------------------------------
 	def home(self, event=None):
-		self.master._alarm = False
-		self.master.sendGCode("$H")
+		lines = []
+		self.zConnection(1, buffer=lines)
+		lines.append("$HZ")
+		lines.append("%wait")
+		self.zConnection(2, buffer=lines)
+		lines.append("$HZ")
+		lines.append("%wait")
+		distance = CNC.vars["zGangedDifference"]
+		lines.append("G91G0Z%.3f" % distance)
+		lines.append("%wait")
+		self.zConnection(3, buffer=lines)
+		lines.append("$HZ")
+		lines.append("%wait")
+
+		self.xConnection(1, buffer=lines)
+		lines.append("$HX")
+		lines.append("%wait")
+		self.xConnection(2, buffer=lines)
+		lines.append("$HX")
+		lines.append("%wait")
+		distance = CNC.vars["cavityDistance"] - CNC.vars["punctureDistance"]
+		lines.append("G91G0X%.3f" % distance)
+		lines.append("%wait")
+		self.xConnection(3, buffer=lines)
+		lines.append("$HX")
+		lines.append("%wait")
+
+		lines.append("$HY")
+		lines.append("%wait")
+
+		self.aConnection(1, buffer=lines)
+		lines.append("$HA")
+		lines.append("%wait")
+		lines.append("G53 G0 A%.3f" % CNC.vars["a1Position"])
+		lines.append("%wait")
+		self.aConnection(2, buffer=lines)
+		lines.append("$HA")
+		lines.append("%wait")
+		lines.append("G53 G0 A%.3f" % CNC.vars["a2Position"])
+		self.master.run(lines=lines)
+		#wait complete and zero A axis
+		def zeroA():
+			time.sleep(2)
+			while self.master.running:
+				time.sleep(0.1)
+			self.master.execute("%wait")
+			self._wcsSet(a=0)
+		threading.Thread(target=zeroA).start()
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
@@ -134,8 +201,8 @@ class _GenericController:
 		settings = self.getSettings()
 		self.clearError()
 		for settingsUnit in settings:
-			time.sleep(0.003)
 			self.master.queue.put(settingsUnit+'\n', block=True)
+			self.master.execute('%wait')
 			if "G7" in settingsUnit:
 				CNC.vars["radius"] = "G7"
 
@@ -162,11 +229,12 @@ class _GenericController:
 				if axe in tool.keys():
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
-			time.sleep(0.003)
 			self.master.queue.put(cmd+'\n',block=True)
+			self.master.execute("%wait")
 		self.clearError()
-		time.sleep(0.003)
+		self.master.execute("%wait")
 		self.master.queue.put("G43\n",block=True)
+		self.master.execute("%wait")
 
 	def sendWorkTable(self):
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
@@ -175,17 +243,18 @@ class _GenericController:
 		self.clearError()
 		for work in workTable:
 			if "r" in work.keys():
-				time.sleep(0.003)
 				self.master.queue.put(work["r"]+'\n',block=True)
+				self.master.execute("%wait")
 			cmd = "G10L2P{}".format(int(work['index']))
 			for axe in axis:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
-			time.sleep(0.003)
 			self.master.queue.put(cmd+'\n', block=True)
+			self.master.execute("%wait")
 		self.clearError()
-		time.sleep(0.003)
+		self.master.execute("%wait")
 		self.master.queue.put(currentMode+'\n', block=True)
+		self.master.execute("%wait")
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')
