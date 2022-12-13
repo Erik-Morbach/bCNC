@@ -113,7 +113,27 @@ class _GenericController:
 	#----------------------------------------------------------------------
 	def home(self, event=None):
 		self.master._alarm = False
-		self.master.sendGCode("$H")
+		lines = []
+		lines += ['%wait']
+		lines += ['$HZ']
+		lines += ['%wait']
+		lines += ['$HY']
+		lines += ['%wait']
+		lines += ['$500=1']
+		lines += ['$HX']
+		lines += ['%wait']
+		lines += ['$500=2']
+		lines += ['$HX']
+		lines += ['%wait']
+		lines += ['G91G0X-1']
+		lines += ['%wait']
+		lines += ['$500=3']
+		lines += ['%wait']
+		lines += ['$HX']
+		lines += ['%wait']
+		lines += ['%Mesa1 = mx']
+		lines += ['%Mesa2 = mx']
+		self.master.run(lines=lines)
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')

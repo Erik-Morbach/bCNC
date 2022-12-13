@@ -737,6 +737,9 @@ class CNC:
 			"SafeDoor"   : 0,
 			"pitch"      : -1,
 
+			"xTroca"     : -500,
+			"xWork"      : -10,
+
 			"tool"       : 0,
 			"feed"       : 0.0,
 			"rpm"        : 0.0,
@@ -1784,6 +1787,112 @@ class CNC:
 		if code == 1012: return CNC.macroM1012()
 		return ""
 
+	@staticmethod
+	def macroM1000():
+		lines  = ['%wait']
+		lines += ['G53G0X[xWork]']
+		return lines
+	@staticmethod
+	def macroM1001():
+		lines = []
+		lines += ['%wait']
+		lines += ['$500=0\n']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xTroca]\n']
+		lines += ['%wait']
+		lines += ['$500=1\n']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]\n']
+		lines += ['%wait']
+		return lines
+	@staticmethod
+	def macroM1002():
+		lines = []
+		lines += ['%wait']
+		lines += ['$500=0']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]']
+		lines += ['%wait']
+		lines += ['$500=1']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xTroca]']
+		lines += ['%wait']
+		lines += ['$500=0']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]']
+		lines += ['%wait']
+		lines += ['$500=1']
+		return lines
+	@staticmethod
+	def macroM1003():
+		lines = []
+		lines += ['%wait']
+		lines += ['$500=0\n']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xTroca]\n']
+		lines += ['%wait']
+		lines += ['$500=2\n']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]\n']
+		lines += ['%wait']
+		return lines
+	@staticmethod
+	def macroM1004():
+		lines = []
+		lines += ['%wait']
+		lines += ['$500=0']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]']
+		lines += ['%wait']
+		lines += ['$500=2']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xTroca]']
+		lines += ['%wait']
+		lines += ['$500=0']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]']
+		lines += ['%wait']
+		lines += ['$500=2']
+		return lines
+	@staticmethod
+	def macroM1005():
+		return ['%wait','$500=1', '%wait']
+	@staticmethod
+	def macroM1006():
+		return ['%wait','$500=2', '%wait']
+	@staticmethod
+	def macroM1007():
+		return ['%wait','$500=3', '%wait']
+	
+	@staticmethod
+	def macroSwapBoards(workBoard:int, swapBoard:int):
+		lines = []
+		lines += ['%wait']
+		lines += ['$500=0']
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]']
+		lines += ['%wait']
+		lines += ['$500=%d' % workBoard]
+		lines += ['%wait']
+		lines += ['G53 G0 X[xTroca]']
+		lines += ['%wait']
+		lines += ['$500=%d' % swapBoard]
+		lines += ['%wait']
+		lines += ['G53 G0 X[xWork]']
+		lines += ['%wait']
+		lines += ['$500=%d' % swapBoard]
+		return lines
+
+	@staticmethod
+	def macroM1010():
+		return CNC.macroM1000() + CNC.macroM1004() + CNC.macroM1005()
+	@staticmethod
+	def macroM1011():
+		return CNC.macroSwapBoards(1, 2)
+		#return CNC.macroM1000() + CNC.macroM1003() + CNC.macroM1002() + CNC.macroM1006()
+	@staticmethod
+	def macroM1012():
+		return CNC.macroM1000() + CNC.macroM1001()
 	#----------------------------------------------------------------------
 	# code to change manually tool
 	#----------------------------------------------------------------------
