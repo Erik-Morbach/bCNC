@@ -4778,20 +4778,6 @@ class GCode:
 							skip = True	# skip whole line
 						elif CNC.toolPolicy >= 2:
 							expand = CNC.compile(self.cnc.toolChange())
-					elif self.cnc.mval >= 1000:
-						expand = CNC.compile(self.cnc.macroM1XXX(self.cnc.mval))
-					elif self.cnc.mval == 21:
-						expand = CNC.compile(self.cnc.macroM21())
-					elif self.cnc.mval == 22:
-						expand = CNC.compile(self.cnc.macroM22())
-					elif self.cnc.mval == 31:
-						expand = CNC.compile(self.cnc.macroM31())
-					elif self.cnc.mval == 32:
-						expand = CNC.compile(self.cnc.macroM32())
-					elif self.cnc.mval == 33:
-						expand = CNC.compile(self.cnc.macroM33())
-					elif self.cnc.mval == 34:
-						expand = CNC.compile(self.cnc.macroM34())
 					self.cnc.motionEnd()
 
 

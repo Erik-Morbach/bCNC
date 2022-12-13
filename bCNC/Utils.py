@@ -271,12 +271,23 @@ def macroExists(id):
     global macros
     return id in macros.keys()
 
+class Executor:
+    def __init__(self):
+        self.s = ""
+    def code(self, gcode):
+        self.s += gcode + '\n'
+    def wait(self):
+        self.s += "%wait\n"
+    def getUserCode(self):
+        return self.s
 #------------------------------------------------------------------------------
 # Execute Macro
 #------------------------------------------------------------------------------
-def macroExecute(id, flag='exec'):
+def macroExecute(id):
     global macros
-    return exec(macros[id])
+    executor = Executor()
+    exec(macros[id], None, {"code":executor.code, "wait":executor.wait})
+    return executor.getUserCode()
 
 #------------------------------------------------------------------------------
 # Save configuration file
