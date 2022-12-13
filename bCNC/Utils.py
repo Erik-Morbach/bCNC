@@ -279,7 +279,9 @@ class Executor:
     def wait(self):
         self.s += ["%wait\n"]
     def setSettings(self, id, value):
+        self.wait()
         self.s += ["${}={}\n".format(id, value)]
+        self.wait()
     def getUserCode(self):
         return self.s
 #------------------------------------------------------------------------------
