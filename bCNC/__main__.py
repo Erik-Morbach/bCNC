@@ -57,6 +57,7 @@ sys.path.append(os.path.join(PRGPATH, 'controllers'))
 import Utils
 
 Utils.loadConfiguration()
+Utils.loadMacros()
 
 import rexx
 import tkExtra

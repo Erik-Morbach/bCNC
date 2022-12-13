@@ -1776,20 +1776,7 @@ class CNC:
 					newcmd.append(cmd)
 			lines.append("".join(newcmd))
 		return lines
-	@staticmethod
-	def macroM1XXX(code):
-		if code == 1000: return CNC.macroM1000()
-		if code == 1001: return CNC.macroM1001()
-		if code == 1002: return CNC.macroM1002()
-		if code == 1003: return CNC.macroM1003()
-		if code == 1004: return CNC.macroM1004()
-		if code == 1005: return CNC.macroM1005()
-		if code == 1006: return CNC.macroM1006()
-		if code == 1007: return CNC.macroM1007()
-		if code == 1010: return CNC.macroM1010()
-		if code == 1011: return CNC.macroM1011()
-		if code == 1012: return CNC.macroM1012()
-		return ""
+
 
 	#----------------------------------------------------------------------
 	# code to change manually tool
@@ -4830,6 +4817,8 @@ class GCode:
 					   self.cnc.gcode in (81,82,83,85,86,89):
 						expand = self.cnc.macroGroupG8X()
 					# Tool change
+					elif Utils.macroExists(self.cnc.mval):
+						expand = CNC.compile(Utils.macroExecute(self.cnc.mval))
 					elif self.cnc.mval == 6:
 						if CNC.toolPolicy == 0:
 							pass	# send to grbl

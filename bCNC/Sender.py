@@ -216,29 +216,56 @@ class Sender:
 		f.write("\n".join(self.history))
 		f.close()
 
-	def isExpandable(self, line):
-		if not isinstance(line, str): return False
-		line = line.lower().replace(' ','')
-		for i in range(1000,2000):
-			if line.find('m%d' % i)!=-1:
-				return True
-		return False
+	def isExpandable(self, line:str):
+		if len(line)==0: return False
+		if line[0]==';': return False
+		buff = ""
+		append = 0
+		line = line.lower()
+		count = 0
+		for c in line:
+			if c == '(':
+				count+=1
+			if c == ')':
+				count-=1
+			if count == 0:
+				if append and not c.isdigit():
+					append = 0
+					break
+				if append:
+					buff += c
+				if c == 'm':
+					append = 1
+		if len(buff)==0: return False
+		try:
+			return Utils.macroExists(int(buff))
+		except: #Will never except
+			return False
 
 	def expand(self, line):
-		def getNextInt(line:str):
-			aux = ""
-			for w in line:
-				if not w.isdigit():
+		buff = ""
+		append = 0
+		line = line.lower()
+		count = 0
+		for c in line:
+			if c == '(':
+				count+=1
+			if c == ')':
+				count-=1
+			if count == 0:
+				if append and not c.isdigit():
+					append = 0
 					break
-				aux += w
-			return int(aux)
-		mIndex = line.lower().find('m')
-		if mIndex == -1:
+				if append:
+					buff += c
+				if c == 'm':
+					append = 1
+		if len(buff)==0:
 			return line
-		mCode = getNextInt(line[mIndex+1:])
-		if mCode >= 1000:
-			return CNC.macroM1XXX(mCode)
-		return line
+		try:
+			return Utils.macroExecute(int(buff))
+		except:
+			return line
 
 	#----------------------------------------------------------------------
 	# Evaluate a line for possible expressions
