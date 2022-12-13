@@ -53,8 +53,6 @@ class Controller(_GenericGRBL):
 		diff = CNC.vars["_OvFeed"] - CNC.vars["OvFeed"]
 		direction = diff>0
 		diff = abs(diff)
-		if diff > 0:
-			print("will correct {}".format(diff))
 		while diff > 0:
 			if diff >= 10:
 				if direction: self.master.serial_write(OV_FEED_i10)
@@ -72,19 +70,15 @@ class Controller(_GenericGRBL):
 		if target == current:
 			pass
 		elif target >= 100:
-			print("To 100")
 			if current != 100:
 				self.master.serial_write(OV_RAPID_100)
 		elif target >= 50:
-			print("To 50")
 			if current != 50:
 				self.master.serial_write(OV_RAPID_50)
 		elif target >= 25:
-			print("To 25")
 			if current != 25:
 				self.master.serial_write(OV_RAPID_25)
 		elif target >= 0:
-			print("To 1")
 			if current != 1:
 				self.master.serial_write(OV_RAPID_1)
 		# Check Spindle
