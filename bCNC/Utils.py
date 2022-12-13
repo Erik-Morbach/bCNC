@@ -278,6 +278,8 @@ class Executor:
         self.s += [gcode + '\n']
     def wait(self):
         self.s += ["%wait\n"]
+    def setSettings(self, id, value):
+        self.s += ["${}={}\n".format(id, value)]
     def getUserCode(self):
         return self.s
 #------------------------------------------------------------------------------
@@ -286,7 +288,7 @@ class Executor:
 def macroExecute(id):
     global macros
     executor = Executor()
-    exec(macros[id], None, {"code":executor.code, "wait":executor.wait})
+    exec(macros[id], None, {"code":executor.code, "wait":executor.wait, "setSettings":executor.setSettings})
     return executor.getUserCode()
 
 #------------------------------------------------------------------------------
