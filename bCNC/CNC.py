@@ -2277,49 +2277,10 @@ class GCode:
 	#----------------------------------------------------------------------
 	def __setitem__(self, item, value):	self.blocks[item] = value
 
-	def evaluate(self, line, app=None):
-		if isinstance(line, int):
-			return None
-
-		if isinstance(line, list):
-			shouldEvaluate = True
-			for w in line:
-				if not (isinstance(w, str) or isinstance(w, types.CodeType)):
-					shouldEvaluate = False
-					break
-			if not shouldEvaluate:
-				for i,w in enumerate(line):
-					if isinstance(w, list):
-						line[i] = self.evaluate(w)
-					elif isinstance(w, types.CodeType):
-						result = eval(w, CNC.vars, self.vars)
-						if result is not None:
-							line[i] = result
-						else:
-							line[i] = "    "
-				return line
-			for i, expr in enumerate(line):
-				if isinstance(expr, types.CodeType):
-					result = eval(expr,CNC.vars,self.vars)
-					if result is None:
-						continue
-					if isinstance(result,float):
-						line[i] = str(round(result,CNC.digits))
-					else:
-						line[i] = str(result)
-			return "".join(line)
-		elif isinstance(line, types.CodeType):
-			import traceback
-			#traceback.print_stack()
-			v = self.vars
-			v['os'] = os
-			v['app'] = app
-			return eval(line,CNC.vars,self.vars)
-		return line
 	#----------------------------------------------------------------------
 	# Evaluate code expressions if any and return line
 	#----------------------------------------------------------------------
-	def evaluateOld(self, line, app=None):
+	def evaluate(self, line, app=None):
 		if isinstance(line,int):
 			return None
 
@@ -4824,6 +4785,7 @@ class GCode:
 					elif self.cnc.mval >= 1000:
 						expand = CNC.compile(self.cnc.macroM1XXX(self.cnc.mval))
 					self.cnc.motionEnd()
+
 
 				if expand is not None:
 					for line in expand:
