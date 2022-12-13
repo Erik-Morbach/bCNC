@@ -4771,8 +4771,6 @@ class GCode:
 							skip = True	# skip whole line
 						elif CNC.toolPolicy >= 2:
 							expand = CNC.compile(self.cnc.toolChange())
-					elif self.cnc.mval >= 1000:
-						expand = CNC.compile(self.cnc.macroM1XXX(self.cnc.mval))
 					self.cnc.motionEnd()
 
 
