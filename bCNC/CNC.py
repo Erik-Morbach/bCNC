@@ -769,6 +769,13 @@ class CNC:
 			"thickness"  : 5.,
 			"stepover"   : 40.,
 
+			"boardThickness"    : 0,
+			"zGangedDifference" : 0,
+			"a1Position"        : 0,
+			"a2Position"        : 0,
+			"cavityDistance"    : 0,
+			"punctureDistance"  : 0,
+
 			"PRB"        : None,
 			"TLO"        : 0.,
 
@@ -1865,6 +1872,54 @@ class CNC:
 
 		# remember present tool
 		self._lastTool = self.tool
+		return lines
+
+	def macroM21(self):
+		lines = []
+		lines += ['%wait']
+		lines += ['M62 P0']
+		lines += ['G0 A3']
+		lines += ['M63 P0']
+		return lines
+
+	def macroM22(self):
+		lines = []
+		lines += ['%wait']
+		lines += ['M62 P0']
+		lines += ['G0 A-3']
+		lines += ['M63 P0']
+		return lines
+
+	def macroM31(self):
+		lines = []
+		lines += ['%wait']
+		lines += ['M62 P0']
+		lines += ['G0 A-86']
+		lines += ['M63 P0']
+		return lines
+
+	def macroM32(self):
+		lines = []
+		lines += ['%wait']
+		lines += ['M62 P0']
+		lines += ['G0 A-94']
+		lines += ['M63 P0']
+		return lines
+
+	def macroM33(self):
+		lines = []
+		lines += ['%wait']
+		lines += ['M62 P0']
+		lines += ['G0 A94']
+		lines += ['M63 P0']
+		return lines
+
+	def macroM34(self):
+		lines = []
+		lines += ['%wait']
+		lines += ['M62 P0']
+		lines += ['G0 A86']
+		lines += ['M63 P0']
 		return lines
 
 	#----------------------------------------------------------------------
@@ -4784,6 +4839,18 @@ class GCode:
 							expand = CNC.compile(self.cnc.toolChange())
 					elif self.cnc.mval >= 1000:
 						expand = CNC.compile(self.cnc.macroM1XXX(self.cnc.mval))
+					elif self.cnc.mval == 21:
+						expand = CNC.compile(self.cnc.macroM21())
+					elif self.cnc.mval == 22:
+						expand = CNC.compile(self.cnc.macroM22())
+					elif self.cnc.mval == 31:
+						expand = CNC.compile(self.cnc.macroM31())
+					elif self.cnc.mval == 32:
+						expand = CNC.compile(self.cnc.macroM32())
+					elif self.cnc.mval == 33:
+						expand = CNC.compile(self.cnc.macroM33())
+					elif self.cnc.mval == 34:
+						expand = CNC.compile(self.cnc.macroM34())
 					self.cnc.motionEnd()
 
 

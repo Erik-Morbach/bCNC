@@ -1,4 +1,3 @@
-# -*- coding: ascii -*-
 # $Id$
 #
 # Author: vvlachoudis@gmail.com
@@ -6,6 +5,8 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+from numpy import double
 __author__ = "Vasilis Vlachoudis"
 __email__  = "vvlachoudis@gmail.com"
 
@@ -22,6 +23,8 @@ import Utils
 import Sender
 import Ribbon
 import CNCRibbon
+import functools
+from CNC import CNC
 
 try:
 	from serial.tools.list_ports import comports
@@ -399,6 +402,50 @@ class StartupFrame(CNCRibbon.PageLabelFrame):
 		self.app.mcontrol.unlock()
 		self.app.mcontrol.home()
 
+class ClientFrame(CNCRibbon.PageLabelFrame):
+	def __init__(self, master, app):
+		CNCRibbon.PageLabelFrame.__init__(self, master, "Config", _("Config"), app)
+		vcmd = (self.master.register(self.valid), '%P')
+		self.app = app
+		def makeEntry(frame, labelText, doubleVar, cncVarName):
+			f = Frame(frame)
+			Label(f, text=labelText).pack(side=LEFT)
+			e = Entry(f, textvariable=doubleVar, validate='all', validatecommand=vcmd)
+			e.pack(side=LEFT, expand=TRUE, fill=X)
+			e.bind("<Return>", functools.partial(self.entryReturn, doubleVar, cncVarName))
+			return f
+		self.boardThicknessVar = DoubleVar(value=0)
+		self.zGangedDifference = DoubleVar(value=0)
+		self.punctureDistance = DoubleVar(value=0)
+		self.cavityDistance = DoubleVar(value=0)
+		self.a1Position = DoubleVar(value=0)
+		self.a2Position = DoubleVar(value=0)
+		f = Frame(self)
+		makeEntry(f, "Espessura da placa", self.boardThicknessVar, "boardThickness").pack(side=TOP)
+
+		makeEntry(f, "Diferença Z1 e Z2", self.zGangedDifference, "zGangedDifference").pack(side=TOP)
+
+		makeEntry(f, "Posição A1", self.a1Position, "a1Position").pack(side=TOP)
+		makeEntry(f, "Posição A2", self.a2Position, "a2Position").pack(side=TOP)
+
+		makeEntry(f, "Medida entre Punções", self.punctureDistance, "punctureDistance" ).pack(side=TOP)
+
+		makeEntry(f, "Medida entre Cavidades", self.cavityDistance, "cavityDistance").pack(side=TOP)
+
+		f.pack(side=TOP)
+	
+	def entryReturn(self, doubleVar, cncVarName, *args):
+		self.focus_set()
+		CNC.vars[cncVarName] = doubleVar.get()
+	def valid(self, future_value):
+		if len(future_value)==0: return True
+		if future_value == "-": return True
+		try:
+			float(future_value)
+			return True
+		except ValueError:
+			return False
+
 #===============================================================================
 # File Page
 #===============================================================================
@@ -415,4 +462,4 @@ class FilePage(CNCRibbon.Page):
 				PendantGroup,
 				OptionsGroup,
 				CloseGroup),
-				(SerialFrame, StartupFrame))
+				(SerialFrame, StartupFrame, ClientFrame))
