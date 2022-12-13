@@ -1,10 +1,9 @@
-wait()
-code('$500=0'); wait()
+setSettings(500,0)
 code("G53 G0 X[xWork]"); wait()
-code('$500=1'); wait()
+setSettings(500,1)
 code("G53 G0 X[xTroca]"); wait()
-code('$500=0'); wait()
+setSettings(500,0)
 code("G53 G0 X[xWork]"); wait()
-code('$500=1'); wait()
+setSettings(500,1)
 
 

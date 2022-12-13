@@ -1,10 +1,8 @@
 workBoard = 1
 swapBoard = 2
-wait()
-code('$500=0'); wait()
+setSettings(500,0)
 code('G53 G0 X[xWork]'); wait()
-code('$500=%d' % workBoard); wait()
+setSettings(500,workBoard)
 code('G53 G0 X[xTroca]'); wait()
-code('$500=%d' % swapBoard); wait()
+setSettings(500,swapBoard)
 code('G53 G0 X[xWork]'); wait()
-code('$500=%d' % swapBoard); wait()

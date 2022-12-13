@@ -1,3 +1,1 @@
-wait()
-code("$500=3")
-wait()
+setSettings(500,3)
