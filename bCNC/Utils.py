@@ -273,11 +273,11 @@ def macroExists(id):
 
 class Executor:
     def __init__(self):
-        self.s = ""
+        self.s = []
     def code(self, gcode):
-        self.s += gcode + '\n'
+        self.s += [gcode + '\n']
     def wait(self):
-        self.s += "%wait\n"
+        self.s += ["%wait\n"]
     def getUserCode(self):
         return self.s
 #------------------------------------------------------------------------------
