@@ -18,6 +18,7 @@ import sys
 import glob
 import traceback
 import gettext
+import pathlib
 
 __platform_fingerprint__ = "(%s py%s.%s.%s)"%(
 		sys.platform, sys.version_info.major,
@@ -238,6 +239,55 @@ def loadConfiguration(systemOnly=False):
 			__builtin__._ = gettext.translation('bCNC', os.path.join(prgpath,'locale'),
 					fallback=True, languages=[language]).gettext
 
+#------------------------------------------------------------------------------
+# Load Macros
+#------------------------------------------------------------------------------
+def loadMacros():
+    global macros
+    macros = {}
+    entries = pathlib.Path('macros/')
+    for file in entries.iterdir():
+        name = file.name
+        name = name[:name.rfind('.')]
+        if len(name)==0: continue
+        if name[0] == 'M':
+            isMacro = True
+            for w in name[1:]:
+                if not w.isnumeric():
+                    isMacro = False
+                    break
+            if not isMacro:
+                continue
+            mCode = int(name[1:])
+            buff = ""
+            with open('macros/'+file.name) as fileObj:
+                buff = "".join(fileObj.readlines())
+            macros[mCode] = compile(buff, '', 'exec')
+
+#------------------------------------------------------------------------------
+# Macros Exists
+#------------------------------------------------------------------------------
+def macroExists(id):
+    global macros
+    return id in macros.keys()
+
+class Executor:
+    def __init__(self):
+        self.s = []
+    def code(self, gcode):
+        self.s += [gcode + '\n']
+    def wait(self):
+        self.s += ["%wait\n"]
+    def getUserCode(self):
+        return self.s
+#------------------------------------------------------------------------------
+# Execute Macro
+#------------------------------------------------------------------------------
+def macroExecute(id):
+    global macros
+    executor = Executor()
+    exec(macros[id], None, {"code":executor.code, "wait":executor.wait})
+    return executor.getUserCode()
 
 #------------------------------------------------------------------------------
 # Save configuration file
