@@ -1861,54 +1861,6 @@ class CNC:
 		self._lastTool = self.tool
 		return lines
 
-	def macroM21(self):
-		lines = []
-		lines += ['%wait']
-		lines += ['M62 P0']
-		lines += ['G0 A3']
-		lines += ['M63 P0']
-		return lines
-
-	def macroM22(self):
-		lines = []
-		lines += ['%wait']
-		lines += ['M62 P0']
-		lines += ['G0 A-3']
-		lines += ['M63 P0']
-		return lines
-
-	def macroM31(self):
-		lines = []
-		lines += ['%wait']
-		lines += ['M62 P0']
-		lines += ['G0 A-86']
-		lines += ['M63 P0']
-		return lines
-
-	def macroM32(self):
-		lines = []
-		lines += ['%wait']
-		lines += ['M62 P0']
-		lines += ['G0 A-94']
-		lines += ['M63 P0']
-		return lines
-
-	def macroM33(self):
-		lines = []
-		lines += ['%wait']
-		lines += ['M62 P0']
-		lines += ['G0 A94']
-		lines += ['M63 P0']
-		return lines
-
-	def macroM34(self):
-		lines = []
-		lines += ['%wait']
-		lines += ['M62 P0']
-		lines += ['G0 A86']
-		lines += ['M63 P0']
-		return lines
-
 	#----------------------------------------------------------------------
 	# code to expand G80-G89 macro code - canned cycles
 	# example:
