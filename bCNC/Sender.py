@@ -261,11 +261,11 @@ class Sender:
 				if c == 'm':
 					append = 1
 		if len(buff)==0:
-			return line
+			return [line]
 		try:
 			return Utils.macroExecute(int(buff))
 		except:
-			return line
+			return [line]
 
 	#----------------------------------------------------------------------
 	# Evaluate a line for possible expressions
