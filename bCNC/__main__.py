@@ -1308,6 +1308,10 @@ class Application(Toplevel, Sender):
     def execute(self, line):
         # print
         # print "<<<",line
+        if self.isExpandable(line):
+            for w in self.expand(line):
+                self.execute(w)
+            return
         try:
             line = self.evaluate(line)
         except:

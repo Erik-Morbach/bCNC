@@ -216,6 +216,30 @@ class Sender:
 		f.write("\n".join(self.history))
 		f.close()
 
+	def isExpandable(self, line):
+		if not isinstance(line, str): return False
+		line = line.lower().replace(' ','')
+		for i in range(1000,2000):
+			if line.find('m%d' % i)!=-1:
+				return True
+		return False
+
+	def expand(self, line):
+		def getNextInt(line:str):
+			aux = ""
+			for w in line:
+				if not w.isdigit():
+					break
+				aux += w
+			return int(aux)
+		mIndex = line.lower().find('m')
+		if mIndex == -1:
+			return line
+		mCode = getNextInt(line[mIndex+1:])
+		if mCode >= 1000:
+			return CNC.macroM1XXX(mCode)
+		return line
+
 	#----------------------------------------------------------------------
 	# Evaluate a line for possible expressions
 	# can return a python exception, needs to be catched
@@ -229,11 +253,17 @@ class Sender:
 	#	  False otherwise
 	#----------------------------------------------------------------------
 	def executeGcode(self, line):
-		if isinstance(line, tuple) or \
-		   line[0] in ("$","!","~","?","(","@") or GPAT.match(line):
-			self.sendGCode(line)
+		def send(line):
+			if isinstance(line, tuple) or \
+			   line[0] in ("$","!","~","?","(","@") or GPAT.match(line):
+				self.sendGCode(line)
+				return True
+			return False
+		if isinstance(line, list):
+			for w in line:
+				send(w)
 			return True
-		return False
+		return send(line)
 
 	def testHomeSingle(self):
 		def wait():
@@ -658,8 +688,11 @@ class Sender:
 		if self.serial and not self.running:
 			if isinstance(cmd,tuple):
 				self.queue.put(cmd, block=True)
-			else:
+			elif isinstance(cmd, str):
 				self.queue.put(cmd+"\n", block=True)
+			else:
+				for w in cmd:
+					self.sendGCode(w)
 			return True
 		return False
 
