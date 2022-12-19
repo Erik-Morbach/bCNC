@@ -201,8 +201,8 @@ class _GenericController:
 		settings = self.getSettings()
 		self.clearError()
 		for settingsUnit in settings:
+			time.sleep(0.003)
 			self.master.queue.put(settingsUnit+'\n', block=True)
-			self.master.execute('%wait')
 			if "G7" in settingsUnit:
 				CNC.vars["radius"] = "G7"
 
@@ -229,12 +229,11 @@ class _GenericController:
 				if axe in tool.keys():
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
+			time.sleep(0.003)
 			self.master.queue.put(cmd+'\n',block=True)
-			self.master.execute("%wait")
 		self.clearError()
-		self.master.execute("%wait")
+		time.sleep(0.003)
 		self.master.queue.put("G43\n",block=True)
-		self.master.execute("%wait")
 
 	def sendWorkTable(self):
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
@@ -243,18 +242,17 @@ class _GenericController:
 		self.clearError()
 		for work in workTable:
 			if "r" in work.keys():
+				time.sleep(0.003)
 				self.master.queue.put(work["r"]+'\n',block=True)
-				self.master.execute("%wait")
 			cmd = "G10L2P{}".format(int(work['index']))
 			for axe in axis:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
+			time.sleep(0.003)
 			self.master.queue.put(cmd+'\n', block=True)
-			self.master.execute("%wait")
 		self.clearError()
-		self.master.execute("%wait")
+		time.sleep(0.003)
 		self.master.queue.put(currentMode+'\n', block=True)
-		self.master.execute("%wait")
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')
