@@ -1092,14 +1092,24 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 
 		f2.pack(side=TOP, fill=X, expand=TRUE)
 
+		def getPort(numb):
+			return 1 if numb>6 else 0
+		def getPortState(numb):
+			return ((numb-1)//3)%2
+
 		f2 = Frame(self)
 		def setAxis(number, *args):
 			axis="XYZXYZABCABC"
-			n = int(number) - 1
+			number = int(number)
+			n = number - 1
 			CNC.vars["currentJogAxis"] = axis[n]
 			CNC.vars["currentJogAxisNumber"].set(n+1)
 			first = (n//3)*3 + 1
-			self.app.execute("M{}{}{}".format(first,first+1,first+2))
+			port = getPort(number)
+			newState = getPortState(number)
+			if CNC.vars["port{}State".format(port)] != newState:
+				CNC.vars["port{}State".format(port)] = newState
+				self.app.execute("M{}{}{}".format(first,first+1,first+2))
 		for i in range(1, 13):
 			self.app.bind("<<setAxis{}>>".format(i), functools.partial(setAxis, i))
 
@@ -1809,6 +1819,7 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		self._gUpdate = False
 		self.app = app
+		self.port = [0,0]
 		CNCRibbon.PageLabelFrame.__init__(self, master, "ProgramCreate", _("ProgramCreate"), app)
 		f = Frame(self)
 		b = Button(f, text="G0 to Current Position",
@@ -1824,6 +1835,8 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		self.addWidget(b)
 		self.feed = tkExtra.FloatEntry(f2, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black",width=5, font=DROFrame.dro_mpos)
 		self.feed.pack(side=LEFT, fill=BOTH, expand=TRUE)
+		self.feed.bind('<Return>',lambda ev=None, s=self: s.app.focus_set())
+		self.feed.bind('<KP_Enter>',lambda ev=None, s=self: s.app.focus_set())
 		f2.pack(side=TOP, fill=NONE, expand=False)
 		b = Button(f, text="Save Program",
 					command=self.saveProgram,
@@ -1843,28 +1856,36 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		except:
 			return 1000
 
+	def getPort(self, numb):
+		return 1 if numb>6 else 0
+	def getPortState(self, numb):
+		return ((numb-1)//3)%2
+
 	def goToPosition(self):
-		oldM = ((self.lastAxis-1)//3)*3
-		currentM = ((CNC.vars["currentJogAxisNumber"].get()-1)//3)*3 + 1
-		if oldM != currentM:
-			self.app.gcode._addLine("M{}{}{}".format(currentM,currentM+1, currentM+2))
-		self.lastAxis = CNC.vars["currentJogAxisNumber"].get()
+		number = CNC.vars["currentJogAxisNumber"].get()
+		port = self.getPort(number)
+		newState = self.getPortState(number)
+		if self.port[port] != newState:
+			self.port[port] = newState
+			first = ((number-1)//3)*3 + 1
+			self.app.gcode._addLine("M{}{}{}".format(first,first+1, first+2))
 		axis = CNC.vars["currentJogAxis"]
 		position = CNC.vars["m{}".format(axis.lower())]
 		cmd = "G53 G0 {} {}".format(axis, position)
 		self.app.gcode._addLine(cmd)
 
 	def traverseToPosition(self):
-		oldM = ((self.lastAxis-1)//3)*3
-		currentM = ((CNC.vars["currentJogAxisNumber"].get()-1)//3)*3 + 1
-		if oldM != currentM:
-			self.app.gcode._addLine("M{}{}{}".format(currentM,currentM+1, currentM+2))
-		self.lastAxis = CNC.vars["currentJogAxisNumber"].get()
+		number = CNC.vars["currentJogAxisNumber"].get()
+		port = self.getPort(number)
+		newState = self.getPortState(number)
+		if self.port[port] != newState:
+			self.port[port] = newState
+			first = ((number-1)//3)*3 + 1
+			self.app.gcode._addLine("M{}{}{}".format(first,first+1, first+2))
 		axis = CNC.vars["currentJogAxis"]
 		position = CNC.vars["m{}".format(axis.lower())]
 		cmd = "G53 G1 {} {} F{}".format(axis, position, self.getFeed())
 		self.app.gcode._addLine(cmd)
-		pass
 
 #===============================================================================
 # SpindleFrame

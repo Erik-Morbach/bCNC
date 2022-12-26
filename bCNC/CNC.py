@@ -749,6 +749,9 @@ class CNC:
 			"currentJogAxis" : 'X',
 			"currentJogAxisNumber" : 1,
 
+			"port0State": 0,
+			"port1State": 0,
+
 			"planner"    : -1,
 			"rxbytes"    : 0,
 
