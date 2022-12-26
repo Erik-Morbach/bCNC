@@ -998,6 +998,7 @@ class MdiFrame(CNCRibbon.PageLabelFrame):
 class ControlFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Control", _("Control"), app)
+		CNC.vars["currentJogAxisNumber"] = tkinter.IntVar(value=1)
 		self.isLathe = Utils.getBool("CNC","lathe",False)
 		self.axis = Utils.getStr("CNC", "axis", "XYZ")
 		self.crossAxis = Utils.getStr("CNC", "jogCross", "XY")
@@ -1092,40 +1093,46 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		f2.pack(side=TOP, fill=X, expand=TRUE)
 
 		f2 = Frame(self)
+		def setAxis(number, *args):
+			axis="XYZXYZABCABC"
+			n = int(number) - 1
+			CNC.vars["currentJogAxis"] = axis[n]
+			CNC.vars["currentJogAxisNumber"].set(n+1)
+			first = (n//3)*3 + 1
+			self.app.execute("M{}{}{}".format(first,first+1,first+2))
+		for i in range(1, 13):
+			self.app.bind("<<setAxis{}>>".format(i), functools.partial(setAxis, i))
 
-		def makeButton(frame, axe, dire, text, *args):
-			width=3
-			height=2
-			b = Button(frame, text=text.upper(),
-						command=functools.partial(self.move,axe, dire),
-						width=width, height=height,
-						activebackground="LightYellow", 
-						font=DROFrame.dro_status,
-						*args)
-			tkExtra.Balloon.set(b, _(axe))
+		def makeButton(frame, number, icon, *args):
+			b = Ribbon.LabelButton(frame, self, "<<setAxis{}>>".format(number),
+					image=Utils.icons[icon],
+					text=_(number),
+					compound=TOP,
+					width=40, height=40,
+					background=Ribbon._BACKGROUND)
+			tkExtra.Balloon.set(b, _(number))
 			self.addWidget(b)
 			return b #b.pack(side=TOP, fill=BOTH, expand=TRUE)
-		
-		verticalAxis = [w for w in self.axis if w not in self.crossAxis]
 
 		f3 = Frame(f2)
-		for i in range(1, len(self.crossAxis),2):
-			horizontal = self.crossAxis[i]
-			vertical = self.crossAxis[i-1]
-			# +
-			#- +
-			# -
-			f4 = Frame(f3)
-			makeButton(f4, vertical, "+", vertical+"+").grid(row=0, column=1)
-			makeButton(f4, vertical, "-", vertical+"-").grid(row=2, column=1)
-			makeButton(f4, horizontal, "-", horizontal+"-").grid(row=1, column=0)
-			makeButton(f4, horizontal, "+", horizontal+"+").grid(row=1, column=2)
-			f4.pack(side=LEFT, fill=BOTH, expand=FALSE)
-		for axe in verticalAxis:
-			f4 = Frame(f3)
-			makeButton(f4, axe, "+", axe+"+").pack(side=TOP)
-			makeButton(f4, axe, "-", axe+"-").pack(side=BOTTOM)
-			f4.pack(side=LEFT,fill=BOTH, expand=FALSE)
+		f4 = Frame(f3)
+		makeButton(f4, "1", "flip_horizontal").grid(row=2, column=0)
+		makeButton(f4, "2", "flip_angle").grid(row=1, column=1)
+		makeButton(f4, "3", "flip_vertical").grid(row=0, column=2)
+		makeButton(f4, "4", "refresh").grid(row=1, column=2)
+		makeButton(f4, "5", "flip_-angle").grid(row=1, column=3)
+		makeButton(f4, "6", "flip_horizontal").grid(row=2, column=4)
+		makeButton(f4, "7", "flip_angle").grid(row=3, column=3)
+		makeButton(f4, "8", "flip_vertical").grid(row=4, column=2)
+		makeButton(f4, "9", "flip_-angle").grid(row=3, column=1)
+		f4.pack(side=LEFT,fill=BOTH, expand=FALSE)
+		f4 = Frame(f3)
+		makeButton(f4, "10", "pencil").grid(row=1, column=0)
+		makeButton(f4, "11", "refresh").grid(row=1, column=1)
+		makeButton(f4, "12", "refresh").grid(row=1, column=2)
+
+		Label(f4, textvariable=CNC.vars["currentJogAxisNumber"], font=DROFrame.dro_wpos).grid(row=2, column=1)
+		f4.pack(side=LEFT,fill=BOTH, expand=TRUE)
 		f3.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
@@ -1207,6 +1214,22 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("Y-%s"%(self.step.get()))
 
+	def moveZup(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("Z%s"%(self.step.get()))
+
+	def moveZdown(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("Z-%s"%(self.step.get()))
+
+	def moveAup(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("A%s"%(self.step.get()))
+
+	def moveAdown(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("A-%s"%(self.step.get()))
+
 	def moveBup(self, event=None):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("B%s"%(self.step.get()))
@@ -1214,6 +1237,14 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 	def moveBdown(self, event=None):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("B-%s"%(self.step.get()))
+
+	def moveCup(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("C%s"%(self.step.get()))
+
+	def moveCdown(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("C-%s"%(self.step.get()))
 
 	def moveXdownYup(self, event=None):
 		if event is not None and not self.acceptKey(): return
@@ -1247,13 +1278,6 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("Z%sX-%s"%(self.step.get(),self.step.get()))
 
-	def moveZup(self, event=None):
-		if event is not None and not self.acceptKey(): return
-		self.app.mcontrol.jog("Z%s"%(self.getStep('z')))
-
-	def moveZdown(self, event=None):
-		if event is not None and not self.acceptKey(): return
-		self.app.mcontrol.jog("Z-%s"%(self.getStep('z')))
 
 	def go2origin(self, event=None):
 		self.sendGCode("G90")
@@ -1777,6 +1801,71 @@ class NotebookFrame(CNCRibbon.PageLabelFrame):
         if Utils.getBool("CNC", "pidLog", False):
                 self.notebook.add(self.pidLogFrame, text="PidLog")
 
+
+#===============================================================================
+# ProgramCreaterame
+#===============================================================================
+class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
+	def __init__(self, master, app):
+		self._gUpdate = False
+		self.app = app
+		CNCRibbon.PageLabelFrame.__init__(self, master, "ProgramCreate", _("ProgramCreate"), app)
+		f = Frame(self)
+		b = Button(f, text="G0 to Current Position",
+					command=self.goToPosition,
+					activebackground="LightYellow")
+		b.pack(side=TOP, fill=BOTH)
+		self.addWidget(b)
+		f2 = Frame(f)
+		b = Button(f2, text="G1 to Current Position",
+					command=self.traverseToPosition,
+					activebackground="LightYellow")
+		b.pack(side=LEFT,fill=BOTH, expand=TRUE)
+		self.addWidget(b)
+		self.feed = tkExtra.FloatEntry(f2, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black",width=5, font=DROFrame.dro_mpos)
+		self.feed.pack(side=LEFT, fill=BOTH, expand=TRUE)
+		f2.pack(side=TOP, fill=NONE, expand=False)
+		b = Button(f, text="Save Program",
+					command=self.saveProgram,
+					activebackground="LightYellow")
+		b.pack(side=TOP, fill=BOTH)
+		self.addWidget(b)
+		f.pack(side=LEFT, fill=Y, expand=False)
+		self.lastAxis = 50
+	
+	def saveProgram(self, *args):
+		self.app.saveAll()
+		self.app.reload()
+	
+	def getFeed(self):
+		try:
+			return float(self.feed.get())
+		except:
+			return 1000
+
+	def goToPosition(self):
+		oldM = ((self.lastAxis-1)//3)*3
+		currentM = ((CNC.vars["currentJogAxisNumber"].get()-1)//3)*3 + 1
+		if oldM != currentM:
+			self.app.gcode._addLine("M{}{}{}".format(currentM,currentM+1, currentM+2))
+		self.lastAxis = CNC.vars["currentJogAxisNumber"].get()
+		axis = CNC.vars["currentJogAxis"]
+		position = CNC.vars["m{}".format(axis.lower())]
+		cmd = "G53 G0 {} {}".format(axis, position)
+		self.app.gcode._addLine(cmd)
+
+	def traverseToPosition(self):
+		oldM = ((self.lastAxis-1)//3)*3
+		currentM = ((CNC.vars["currentJogAxisNumber"].get()-1)//3)*3 + 1
+		if oldM != currentM:
+			self.app.gcode._addLine("M{}{}{}".format(currentM,currentM+1, currentM+2))
+		self.lastAxis = CNC.vars["currentJogAxisNumber"].get()
+		axis = CNC.vars["currentJogAxis"]
+		position = CNC.vars["m{}".format(axis.lower())]
+		cmd = "G53 G1 {} {} F{}".format(axis, position, self.getFeed())
+		self.app.gcode._addLine(cmd)
+		pass
+
 #===============================================================================
 # SpindleFrame
 #===============================================================================
@@ -2197,7 +2286,7 @@ class JogPage(CNCRibbon.Page):
 		wcsvar.set(0)
 
 		self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup, ToolGroup),
-			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, SpindleFrame, MdiFrame))
+			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, SpindleFrame, MdiFrame, ProgramCreateFrame))
 	def activate(self, **kwargs):
 		CNC.vars["JogActive"] = True
 

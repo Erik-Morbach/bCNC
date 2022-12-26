@@ -69,5 +69,7 @@ class JogController:
             self.mutex.release()
         if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:
             return
-        self.keys[self.mapCodeToKey[data.keycode]](data)
+        axis = CNC.vars["currentJogAxis"]
+        dir = self.mapCodeToKey[data.keycode][1:]
+        self.keys[axis+dir](data)
 

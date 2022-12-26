@@ -746,6 +746,9 @@ class CNC:
 			"execution"  : False,
 			"debug"      : False,
 
+			"currentJogAxis" : 'X',
+			"currentJogAxisNumber" : 1,
+
 			"planner"    : -1,
 			"rxbytes"    : 0,
 
