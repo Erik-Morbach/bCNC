@@ -98,11 +98,11 @@ class _GenericController:
 	#----------------------------------------------------------------------
 	def clearError(self):
 		time.sleep(0.003)
-		self.master.queue.put("$X?\n",block=True)
+		self.master.deque.append("$X?\n")
 		time.sleep(0.003)
-		self.master.queue.put("$\n",block=True)
+		self.master.deque.append("$\n")
 		time.sleep(0.003)
-		self.master.queue.put("$X?\n",block=True)
+		self.master.deque.append("$X?\n")
 
 	#----------------------------------------------------------------------
 	def unlock(self, clearAlarm=True):
@@ -135,7 +135,7 @@ class _GenericController:
 		self.clearError()
 		for settingsUnit in settings:
 			time.sleep(0.003)
-			self.master.queue.put(settingsUnit+'\n', block=True)
+			self.master.deque.append(settingsUnit+'\n')
 			if "G7" in settingsUnit:
 				CNC.vars["radius"] = "G7"
 
@@ -163,10 +163,10 @@ class _GenericController:
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
 			time.sleep(0.003)
-			self.master.queue.put(cmd+'\n',block=True)
+			self.master.deque.append(cmd+'\n',)
 		self.clearError()
 		time.sleep(0.003)
-		self.master.queue.put("G43\n",block=True)
+		self.master.deque.append("G43\n")
 
 	def sendWorkTable(self):
 		axis = Utils.getStr("CNC", "axis", "XYZABC").lower()
@@ -176,16 +176,16 @@ class _GenericController:
 		for work in workTable:
 			if "r" in work.keys():
 				time.sleep(0.003)
-				self.master.queue.put(work["r"]+'\n',block=True)
+				self.master.deque.append(work["r"]+'\n')
 			cmd = "G10L2P{}".format(int(work['index']))
 			for axe in axis:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
 			time.sleep(0.003)
-			self.master.queue.put(cmd+'\n', block=True)
+			self.master.deque.append(cmd+'\n')
 		self.clearError()
 		time.sleep(0.003)
-		self.master.queue.put(currentMode+'\n', block=True)
+		self.master.deque.append(currentMode+'\n')
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')
@@ -380,7 +380,8 @@ class _GenericController:
 
 		elif "error:" in line or "ALARM:" in line:
 			self.master.log.put((self.master.MSG_ERROR, line))
-			self.master._gcount += 1
+			if not self.master.isRunningMacro():
+				self.master._gcount += 1
 			#print "gcount ERROR=",self._gcount
 			if cline: del cline[0]
 			if sline: CNC.vars["errline"] = sline.pop(0)
@@ -392,7 +393,8 @@ class _GenericController:
 
 		elif line.find("ok")>=0:
 			self.master.log.put((self.master.MSG_OK, line))
-			self.master._gcount += 1
+			if not self.master.isRunningMacro:
+				self.master._gcount += 1
 			if cline: del cline[0]
 			if sline: del sline[0]
 			#print "SLINE:",sline

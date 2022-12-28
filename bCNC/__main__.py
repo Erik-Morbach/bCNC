@@ -94,7 +94,7 @@ firmware = GRBL_HAL if Utils.getStr('CNC', 'firmware', 'Grbl_Esp32') == 'Grbl_HA
 print("FIRMWARE =", firmware)
 grblIPAddress = '192.168.5.1' if firmware == GRBL_HAL else 'http://192.168.0.1'
 
-MONITOR_AFTER = 40  # ms
+MONITOR_AFTER = 33  # ms
 DRAW_AFTER = 5000  # ms
 
 RX_BUFFER_SIZE = 512
@@ -464,7 +464,7 @@ class Application(Toplevel, Sender):
 
         def stopJog(*args):
             if self.serial is None: return
-            self.emptyQueue()
+            self.emptyDeque()
             for _ in range(20):
                 self.serial_write(chr(0x85))
             self.serial.flush()
@@ -1306,10 +1306,6 @@ class Application(Toplevel, Sender):
     def execute(self, line):
         # print
         # print "<<<",line
-        if self.isExpandable(line):
-            for w in self.expand(line):
-                self.execute(w)
-            return
         try:
             line = self.evaluate(line)
         except:
@@ -2478,10 +2474,10 @@ class Application(Toplevel, Sender):
             #		print ">>>",line
             # self._paths = self.gcode.compile(MyQueue(), self.checkStop)
             # return
-            self._paths = self.gcode.compile(self.queue, self.checkStop, doNotUploadQueue=fromSD, fromSD=fromSD)
+            self._paths = self.gcode.compile(self.deque, self.checkStop, doNotUploadDeque=fromSD, fromSD=fromSD)
 
             if self._paths is None:
-                self.emptyQueue()
+                self.emptyDeque()
                 self.purgeController()
                 return
             elif not self._paths:
@@ -2519,13 +2515,13 @@ class Application(Toplevel, Sender):
             for line in CNC.compile(lines):
                 if line is not None:
                     if isinstance(line, str):
-                        self.queue.put(line + "\n")
+                        self.deque.append(line + "\n")
                     else:
-                        self.queue.put(line)
+                        self.deque.append(line)
                     n += 1
             self._runLines = n  # set it at the end to be sure that all lines are queued
         if not fromSD:
-            self.queue.put((WAIT,))  # wait at the end to become idle
+            self.deque.append((WAIT,))  # wait at the end to become idle
 
         self.setStatus(_("Running..."))
         self.statusbar.setLimits(0, self._runLines)
@@ -2705,7 +2701,7 @@ class Application(Toplevel, Sender):
         self.panel.update()
 
         if self.running:
-            self.statusbar.setProgress(self._runLines - self.queue.qsize(),
+            self.statusbar.setProgress(self._runLines - len(self.deque),
                                        self._gcount)
             CNC.vars["msg"] = self.statusbar.msg
             self.bufferbar.setProgress(Sender.getBufferFill(self))
