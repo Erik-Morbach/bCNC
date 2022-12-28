@@ -42,6 +42,8 @@ ASK    = 2
 MSG    = 3
 WAIT   = 4
 UPDATE = 5
+RUN_MACRO = 6
+END_RUN_MACRO = 7
 
 XY   = 0
 XZ   = 1
@@ -1184,7 +1186,7 @@ class CNC:
 		# most probably an assignment like  #nnn = expr
 		if line[0]=='_':
 			try:
-				return compile(line,"","exec")
+				return compile(line[1:],"","exec")
 			except:
 				# FIXME show the error!!!!
 				return None
@@ -2288,7 +2290,6 @@ class GCode:
 			v['os'] = os
 			v['app'] = app
 			return eval(line,CNC.vars,self.vars)
-
 		else:
 			return line
 
@@ -4641,24 +4642,24 @@ class GCode:
 	#----------------------------------------------------------------------
 	# Use probe information to modify the g-code to autolevel
 	#----------------------------------------------------------------------
-	def compile(self, queue, stopFunc=None,doNotUploadQueue:bool=False, fromSD:bool=False):
+	def compile(self, deque, stopFunc=None,doNotUploadDeque:bool=False, fromSD:bool=False):
 		#lines  = [self.cnc.startup]
 		paths   = []
 		self.repeatEngine.fromSD = fromSD
 
-		if fromSD and doNotUploadQueue:
+		if fromSD and doNotUploadDeque:
 			fileName = "TmpFile.nc"
 			if Utils.getStr('CNC', 'firmware') == 'Grbl_HAL':
-				queue.put("$F="+fileName+"\n")
+				deque.append("$F="+fileName+"\n")
 			else:
-				queue.put("$SD/run=/{}\n".format(fileName))
+				deque.append("$SD/run=/{}\n".format(fileName))
 			
 		def add(line, path):
-			if line is not None and not doNotUploadQueue:
+			if line is not None and not doNotUploadDeque:
 				if isinstance(line,str):
-					queue.put(line+"\n")
+					deque.append(line+"\n")
 				else:
-					queue.put(line)
+					deque.append(line)
 			paths.append(path)
 		autolevel = not self.probe.isEmpty()
 		self.initPath()
@@ -4762,8 +4763,6 @@ class GCode:
 					   self.cnc.gcode in (81,82,83,85,86,89):
 						expand = self.cnc.macroGroupG8X()
 					# Tool change
-					elif Utils.macroExists(self.cnc.mval):
-						expand = CNC.compile(Utils.macroExecute(self.cnc.mval))
 					elif self.cnc.mval == 6:
 						if CNC.toolPolicy == 0:
 							pass	# send to grbl
