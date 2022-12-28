@@ -1186,7 +1186,7 @@ class CNC:
 		# most probably an assignment like  #nnn = expr
 		if line[0]=='_':
 			try:
-				return compile(line,"","exec")
+				return compile(line[1:],"","exec")
 			except:
 				# FIXME show the error!!!!
 				return None
@@ -2290,7 +2290,6 @@ class GCode:
 			v['os'] = os
 			v['app'] = app
 			return eval(line,CNC.vars,self.vars)
-
 		else:
 			return line
 

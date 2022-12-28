@@ -380,7 +380,7 @@ class _GenericController:
 
 		elif "error:" in line or "ALARM:" in line:
 			self.master.log.put((self.master.MSG_ERROR, line))
-			if not self.master.isRunningMacro:
+			if not self.master.isRunningMacro():
 				self.master._gcount += 1
 			#print "gcount ERROR=",self._gcount
 			if cline: del cline[0]

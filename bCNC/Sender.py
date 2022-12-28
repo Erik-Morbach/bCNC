@@ -128,7 +128,7 @@ class Sender:
 		self.readThread= None
 		self.writeRTThread = None
 		self.repeatLock = threading.Lock()
-		self.isRunningMacro = False
+		self.macrosRunning = 0
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -683,7 +683,7 @@ class Sender:
 		self._pause  = False
 		self._paths  = None
 		self.running = True
-		self.isRunningMacro = False
+		self.macrosRunning = 0
 		self.disable()
 		self.emptyDeque()
 		time.sleep(1)
@@ -712,7 +712,7 @@ class Sender:
 		self._msg      = None
 		self._pause    = False
 		self.running   = False
-		self.isRunningMacro = False
+		self.macrosRunning = 0
 		CNC.vars["running"] = False
 		CNC.vars["pgmEnd"] = False
 
@@ -832,6 +832,14 @@ class Sender:
 	def hasNewCommand(self):
 		return len(self.deque)!=0
 
+	def shouldSkipCommand(self, cmd):
+		if not isinstance(cmd, str): return False
+		cmd = cmd.upper()
+		if CNC.vars["SafeDoor"]:
+			if "M3" in cmd or "M4" in cmd:
+				return True
+		return False
+
 	def getNextCommand(self):
 		return self.deque.popleft()
 
@@ -860,29 +868,69 @@ class Sender:
 			self._gcount += 1
 			self._update = value
 		elif id == RUN_MACRO:
-			self.isRunningMacro = True
+			self.macrosRunning += 1
 		elif id == END_RUN_MACRO:
-			self.isRunningMacro = False
+			self.macrosRunning -= 1
 		else:
 			self._gcount += 1
 
 	def executeStrInternalCommand(self, code):
 		pass
 
+	def isRunningMacro(self):
+		return self.macrosRunning > 0
+
+
 	def executeInternalCommand(self, code):
 		if isinstance(code, tuple): return self.executeTupleInternalCommand(code)
 		return self.executeStrInternalCommand(code)
+
 	def waitWhileRxBufferFull(self):
 		while sum(self._cline) >= RX_BUFFER_SIZE:
 			time.sleep(0.001)
 
+	def isRxBufferFull(self):
+		return sum(self._cline) >= RX_BUFFER_SIZE
+
+	def checkStop(self):
+		if self._stop:
+			self.emptyDeque()
+			self.log.put((Sender.MSG_CLEAR, ""))
+			# WARNING if runLines==maxint then it means we are
+			# still preparing/sending lines from from bCNC.run(),
+			# so don't stop
+			if self._runLines != sys.maxsize:
+				self._stop = False
+			return True
+		return False
+
+	def shouldEvaluate(self, cmd):
+		if isinstance(cmd, list): return True
+		if isinstance(cmd, types.CodeType): return True
+		return False
+
 	def needProcess(self, cmd) -> bool:
-		if not isinstance(cmd, str): return False
+		if not isinstance(cmd, str):
+			return self.shouldEvaluate(cmd)
 		if Utils.macroExists(MacroEngine.Macro.getMCode(cmd)):
 			return True
 		return False
 
 	def process(self, cmd):
+		if self.shouldEvaluate(cmd):
+			line = ""
+			try:
+				line = self.gcode.evaluate(cmd)
+			except Exception as err:
+				print(err)
+				self._stop = True
+				return
+			if isinstance(line, str):
+				line += "\n"
+			else: 
+				self._gcount += 1
+			self.deque.appendleft(line)
+			return
 		self.deque.appendleft((END_RUN_MACRO,))
 		if Utils.macroExists(mcode:=MacroEngine.Macro.getMCode(cmd)):
 			executor = Utils.macroExecutor(mcode,CNC)
@@ -891,6 +939,7 @@ class Sender:
 			except Exception as err:
 				print(err)
 				self.deque.appendleft((RUN_MACRO,))
+				self._stop = True
 				return
 			queue = executor.getQueue()
 			vec = []
@@ -930,6 +979,9 @@ class Sender:
 			else:
 				continue
 
+			if self.shouldSkipCommand(toSend):
+				continue
+
 			if self.needProcess(toSend):
 				self.executeInternalCommand((WAIT,))
 				processCommand = toSend
@@ -943,7 +995,17 @@ class Sender:
 			self._sline.append(toSend)
 			self._cline.append(len(toSend))
 
-			self.waitWhileRxBufferFull()
+			if self.checkStop():
+				continue
+
+			hasStoped = False
+			while self.isRxBufferFull():
+				time.sleep(0.001)
+				if self.checkStop():
+					hasStoped = True
+					break
+			if hasStoped:
+				continue
 
 			self._sumcline = sum(self._cline)
 			self.serial_write(toSend)
