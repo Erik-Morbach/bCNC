@@ -1000,7 +1000,7 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Control", _("Control"), app)
 		self.isLathe = Utils.getBool("CNC","lathe",False)
 		self.axis = Utils.getStr("CNC", "axis", "XYZ")
-		self.crossAxis = Utils.getStr("CNC", "jogCross", "XY")
+		self.crossAxis = Utils.getStr("CNC", "jogCross", "YX")
 		self.jogSpeeds = []
 		i = 0
 		while 1:
