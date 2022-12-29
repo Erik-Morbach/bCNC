@@ -444,7 +444,7 @@ class Application(Toplevel, Sender):
             self.control.moveBdown()
             releaseJogMutex()
         def jog(ev, *args):
-            data = ev.data
+            data = ev.user_data
             axis = ""
             directions = ""
             for i in range(len(data)):
