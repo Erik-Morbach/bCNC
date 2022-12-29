@@ -1001,7 +1001,7 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		CNC.vars["currentJogAxisNumber"] = tkinter.IntVar(value=1)
 		self.isLathe = Utils.getBool("CNC","lathe",False)
 		self.axis = Utils.getStr("CNC", "axis", "XYZ")
-		self.crossAxis = Utils.getStr("CNC", "jogCross", "XY")
+		self.crossAxis = Utils.getStr("CNC", "jogCross", "YX")
 		self.jogSpeeds = []
 		i = 0
 		while 1:

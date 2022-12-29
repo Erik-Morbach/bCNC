@@ -34,8 +34,9 @@ class Macro:
 
 
 class Executor:
-    def __init__(self, macro, CNCRef):
+    def __init__(self, macro, app, CNCRef):
         self.CNC = CNCRef
+        self.app = app
         self.macro = macro
         self.queue = queue.Queue()
     def getQueue(self):
@@ -45,12 +46,20 @@ class Executor:
         loca["code"] = self.code
         loca["wait"] = self.wait
         loca["get"] = self.get
+        loca["set"] = self.set
         exec(self.macro.compiled, loca, globa)
 
     def code(self, gcode):
-        if isinstance(gcode, str):
-            gcode += '\n'
+        gcode = self.app.evaluate(gcode)
+        nex = None
+        if isinstance(gcode, str): gcode += "\n"
+        elif isinstance(gcode, list): gcode += ['\n']
+        else: nex = '\n'
         self.queue.put(gcode)
+        if nex is not None: self.queue.put('\n')
+
+    def set(self, name, value):
+        self.CNC.vars[name] = value
 
     def get(self, name):
         return self.CNC.vars[name]

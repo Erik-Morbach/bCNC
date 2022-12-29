@@ -10,6 +10,7 @@ import Utils
 import os.path
 import time
 import re
+import threading
 
 #GRBLv1
 SPLITPAT  = re.compile(r"[:,]")
@@ -92,16 +93,18 @@ class _GenericController:
 		self.master.stopProbe()
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
-		self.unlock()
-		self.viewParameters()
+		def tg():
+			time.sleep(0.01)
+			while self.master._stop:
+				time.sleep(0.001)
+			self.unlock()
+			self.viewParameters()
+		threading.Thread(target=tg).start()
 
 	#----------------------------------------------------------------------
 	def clearError(self):
-		time.sleep(0.003)
 		self.master.deque.append("$X?\n")
-		time.sleep(0.003)
 		self.master.deque.append("$\n")
-		time.sleep(0.003)
 		self.master.deque.append("$X?\n")
 
 	#----------------------------------------------------------------------
@@ -148,7 +151,6 @@ class _GenericController:
 		settings = self.getSettings()
 		self.clearError()
 		for settingsUnit in settings:
-			time.sleep(0.003)
 			self.master.deque.append(settingsUnit+'\n')
 			if "G7" in settingsUnit:
 				CNC.vars["radius"] = "G7"
@@ -176,10 +178,8 @@ class _GenericController:
 				if axe in tool.keys():
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
-			time.sleep(0.003)
 			self.master.deque.append(cmd+'\n',)
 		self.clearError()
-		time.sleep(0.003)
 		self.master.deque.append("G43\n")
 
 	def sendWorkTable(self):
@@ -189,16 +189,13 @@ class _GenericController:
 		self.clearError()
 		for work in workTable:
 			if "r" in work.keys():
-				time.sleep(0.003)
 				self.master.deque.append(work["r"]+'\n')
 			cmd = "G10L2P{}".format(int(work['index']))
 			for axe in axis:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
-			time.sleep(0.003)
 			self.master.deque.append(cmd+'\n')
 		self.clearError()
-		time.sleep(0.003)
 		self.master.deque.append(currentMode+'\n')
 
 	def viewState(self): #Maybe rename to viewParserState() ???

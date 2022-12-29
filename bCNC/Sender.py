@@ -23,6 +23,7 @@ import webbrowser
 import struct
 import MacroEngine
 import lib.Deque
+import types
 
 from datetime import datetime
 
@@ -148,11 +149,9 @@ class Sender:
 		self._sumcline	 = 0
 		self._lastFeed	 = 0
 		self._newFeed	 = 0
-		self._stopHomeTest = 0
 
 		self._onStart    = ""
 		self._onStop     = ""
-
 
 	#----------------------------------------------------------------------
 	def controllerLoad(self):
@@ -808,6 +807,7 @@ class Sender:
 	# thread performing I/O on serial line
 	#----------------------------------------------------------------------
 	def serialIOWriteRT(self):
+		self.sio_count = 0
 		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
 		while self.writeRTThread:
 			time.sleep(WRITE_THREAD_PERIOD)
@@ -827,7 +827,7 @@ class Sender:
 	# Helper functions for serialIOWrite
 	#----------------------------------------------------------------------
 	def shouldSend(self):
-		return not self.sio_wait and not self._pause and not self._stop
+		return not self.sio_wait and not self._pause
 
 	def hasNewCommand(self):
 		return len(self.deque)!=0
@@ -892,9 +892,10 @@ class Sender:
 	def isRxBufferFull(self):
 		return sum(self._cline) >= RX_BUFFER_SIZE
 
-	def checkStop(self):
+	def _checkAndEvaluateStop(self):
 		if self._stop:
 			self.emptyDeque()
+			self.macrosRunning = 0
 			self.log.put((Sender.MSG_CLEAR, ""))
 			# WARNING if runLines==maxint then it means we are
 			# still preparing/sending lines from from bCNC.run(),
@@ -933,7 +934,7 @@ class Sender:
 			return
 		self.deque.appendleft((END_RUN_MACRO,))
 		if Utils.macroExists(mcode:=MacroEngine.Macro.getMCode(cmd)):
-			executor = Utils.macroExecutor(mcode,CNC)
+			executor = Utils.macroExecutor(mcode, self, CNC)
 			try:
 				executor.execute(CNC.vars, self.gcode.vars)
 			except Exception as err:
@@ -956,7 +957,6 @@ class Sender:
 	def serialIOWrite(self):
 		self.sio_wait   = False		# wait for commands to complete (status change to Idle)
 		self.sio_status = False		# waiting for status <...> report
-		self.sio_count = 0
 		self._cline  = []		# length of pipeline commands
 		self._sline  = []			# pipeline commands
 		toSend = None			# next string to send
@@ -966,12 +966,17 @@ class Sender:
 		while self.writeThread:
 			time.sleep(WRITE_THREAD_PERIOD)
 
+			if self._checkAndEvaluateStop():
+				continue
+
 			if not self.shouldSend():
 				continue
+
 			if waitingToProcess:
 				self.process(processCommand)
 				waitingToProcess = False
 				processCommand = ""
+				continue
 
 			toSend = None
 			if self.hasNewCommand():
@@ -995,13 +1000,13 @@ class Sender:
 			self._sline.append(toSend)
 			self._cline.append(len(toSend))
 
-			if self.checkStop():
+			if self._checkAndEvaluateStop():
 				continue
 
 			hasStoped = False
 			while self.isRxBufferFull():
 				time.sleep(0.001)
-				if self.checkStop():
+				if self._checkAndEvaluateStop():
 					hasStoped = True
 					break
 			if hasStoped:

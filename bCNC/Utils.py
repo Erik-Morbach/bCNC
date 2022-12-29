@@ -272,9 +272,9 @@ def macroExists(id):
     return int(id) in macrosCache.keys()
 
 
-def macroExecutor(id, CNCRef):
+def macroExecutor(id, app, CNCRef):
     global macrosCache
-    executor = macros.Executor(macrosCache[id], CNCRef)
+    executor = macros.Executor(macrosCache[id], app, CNCRef)
     return executor
 
 #------------------------------------------------------------------------------
