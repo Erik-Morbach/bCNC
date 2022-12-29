@@ -187,7 +187,8 @@ class Jog(MemberImpl):
         mutex.acquire()
         self.app.jogMutex = mutex
         self.app.focus_set()
-        self.app.event_generate("<<JOG>>", when="tail", data=data)
+        self.app.jogData = data
+        self.app.event_generate("<<JOG>>", when="tail")
         self.jogLastAction = self.JOGMOTION
         mutex.acquire(blocking=True, timeout=0.5)
         self.app.jogMutex = None
