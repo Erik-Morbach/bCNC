@@ -217,6 +217,7 @@ class Selector(MemberImpl):
         self.active = Utils.getBool(self.selectorName, "panel", False)
         debounce = Utils.getFloat(self.selectorName, "debounce", 0.1)
         self.selectorType = Utils.getBool(self.selectorName, "binary", False)
+        self.grayCodeActive = Utils.getBool(self.selectorName, "gray", False)
 
         binary =  lambda index, id: index + (2**id)
         direct = lambda index, id: id
@@ -244,11 +245,22 @@ class Selector(MemberImpl):
         inversion = Utils.getInt(self.selectorName, "inversion", 0)
         return pins, inversion
 
+    @staticmethod
+    def grayToBinary(num):
+        num ^= num >> 16
+        num ^= num >> 8
+        num ^= num >> 4
+        num ^= num >> 2
+        num ^= num >> 1
+        return num
+
     def calculateIndex(self, selector: list):
         index = 0
         for id, w in enumerate(selector):
             if w == 1:
                 index = self.typeFunction(index, id)
+        if self.grayCodeActive:
+            index = Selector.grayToBinary(index)
         return index
 
     def callback(self, selector: list):
