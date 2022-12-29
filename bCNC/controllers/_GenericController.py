@@ -94,7 +94,7 @@ class _GenericController:
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		def tg():
-			time.sleep(0.01)
+			time.sleep(0.1)
 			while self.master._stop:
 				time.sleep(0.001)
 			self.unlock()
