@@ -152,15 +152,6 @@ class Sender:
 
 		self._onStart    = ""
 		self._onStop     = ""
-		self.a = 0
-		def tg():
-			while 1:
-				time.sleep(0.1)
-				self.a = 0
-				self.a += 1
-		threading.Thread(target=tg).start()
-
-
 
 	#----------------------------------------------------------------------
 	def controllerLoad(self):
