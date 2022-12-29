@@ -443,13 +443,15 @@ class Application(Toplevel, Sender):
         def bDown(*args):
             self.control.moveBdown()
             releaseJogMutex()
-        def jog(data="", *args):
+        def jog(ev, *args):
+            data = ev.data
             axis = ""
             directions = ""
             for i in range(len(data)):
                 axis += data[i]
                 directions += data[i+1]
             self.control.move(axis, directions, 1)
+            
 
         self.bind('<<JOG>>', jog)
 
