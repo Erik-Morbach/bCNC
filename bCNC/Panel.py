@@ -183,6 +183,8 @@ class Jog(MemberImpl):
                         continue
                 data += con[0]
                 data += '+' if con[1:] == "Up" else '-'
+        if len(data) == 0:
+            return
         mutex = threading.Lock()
         mutex.acquire()
         self.app.jogMutex = mutex
@@ -354,9 +356,9 @@ class StartButton(ButtonPanel):
     def __init__(self, app, index) -> None:
          super().__init__(app, index)
     def on(self):
-        if CNC.vars["state"] == "Idle" and not self.app.running:
+        if "idle" in CNC.vars["state"].lower() and not self.app.running:
             self.app.event_generate("<<Run>>", when="tail")
-        elif CNC.vars["state"] == "Hold":
+        elif "hold" in CNC.vars["state"].lower():
             self.app.resume()
 
 class PauseButton(ButtonPanel):
