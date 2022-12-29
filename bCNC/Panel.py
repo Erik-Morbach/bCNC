@@ -224,12 +224,12 @@ class Selector(MemberImpl):
         self.selectorName = "Selector{}".format(index)
         self.active = Utils.getBool(self.selectorName, "panel", False)
         debounce = Utils.getFloat(self.selectorName, "debounce", 0.1)
-        self.selectorType = Utils.getBool(self.selectorName, "binary", False)
+        self.selectorBinaryType = Utils.getBool(self.selectorName, "binary", False)
         self.grayCodeActive = Utils.getBool(self.selectorName, "gray", False)
 
         binary =  lambda index, id: index + (2**id)
         direct = lambda index, id: id
-        self.typeFunction = binary if self.selectorType else direct
+        self.typeFunction = binary if self.selectorBinaryType else direct
 
         self.variableBegin = Utils.getFloat(self.selectorName, "begin", -1)
         self.variableEnd = Utils.getFloat(self.selectorName, "end", -1)
@@ -241,8 +241,8 @@ class Selector(MemberImpl):
 
         self.useBeginEnd = self.variableBegin!=-1
         self.resolution = len(pins)
-        if self.selectorType:
-            self.resolution = 2**self.resolution
+        if self.selectorBinaryType:
+            self.resolution = 2**self.resolution-1
 
         print(self.selectorName, end= ' ')
         if self.useBeginEnd:

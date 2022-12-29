@@ -447,11 +447,11 @@ class Application(Toplevel, Sender):
             data = self.jogData
             axis = ""
             directions = ""
-            for i in range(len(data)):
+            for i in range(0, len(data), 2):
                 axis += data[i]
                 directions += data[i+1]
             self.control.move(axis, directions, 1)
-            
+            releaseJogMutex()
 
         self.bind('<<JOG>>', jog)
 
