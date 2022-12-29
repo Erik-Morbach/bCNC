@@ -244,7 +244,10 @@ class Selector(MemberImpl):
             self.resolution = 2**self.resolution
 
         print(self.selectorName, end= ' ')
-        self.currentVar = self.variableOptions[0]
+        if self.useBeginEnd:
+            self.currentVar = self.variableBegin
+        else:
+            self.currentVar = self.variableOptions[0]
         super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
