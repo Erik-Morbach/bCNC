@@ -116,7 +116,14 @@ class Jog(MemberImpl):
     def __init__(self, app):
         self.active = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
 
-        self.type = Utils.getBool("Jog", "dirMode", True)
+        self.type = Utils.getBool("Jog", "directionMode", True)
+        #directionMode:
+        # pin0: axis
+        # pin1: direction
+        #
+        # directMode:
+        # pin0: axis+
+        # pin1: axis-
 
         self.axisMap = "XYZABC"
         self.directionMap = {0: "Up", 1: "Down"}
