@@ -1092,11 +1092,6 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 
 		f2.pack(side=TOP, fill=X, expand=TRUE)
 
-		def getPort(numb):
-			return 1 if numb>6 else 0
-		def getPortState(numb):
-			return ((numb-1)//3)%2
-
 		f2 = Frame(self)
 		def setAxis(number, *args):
 			axis="XYZXYZABCABC"
@@ -1105,11 +1100,8 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			CNC.vars["currentJogAxis"] = axis[n]
 			CNC.vars["currentJogAxisNumber"].set(n+1)
 			first = (n//3)*3 + 1
-			port = getPort(number)
-			newState = getPortState(number)
-			if CNC.vars["port{}State".format(port)] != newState:
-				CNC.vars["port{}State".format(port)] = newState
-				self.app.execute("M{}{}{}".format(first,first+1,first+2))
+			self.app.execute("M{}{}{}".format(first,first+1,first+2))
+
 		for i in range(1, 13):
 			self.app.bind("<<setAxis{}>>".format(i), functools.partial(setAxis, i))
 
@@ -1870,8 +1862,8 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 			first = ((number-1)//3)*3 + 1
 			self.app.gcode._addLine("M{}{}{}".format(first,first+1, first+2))
 		axis = CNC.vars["currentJogAxis"]
-		position = CNC.vars["m{}".format(axis.lower())]
-		cmd = "G53 G0 {} {}".format(axis, position)
+		position = CNC.vars["w{}".format(axis.lower())]
+		cmd = "G0 {} {}".format(axis, position)
 		self.app.gcode._addLine(cmd)
 
 	def traverseToPosition(self):
@@ -1883,8 +1875,8 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 			first = ((number-1)//3)*3 + 1
 			self.app.gcode._addLine("M{}{}{}".format(first,first+1, first+2))
 		axis = CNC.vars["currentJogAxis"]
-		position = CNC.vars["m{}".format(axis.lower())]
-		cmd = "G53 G1 {} {} F{}".format(axis, position, self.getFeed())
+		position = CNC.vars["w{}".format(axis.lower())]
+		cmd = "G1 {} {} F{}".format(axis, position, self.getFeed())
 		self.app.gcode._addLine(cmd)
 
 #===============================================================================

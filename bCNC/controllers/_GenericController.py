@@ -112,8 +112,22 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
+		def ref(axis):
+			for w in axis:
+				self.master.executeCommand("%wait")
+				self.master.executeCommand("$H"+w)
+				self.master.executeCommand("%wait")
 		self.master._alarm = False
-		self.master.sendGCode("$H")
+		for i in range(1,13):
+			self.master.executeCommand("#Motor{}Position = -4".format(i))
+		self.master.executeCommand("M123")
+		ref("XYZ")
+		self.master.executeCommand("M789")
+		ref("ABC")
+		self.master.executeCommand("M456")
+		ref("XYZ")
+		self.master.executeCommand("M101112")
+		ref("ABC")
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')

@@ -1,3 +1,12 @@
-code("G53 G0 A-4 B-4 C-4")
-code("M62 P1")
-code("G4 P0.1")
+def fun():
+    if get("port1State") == 1:
+        return
+    set("port1State", 1)
+    code("M62P1")
+    set("Motor7Position", get("wa"))
+    set("Motor8Position", get("wb"))
+    set("Motor9Position", get("wc"))
+    a, b, c = get("Motor10Position"), get("Motor11Position"), get("Motor12Position")
+    code("G10 L20 P1 A{} B{} C{}".format(a,b,c))
+    code("G4P0.05")
+fun()
