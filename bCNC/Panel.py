@@ -237,14 +237,13 @@ class Selector(MemberImpl):
         self.variableEnd = Utils.getFloat(self.selectorName, "end", -1)
         self.variableOptions = getArrayWhileExists(self.selectorName, "v", Utils.getFloat, 0)
 
-
-
         pins, inversion = self.load_pins()
 
         self.useBeginEnd = self.variableBegin!=-1
         self.resolution = len(pins)
         if self.selectorBinaryType:
             self.resolution = 2**self.resolution-1
+        self.resolution = Utils.getInt(self.selectorName, "resolution", self.resolution)
 
         print(self.selectorName, end= ' ')
         if self.useBeginEnd:
