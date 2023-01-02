@@ -390,7 +390,7 @@ class _GenericController:
 
 		elif line.find("ok")>=0:
 			self.master.log.put((self.master.MSG_OK, line))
-			if not self.master.isRunningMacro:
+			if not self.master.isRunningMacro():
 				self.master._gcount += 1
 			if cline: del cline[0]
 			if sline: del sline[0]

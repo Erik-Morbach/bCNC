@@ -959,6 +959,7 @@ class Sender:
 		self.sio_status = False		# waiting for status <...> report
 		self._cline  = []		# length of pipeline commands
 		self._sline  = []			# pipeline commands
+		self.macrosRunning = 0
 		toSend = None			# next string to send
 		waitingToProcess = False
 		processCommand = ""
