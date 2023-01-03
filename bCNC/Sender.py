@@ -740,29 +740,33 @@ class Sender:
 		#self.purgeController()
 
 	def repeatProgram(self):
-		if self.repeatLock.locked():
-			self.repeatLock.release()
-			return
-		self.sendGCode((WAIT,))
-		while CNC.vars["state"].lower() in ["run", "hold"] or len(self.deque) or self.sio_wait:
-			if self.repeatLock.locked(): 
-				self.repeatLock.release()
-				return
-			time.sleep(0.01)
-		time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT/1000)
-		while sum([1 if w in CNC.vars["state"].lower() else 0 for w in ["run", "hold"]])!=0:
+		def th():
+			print("Repeating")
 			if self.repeatLock.locked():
 				self.repeatLock.release()
 				return
-			time.sleep(0.01)
-		if CNC.vars["state"].lower() != "idle":
-			return
-		if self.gcode.repeatEngine.fromSD:
-			pass
-		else:
-			self.event_generate("<<Run>>")
-		if self.repeatLock.locked():
-			self.repeatLock.release()
+			self.sendGCode((WAIT,))
+			while CNC.vars["state"].lower() in ["run", "hold"] or len(self.deque) or self.sio_wait:
+				if self.repeatLock.locked(): 
+					self.repeatLock.release()
+					return
+				time.sleep(0.01)
+			time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT/1000)
+			while sum([1 if w in CNC.vars["state"].lower() else 0 for w in ["run", "hold"]])!=0:
+				if self.repeatLock.locked():
+					self.repeatLock.release()
+					return
+				time.sleep(0.01)
+			if CNC.vars["state"].lower() != "idle":
+				return
+			if self.gcode.repeatEngine.fromSD:
+				pass
+			else:
+				self.event_generate("<<Run>>")
+			if self.repeatLock.locked():
+				self.repeatLock.release()
+			print("end repeating")
+		threading.Thread(target=th).start()
 
 	#----------------------------------------------------------------------
 	# This is called everytime that motion controller changes the state
@@ -930,7 +934,8 @@ class Sender:
 				line += "\n"
 			else: 
 				self._gcount += 1
-			self.deque.appendleft(line)
+			if isinstance(line,str):
+				self.deque.appendleft(line)
 			return
 		self.deque.appendleft((END_RUN_MACRO,))
 		if Utils.macroExists(mcode:=MacroEngine.Macro.getMCode(cmd)):
@@ -990,7 +995,8 @@ class Sender:
 
 			if self.needProcess(toSend):
 				self.executeInternalCommand((WAIT,))
-				processCommand = toSend
+				self._runLines += 1
+				processCommand = toSend #TODO: pass what method should be used to process
 				waitingToProcess = True
 				continue
 
