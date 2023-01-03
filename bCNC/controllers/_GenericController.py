@@ -93,13 +93,13 @@ class _GenericController:
 		self.master.stopProbe()
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
-		def tg():
-			time.sleep(0.1)
-			while self.master._stop:
-				time.sleep(0.001)
-			self.unlock()
-			self.viewParameters()
-		threading.Thread(target=tg).start()
+		self.reseted = False
+		while not self.reseted:
+			time.sleep(0.03)
+		self.reseted = False
+		self.unlock()
+		self.viewParameters()
+
 
 	#----------------------------------------------------------------------
 	def clearError(self):
@@ -124,7 +124,7 @@ class _GenericController:
 		self.master.sio_status = True
 
 	def viewConfiguration(self):
-		self.master.sendGcode("$$")
+		self.master.sendGCode("$$")
 
 	def saveSettings(self):
 		flag = 'x'
@@ -410,6 +410,7 @@ class _GenericController:
 			#tg = time.time()
 			self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.master._stop = True
+			self.reseted = True
 			del cline[:]	# After reset clear the buffer counters
 			del sline[:]
 			CNC.vars["version"] = line.split()[1]
