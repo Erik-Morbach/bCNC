@@ -914,14 +914,99 @@ class Sender:
 		if isinstance(cmd, types.CodeType): return True
 		return False
 
+	def isCannedCycle(self, cmd):
+		if not isinstance(cmd, str): return False
+		if "G83" in cmd.upper().replace(' ',''): # TODO: Use Regex
+			return True
+		return False
+
+
 	def needProcess(self, cmd) -> bool:
 		if not isinstance(cmd, str):
 			return self.shouldEvaluate(cmd)
+		elif self.isCannedCycle(cmd):
+			return True
 		if Utils.macroExists(MacroEngine.Macro.getMCode(cmd)):
 			return True
 		return False
 
-	def process(self, cmd):
+	def getArgs(self, cmd: str):
+		cmd = cmd.upper().replace(' ','')
+		args = {}
+		commentCount = 0
+		currentName = "" # stage 0
+
+		stage = 0
+		for c in cmd:
+			if c=='(': 
+				stage = 1
+				commentCount += 1
+				continue
+			if c==')':
+				stage = 1
+				commentCount -= 1
+				continue
+
+			if commentCount != 0: continue
+			if c.isalpha():
+				if stage != 0:
+					currentName = ""
+				currentName += c
+				stage = 0
+				continue
+			if c.isdigit() or c in ".-+":
+				if currentName not in args.keys():
+					args[currentName] = ""
+				args[currentName] += c
+				stage = 1
+		return args
+
+
+
+	def expandCannedCycle(self, cmd):
+		lines = []
+		cmdArgsRaw = self.getArgs(cmd)
+		cmdArgs = {}
+		for (a,b) in cmdArgsRaw.items():
+			cmdArgs[a] = float(b)
+
+		x,y,z = CNC.vars['wx'], CNC.vars['wy'], CNC.vars['wz']
+
+
+		clearz = max(cmdArgs['R'], z)
+		drill   = cmdArgs['Z']
+		retract = cmdArgs['R']
+
+		peck = cmdArgs['Q']
+		feed = cmdArgs['F']
+
+		lineNumberCode = ""
+		if 'N' in cmdArgsRaw.keys():
+			lineNumberCode = 'N'+cmdArgsRaw['N']
+
+
+		lines.append(lineNumberCode + CNC.grapid(z=retract))
+		z = retract
+
+		lines.append(lineNumberCode + CNC.grapid(x=x))
+
+		# Rapid move parallel to retract
+		currentZ = z
+
+		while currentZ > drill:
+			if currentZ != retract:
+				lines.append(lineNumberCode + CNC.grapid(z=retract))
+			
+			lines.append(lineNumberCode + CNC.grapid(z=(2+currentZ))) #rapid to aproximate
+			currentZ = max(drill, currentZ-peck)
+			# Drill to z
+			lines.append(lineNumberCode + CNC.gline(z=currentZ,f=feed))
+		z = clearz
+		lines.append(lineNumberCode + CNC.grapid(z=z))
+		lines = [w+'\n' for w in lines]
+		return lines
+
+	def process(self, cmd): # TODO: Refactor code
 		if self.shouldEvaluate(cmd):
 			line = ""
 			try:
@@ -937,6 +1022,15 @@ class Sender:
 			if isinstance(line,str):
 				self.deque.appendleft(line)
 			return
+		if self.isCannedCycle(cmd):
+			expand = self.expandCannedCycle(cmd)
+			self.deque.appendleft((END_RUN_MACRO,))
+			while len(expand):
+				self.deque.appendleft(expand[-1])
+				del expand[-1]
+			self.deque.appendleft((RUN_MACRO,))
+			return
+
 		self.deque.appendleft((END_RUN_MACRO,))
 		if Utils.macroExists(mcode:=MacroEngine.Macro.getMCode(cmd)):
 			executor = Utils.macroExecutor(mcode, self, CNC)
