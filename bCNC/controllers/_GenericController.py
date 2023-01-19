@@ -93,13 +93,13 @@ class _GenericController:
 		self.master.stopProbe()
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
-		def tg():
-			time.sleep(0.01)
-			while self.master._stop:
-				time.sleep(0.001)
-			self.unlock()
-			self.viewParameters()
-		threading.Thread(target=tg).start()
+		self.reseted = False
+		while not self.reseted:
+			time.sleep(0.03)
+		self.reseted = False
+		self.unlock()
+		self.viewParameters()
+
 
 	#----------------------------------------------------------------------
 	def clearError(self):
@@ -138,7 +138,7 @@ class _GenericController:
 		self.master.sio_status = True
 
 	def viewConfiguration(self):
-		self.master.sendGcode("$$")
+		self.master.sendGCode("$$")
 
 	def saveSettings(self):
 		flag = 'x'
@@ -391,8 +391,7 @@ class _GenericController:
 
 		elif "error:" in line or "ALARM:" in line:
 			self.master.log.put((self.master.MSG_ERROR, line))
-			if not self.master.isRunningMacro():
-				self.master._gcount += 1
+			self.master._gcount += 1
 			#print "gcount ERROR=",self._gcount
 			if cline: del cline[0]
 			if sline: CNC.vars["errline"] = sline.pop(0)
@@ -404,8 +403,7 @@ class _GenericController:
 
 		elif line.find("ok")>=0:
 			self.master.log.put((self.master.MSG_OK, line))
-			if not self.master.isRunningMacro:
-				self.master._gcount += 1
+			self.master._gcount += 1
 			if cline: del cline[0]
 			if sline: del sline[0]
 			#print "SLINE:",sline
@@ -424,6 +422,7 @@ class _GenericController:
 			#tg = time.time()
 			self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.master._stop = True
+			self.reseted = True
 			del cline[:]	# After reset clear the buffer counters
 			del sline[:]
 			CNC.vars["version"] = line.split()[1]

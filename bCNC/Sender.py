@@ -22,6 +22,8 @@ import threading
 import webbrowser
 import struct
 import MacroEngine
+import Command
+import ProcessEngine
 import lib.Deque
 import types
 
@@ -130,6 +132,7 @@ class Sender:
 		self.writeRTThread = None
 		self.repeatLock = threading.Lock()
 		self.macrosRunning = 0
+		self.processEngine = ProcessEngine.ProcessEngine(self)
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -740,29 +743,33 @@ class Sender:
 		#self.purgeController()
 
 	def repeatProgram(self):
-		if self.repeatLock.locked():
-			self.repeatLock.release()
-			return
-		self.sendGCode((WAIT,))
-		while CNC.vars["state"].lower() in ["run", "hold"] or len(self.deque) or self.sio_wait:
-			if self.repeatLock.locked(): 
-				self.repeatLock.release()
-				return
-			time.sleep(0.01)
-		time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT/1000)
-		while sum([1 if w in CNC.vars["state"].lower() else 0 for w in ["run", "hold"]])!=0:
+		def th():
+			print("Repeating")
 			if self.repeatLock.locked():
 				self.repeatLock.release()
 				return
-			time.sleep(0.01)
-		if CNC.vars["state"].lower() != "idle":
-			return
-		if self.gcode.repeatEngine.fromSD:
-			pass
-		else:
-			self.event_generate("<<Run>>")
-		if self.repeatLock.locked():
-			self.repeatLock.release()
+			self.sendGCode((WAIT,))
+			while CNC.vars["state"].lower() in ["run", "hold"] or len(self.deque) or self.sio_wait:
+				if self.repeatLock.locked(): 
+					self.repeatLock.release()
+					return
+				time.sleep(0.01)
+			time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT/1000)
+			while sum([1 if w in CNC.vars["state"].lower() else 0 for w in ["run", "hold"]])!=0:
+				if self.repeatLock.locked():
+					self.repeatLock.release()
+					return
+				time.sleep(0.01)
+			if CNC.vars["state"].lower() != "idle":
+				return
+			if self.gcode.repeatEngine.fromSD:
+				pass
+			else:
+				self.event_generate("<<Run>>")
+			if self.repeatLock.locked():
+				self.repeatLock.release()
+			print("end repeating")
+		threading.Thread(target=th).start()
 
 	#----------------------------------------------------------------------
 	# This is called everytime that motion controller changes the state
@@ -833,10 +840,11 @@ class Sender:
 		return len(self.deque)!=0
 
 	def shouldSkipCommand(self, cmd):
-		if not isinstance(cmd, str): return False
-		cmd = cmd.upper()
+		line = cmd.src
+		if not isinstance(line, str): return False
+		line = line.upper()
 		if CNC.vars["SafeDoor"]:
-			if "M3" in cmd or "M4" in cmd:
+			if "M3" in line or "M4" in line:
 				return True
 		return False
 
@@ -846,7 +854,8 @@ class Sender:
 	def isInternalStrCommand(self, code):
 		return False
 
-	def isInternalCommand(self, code):
+	def isInternalCommand(self, cmd):
+		code = cmd.src
 		if isinstance(code, tuple): return True
 		elif isinstance(code, str):
 			return self.isInternalStrCommand(code)
@@ -881,7 +890,8 @@ class Sender:
 		return self.macrosRunning > 0
 
 
-	def executeInternalCommand(self, code):
+	def executeInternalCommand(self, cmd):
+		code = cmd.src
 		if isinstance(code, tuple): return self.executeTupleInternalCommand(code)
 		return self.executeStrInternalCommand(code)
 
@@ -905,51 +915,28 @@ class Sender:
 			return True
 		return False
 
-	def shouldEvaluate(self, cmd):
-		if isinstance(cmd, list): return True
-		if isinstance(cmd, types.CodeType): return True
-		return False
 
-	def needProcess(self, cmd) -> bool:
-		if not isinstance(cmd, str):
-			return self.shouldEvaluate(cmd)
-		if Utils.macroExists(MacroEngine.Macro.getMCode(cmd)):
-			return True
-		return False
-
-	def process(self, cmd):
-		if self.shouldEvaluate(cmd):
-			line = ""
-			try:
-				line = self.gcode.evaluate(cmd)
-			except Exception as err:
-				print(err)
-				self._stop = True
-				return
-			if isinstance(line, str):
-				line += "\n"
-			else: 
-				self._gcount += 1
-			self.deque.appendleft(line)
+	def appendCodeToDeque(self, cmds):
+		"""
+			Apend code to the front of self.deque. Everything is a macro here.
+		Args:
+		    cmds (): list of commands to append
+		"""
+		if cmds is None: return
+		if not isinstance(cmds, list): 
+			cmds = [cmds]
+		if len(cmds) == 0:
 			return
+		self._runLines += len(cmds) - 1 # consider that is already added to _runLines
 		self.deque.appendleft((END_RUN_MACRO,))
-		if Utils.macroExists(mcode:=MacroEngine.Macro.getMCode(cmd)):
-			executor = Utils.macroExecutor(mcode, self, CNC)
-			try:
-				executor.execute(CNC.vars, self.gcode.vars)
-			except Exception as err:
-				print(err)
-				self.deque.appendleft((RUN_MACRO,))
-				self._stop = True
-				return
-			queue = executor.getQueue()
-			vec = []
-			while not queue.empty():
-				vec += [queue.get()]
-			vec = vec[::-1]
-			for w in vec:
-				self.deque.appendleft(w)
+		while len(cmds):
+			self.deque.appendleft(cmds[-1])
+			del cmds[-1]
 		self.deque.appendleft((RUN_MACRO,))
+
+	def process(self, pNode):
+		cmds = pNode.process()
+		self.appendCodeToDeque(cmds)
 
 	#----------------------------------------------------------------------
 	# thread performing I/O on serial line
@@ -959,9 +946,9 @@ class Sender:
 		self.sio_status = False		# waiting for status <...> report
 		self._cline  = []		# length of pipeline commands
 		self._sline  = []			# pipeline commands
+		self.macrosRunning = 0
 		toSend = None			# next string to send
-		waitingToProcess = False
-		processCommand = ""
+		processNode = None
 
 		while self.writeThread:
 			time.sleep(WRITE_THREAD_PERIOD)
@@ -972,33 +959,39 @@ class Sender:
 			if not self.shouldSend():
 				continue
 
-			if waitingToProcess:
-				self.process(processCommand)
-				waitingToProcess = False
-				processCommand = ""
+			if processNode is not None:
+				self.process(processNode)
+				processNode = None
 				continue
 
 			toSend = None
 			if self.hasNewCommand():
-				toSend = self.getNextCommand()
+				toSend = Command.cmdFactory(self.getNextCommand())
 			else:
 				continue
 
-			if self.shouldSkipCommand(toSend):
+			if self.shouldSkipCommand(toSend): 
+				# TODO: This can be done inside Command class
+				# or in the Process class
 				continue
 
-			if self.needProcess(toSend):
-				self.executeInternalCommand((WAIT,))
-				processCommand = toSend
-				waitingToProcess = True
-				continue
-
-			if self.isInternalCommand(toSend):
+			if self.isInternalCommand(toSend): # TODO: This should be an ProcessNode
 				self.executeInternalCommand(toSend)
 				continue
 
-			self._sline.append(toSend)
-			self._cline.append(len(toSend))
+			processNode = self.processEngine.getValidProcessNode(toSend)
+			if processNode is not None:
+				processNode.preprocessCommand(toSend)
+				if processNode.shouldWait:
+					self.executeInternalCommand(Command.Command((WAIT,)))
+					self._runLines += 1
+					continue
+				self.process(processNode)
+				processNode = None
+				continue
+			
+			self._sline.append(toSend.src)
+			self._cline.append(len(toSend.src))
 
 			if self._checkAndEvaluateStop():
 				continue
@@ -1013,6 +1006,6 @@ class Sender:
 				continue
 
 			self._sumcline = sum(self._cline)
-			self.serial_write(toSend)
+			self.serial_write(toSend.src)
 			self.serial.flush()
-			self.log.put((Sender.MSG_SEND, toSend))
+			self.log.put((Sender.MSG_SEND, toSend.src))

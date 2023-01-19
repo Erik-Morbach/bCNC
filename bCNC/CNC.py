@@ -1033,22 +1033,22 @@ class CNC:
 	#----------------------------------------------------------------------
 	@staticmethod
 	def _gotoABC(g, x=None, y=None, z=None, a=None, b=None, c=None, **args):
-		s = "g%d"%(g)
-		if x is not None: s += ' '+CNC.fmt('x',x)
-		if y is not None: s += ' '+CNC.fmt('y',y)
-		if z is not None: s += ' '+CNC.fmt('z',z)
-		if a is not None: s += ' '+CNC.fmt('a',a)
-		if b is not None: s += ' '+CNC.fmt('b',b)
-		if c is not None: s += ' '+CNC.fmt('c',c)
+		s = "G%d"%(g)
+		if x is not None: s += ' '+CNC.fmt('X',x)
+		if y is not None: s += ' '+CNC.fmt('Y',y)
+		if z is not None: s += ' '+CNC.fmt('Z',z)
+		if a is not None: s += ' '+CNC.fmt('A',a)
+		if b is not None: s += ' '+CNC.fmt('B',b)
+		if c is not None: s += ' '+CNC.fmt('C',c)
 		for n,v in args.items():
 			s += ' ' + CNC.fmt(n,v)
 		return s
 	@staticmethod
 	def _goto(g, x=None, y=None, z=None, **args):
-		s = "g%d"%(g)
-		if x is not None: s += ' '+CNC.fmt('x',x)
-		if y is not None: s += ' '+CNC.fmt('y',y)
-		if z is not None: s += ' '+CNC.fmt('z',z)
+		s = "G%d"%(g)
+		if x is not None: s += ' '+CNC.fmt('X',x)
+		if y is not None: s += ' '+CNC.fmt('Y',y)
+		if z is not None: s += ' '+CNC.fmt('Z',z)
 		for n,v in args.items():
 			s += ' ' + CNC.fmt(n,v)
 		return s
@@ -4645,6 +4645,52 @@ class GCode:
 			best[i], best[ptr] = best[ptr], best[i]
 		self.addUndo(undoinfo, "Optimize")
 
+	def haveLineNumber(self, cmd):
+		expressionCount = 0
+		if len(cmd)==0: return False
+		for w in "#_%":
+			if w in cmd[0]:
+				return False
+		for c in cmd:
+			if c=='(' or c=='[':
+				expressionCount+=1
+				continue
+			if c==')' or c==']':
+				expressionCount+=1
+				continue
+			if expressionCount!=0:
+				continue
+			if c=='N':
+				return True
+		return False
+	def removeLineNumber(self, cmd):
+		expressionCount = 0
+		nIndex = 0
+		if len(cmd)==0: return False
+		for w in "#_%":
+			if w in cmd[0]:
+				return 
+		for (id,c) in enumerate(cmd):
+			if c=='(' or c=='[':
+				expressionCount+=1
+				continue
+			if c==')' or c==']':
+				expressionCount+=1
+				continue
+			if expressionCount!=0:
+				continue
+			if c=='N':
+				nIndex = id
+				break
+		line = [w for w in cmd]
+		line[nIndex] = '$'
+		nIndex += 1
+		while line[nIndex].isdecimal():
+			line[nIndex] = '$'
+			nIndex += 1
+		response = [w if w!='$' else "" for w in line]
+		return "".join(response)
+
 	#----------------------------------------------------------------------
 	# Use probe information to modify the g-code to autolevel
 	#----------------------------------------------------------------------
@@ -4691,12 +4737,8 @@ class GCode:
 					break
 				newcmd = []
 				line = str(line).strip()
-				if line.find('N')!=-1:
-					beginLineNumber = line.find('N')+1
-					endLineNumber = beginLineNumber
-					while line[beginLineNumber:endLineNumber+1].isdecimal():
-						endLineNumber += 1
-					line = line[:beginLineNumber-1] + line[endLineNumber:]
+				if self.haveLineNumber(line):
+					line = self.removeLineNumber(line)
 
 				if "M30" in line.strip().replace(' ','').upper():
 					stopNext = True

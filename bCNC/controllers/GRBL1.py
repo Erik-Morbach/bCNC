@@ -37,6 +37,7 @@ class Controller(_GenericGRBL):
 		self.gcode_case = 0
 		self.has_override = True
 		self.master = master
+		self.reseted = False
 		self.lastSDStatus = -1 
 		self.hasSD = False
 		self.pidSP = 0

@@ -443,13 +443,15 @@ class Application(Toplevel, Sender):
         def bDown(*args):
             self.control.moveBdown()
             releaseJogMutex()
-        def jog(data="", *args):
+        def jog(*args):
+            data = self.jogData
             axis = ""
             directions = ""
-            for i in range(len(data)):
+            for i in range(0, len(data), 2):
                 axis += data[i]
                 directions += data[i+1]
             self.control.move(axis, directions, 1)
+            releaseJogMutex()
 
         self.bind('<<JOG>>', jog)
 
@@ -2717,7 +2719,6 @@ class Application(Toplevel, Sender):
                                                    width=2,
                                                    fill=CNCCanvas.PROCESS_COLOR)
                     self._selectI += 1
-
             if self._gcount >= self._runLines:
                 self.runEnded()
 
