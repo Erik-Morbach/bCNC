@@ -130,7 +130,7 @@ class MacroNode(ProcessNode):
 
 	def process(self) -> list[Command.Command]:
 		mcode = int(self.cmd.args['M'])
-        executor = Utils.macroExecutor(mcode, self.app, CNC)
+		executor = Utils.macroExecutor(mcode, self.app, CNC)
 		try:
 			executor.execute(CNC.vars, self.app.gcode.vars)
 		except Exception as err:
