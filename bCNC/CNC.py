@@ -1027,22 +1027,22 @@ class CNC:
 	#----------------------------------------------------------------------
 	@staticmethod
 	def _gotoABC(g, x=None, y=None, z=None, a=None, b=None, c=None, **args):
-		s = "g%d"%(g)
-		if x is not None: s += ' '+CNC.fmt('x',x)
-		if y is not None: s += ' '+CNC.fmt('y',y)
-		if z is not None: s += ' '+CNC.fmt('z',z)
-		if a is not None: s += ' '+CNC.fmt('a',a)
-		if b is not None: s += ' '+CNC.fmt('b',b)
-		if c is not None: s += ' '+CNC.fmt('c',c)
+		s = "G%d"%(g)
+		if x is not None: s += ' '+CNC.fmt('X',x)
+		if y is not None: s += ' '+CNC.fmt('Y',y)
+		if z is not None: s += ' '+CNC.fmt('Z',z)
+		if a is not None: s += ' '+CNC.fmt('A',a)
+		if b is not None: s += ' '+CNC.fmt('B',b)
+		if c is not None: s += ' '+CNC.fmt('C',c)
 		for n,v in args.items():
 			s += ' ' + CNC.fmt(n,v)
 		return s
 	@staticmethod
 	def _goto(g, x=None, y=None, z=None, **args):
-		s = "g%d"%(g)
-		if x is not None: s += ' '+CNC.fmt('x',x)
-		if y is not None: s += ' '+CNC.fmt('y',y)
-		if z is not None: s += ' '+CNC.fmt('z',z)
+		s = "G%d"%(g)
+		if x is not None: s += ' '+CNC.fmt('X',x)
+		if y is not None: s += ' '+CNC.fmt('Y',y)
+		if z is not None: s += ' '+CNC.fmt('Z',z)
 		for n,v in args.items():
 			s += ' ' + CNC.fmt(n,v)
 		return s

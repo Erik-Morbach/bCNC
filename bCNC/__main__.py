@@ -2722,7 +2722,6 @@ class Application(Toplevel, Sender):
                                                    width=2,
                                                    fill=CNCCanvas.PROCESS_COLOR)
                     self._selectI += 1
-
             if self._gcount >= self._runLines:
                 self.runEnded()
 

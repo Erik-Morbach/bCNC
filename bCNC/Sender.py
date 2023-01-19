@@ -22,6 +22,8 @@ import threading
 import webbrowser
 import struct
 import MacroEngine
+import Command
+import ProcessEngine
 import lib.Deque
 import types
 
@@ -130,6 +132,7 @@ class Sender:
 		self.writeRTThread = None
 		self.repeatLock = threading.Lock()
 		self.macrosRunning = 0
+		self.processEngine = ProcessEngine.ProcessEngine(self)
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -837,10 +840,11 @@ class Sender:
 		return len(self.deque)!=0
 
 	def shouldSkipCommand(self, cmd):
-		if not isinstance(cmd, str): return False
-		cmd = cmd.upper()
+		line = cmd.src
+		if not isinstance(line, str): return False
+		line = line.upper()
 		if CNC.vars["SafeDoor"]:
-			if "M3" in cmd or "M4" in cmd:
+			if "M3" in line or "M4" in line:
 				return True
 		return False
 
@@ -850,7 +854,8 @@ class Sender:
 	def isInternalStrCommand(self, code):
 		return False
 
-	def isInternalCommand(self, code):
+	def isInternalCommand(self, cmd):
+		code = cmd.src
 		if isinstance(code, tuple): return True
 		elif isinstance(code, str):
 			return self.isInternalStrCommand(code)
@@ -885,7 +890,8 @@ class Sender:
 		return self.macrosRunning > 0
 
 
-	def executeInternalCommand(self, code):
+	def executeInternalCommand(self, cmd):
+		code = cmd.src
 		if isinstance(code, tuple): return self.executeTupleInternalCommand(code)
 		return self.executeStrInternalCommand(code)
 
@@ -909,146 +915,28 @@ class Sender:
 			return True
 		return False
 
-	def shouldEvaluate(self, cmd):
-		if isinstance(cmd, list): return True
-		if isinstance(cmd, types.CodeType): return True
-		return False
 
-	def isCannedCycle(self, cmd):
-		if not isinstance(cmd, str): return False
-		if "G83" in cmd.upper().replace(' ',''): # TODO: Use Regex
-			return True
-		return False
-
-
-	def needProcess(self, cmd) -> bool:
-		if not isinstance(cmd, str):
-			return self.shouldEvaluate(cmd)
-		elif self.isCannedCycle(cmd):
-			return True
-		if Utils.macroExists(MacroEngine.Macro.getMCode(cmd)):
-			return True
-		return False
-
-	def getArgs(self, cmd: str):
-		cmd = cmd.upper().replace(' ','')
-		args = {}
-		commentCount = 0
-		currentName = "" # stage 0
-
-		stage = 0
-		for c in cmd:
-			if c=='(': 
-				stage = 1
-				commentCount += 1
-				continue
-			if c==')':
-				stage = 1
-				commentCount -= 1
-				continue
-
-			if commentCount != 0: continue
-			if c.isalpha():
-				if stage != 0:
-					currentName = ""
-				currentName += c
-				stage = 0
-				continue
-			if c.isdigit() or c in ".-+":
-				if currentName not in args.keys():
-					args[currentName] = ""
-				args[currentName] += c
-				stage = 1
-		return args
-
-
-
-	def expandCannedCycle(self, cmd):
-		lines = []
-		cmdArgsRaw = self.getArgs(cmd)
-		cmdArgs = {}
-		for (a,b) in cmdArgsRaw.items():
-			cmdArgs[a] = float(b)
-
-		x,y,z = CNC.vars['wx'], CNC.vars['wy'], CNC.vars['wz']
-
-
-		clearz = max(cmdArgs['R'], z)
-		drill   = cmdArgs['Z']
-		retract = cmdArgs['R']
-
-		peck = cmdArgs['Q']
-		feed = cmdArgs['F']
-
-		lineNumberCode = ""
-		if 'N' in cmdArgsRaw.keys():
-			lineNumberCode = 'N'+cmdArgsRaw['N']
-
-
-		lines.append(lineNumberCode + CNC.grapid(z=retract))
-		z = retract
-
-		lines.append(lineNumberCode + CNC.grapid(x=x))
-
-		# Rapid move parallel to retract
-		currentZ = z
-
-		while currentZ > drill:
-			if currentZ != retract:
-				lines.append(lineNumberCode + CNC.grapid(z=retract))
-			
-			lines.append(lineNumberCode + CNC.grapid(z=(2+currentZ))) #rapid to aproximate
-			currentZ = max(drill, currentZ-peck)
-			# Drill to z
-			lines.append(lineNumberCode + CNC.gline(z=currentZ,f=feed))
-		z = clearz
-		lines.append(lineNumberCode + CNC.grapid(z=z))
-		lines = [w+'\n' for w in lines]
-		return lines
-
-	def process(self, cmd): # TODO: Refactor code
-		if self.shouldEvaluate(cmd):
-			line = ""
-			try:
-				line = self.gcode.evaluate(cmd)
-			except Exception as err:
-				print(err)
-				self._stop = True
-				return
-			if isinstance(line, str):
-				line += "\n"
-			else: 
-				self._gcount += 1
-			if isinstance(line,str):
-				self.deque.appendleft(line)
+	def appendCodeToDeque(self, cmds):
+		"""
+			Apend code to the front of self.deque. Everything is a macro here.
+		Args:
+		    cmds (): list of commands to append
+		"""
+		if cmds is None: return
+		if not isinstance(cmds, list): 
+			cmds = [cmds]
+		if len(cmds) == 0:
 			return
-		if self.isCannedCycle(cmd):
-			expand = self.expandCannedCycle(cmd)
-			self.deque.appendleft((END_RUN_MACRO,))
-			while len(expand):
-				self.deque.appendleft(expand[-1])
-				del expand[-1]
-			self.deque.appendleft((RUN_MACRO,))
-			return
-
+		self._runLines += len(cmds) - 1 # consider that is already added to _runLines
 		self.deque.appendleft((END_RUN_MACRO,))
-		if Utils.macroExists(mcode:=MacroEngine.Macro.getMCode(cmd)):
-			executor = Utils.macroExecutor(mcode, self, CNC)
-			try:
-				executor.execute(CNC.vars, self.gcode.vars)
-			except Exception as err:
-				print(err)
-				self.deque.appendleft((RUN_MACRO,))
-				self._stop = True
-				return
-			queue = executor.getQueue()
-			vec = []
-			while not queue.empty():
-				vec += [queue.get()]
-			vec = vec[::-1]
-			for w in vec:
-				self.deque.appendleft(w)
+		while len(cmds):
+			self.deque.appendleft(cmds[-1])
+			del cmds[-1]
 		self.deque.appendleft((RUN_MACRO,))
+
+	def process(self, pNode):
+		cmds = pNode.process()
+		self.appendCodeToDeque(cmds)
 
 	#----------------------------------------------------------------------
 	# thread performing I/O on serial line
@@ -1060,8 +948,7 @@ class Sender:
 		self._sline  = []			# pipeline commands
 		self.macrosRunning = 0
 		toSend = None			# next string to send
-		waitingToProcess = False
-		processCommand = ""
+		processNode = None
 
 		while self.writeThread:
 			time.sleep(WRITE_THREAD_PERIOD)
@@ -1072,34 +959,39 @@ class Sender:
 			if not self.shouldSend():
 				continue
 
-			if waitingToProcess:
-				self.process(processCommand)
-				waitingToProcess = False
-				processCommand = ""
+			if processNode is not None:
+				self.process(processNode)
+				processNode = None
 				continue
 
 			toSend = None
 			if self.hasNewCommand():
-				toSend = self.getNextCommand()
+				toSend = Command.cmdFactory(self.getNextCommand())
 			else:
 				continue
 
-			if self.shouldSkipCommand(toSend):
+			if self.shouldSkipCommand(toSend): 
+				# TODO: This can be done inside Command class
+				# or in the Process class
 				continue
 
-			if self.needProcess(toSend):
-				self.executeInternalCommand((WAIT,))
-				self._runLines += 1
-				processCommand = toSend #TODO: pass what method should be used to process
-				waitingToProcess = True
-				continue
-
-			if self.isInternalCommand(toSend):
+			if self.isInternalCommand(toSend): # TODO: This should be an ProcessNode
 				self.executeInternalCommand(toSend)
 				continue
 
-			self._sline.append(toSend)
-			self._cline.append(len(toSend))
+			processNode = self.processEngine.getValidProcessNode(toSend)
+			if processNode is not None:
+				processNode.preprocessCommand(toSend)
+				if processNode.shouldWait:
+					self.executeInternalCommand(Command.Command((WAIT,)))
+					self._runLines += 1
+					continue
+				self.process(processNode)
+				processNode = None
+				continue
+			
+			self._sline.append(toSend.src)
+			self._cline.append(len(toSend.src))
 
 			if self._checkAndEvaluateStop():
 				continue
@@ -1114,6 +1006,6 @@ class Sender:
 				continue
 
 			self._sumcline = sum(self._cline)
-			self.serial_write(toSend)
+			self.serial_write(toSend.src)
 			self.serial.flush()
-			self.log.put((Sender.MSG_SEND, toSend))
+			self.log.put((Sender.MSG_SEND, toSend.src))

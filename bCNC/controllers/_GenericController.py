@@ -377,8 +377,7 @@ class _GenericController:
 
 		elif "error:" in line or "ALARM:" in line:
 			self.master.log.put((self.master.MSG_ERROR, line))
-			if not self.master.isRunningMacro():
-				self.master._gcount += 1
+			self.master._gcount += 1
 			#print "gcount ERROR=",self._gcount
 			if cline: del cline[0]
 			if sline: CNC.vars["errline"] = sline.pop(0)
@@ -390,8 +389,7 @@ class _GenericController:
 
 		elif line.find("ok")>=0:
 			self.master.log.put((self.master.MSG_OK, line))
-			if not self.master.isRunningMacro():
-				self.master._gcount += 1
+			self.master._gcount += 1
 			if cline: del cline[0]
 			if sline: del sline[0]
 			#print "SLINE:",sline
