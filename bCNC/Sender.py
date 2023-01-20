@@ -723,8 +723,8 @@ class Sender:
 	# Stop the current run
 	#----------------------------------------------------------------------
 	def stopRun(self, event=None):
-		self._stop = True
 		self.feedHold()
+		self._stop = True
 		self.gcode.repeatEngine.cleanState()
 		self.purgeController()
 		self.emptyDeque()
@@ -989,12 +989,12 @@ class Sender:
 				self.process(processNode)
 				processNode = None
 				continue
-			
-			self._sline.append(toSend.src)
-			self._cline.append(len(toSend.src))
 
 			if self._checkAndEvaluateStop():
 				continue
+
+			self._sline.append(toSend.src)
+			self._cline.append(len(toSend.src))
 
 			hasStoped = False
 			while self.isRxBufferFull():

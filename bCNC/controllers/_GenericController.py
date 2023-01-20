@@ -88,13 +88,16 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def softReset(self, clearAlarm=True):
+		self.reseted = False
 		if self.master.serial:
 			self.master.serial_write(b"\x18")
+			self.master.serial.flush()
 		self.master.stopProbe()
 		if clearAlarm: self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
-		self.reseted = False
-		while not self.reseted:
+		timeout = 1
+		beginTime = time.time()
+		while not self.reseted and (time.time() - beginTime)<timeout:
 			time.sleep(0.03)
 		self.reseted = False
 		self.unlock()
@@ -302,7 +305,6 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def feedHold(self, event=None):
-		if event is not None and not self.master.acceptKey(True): return
 		if self.master.serial is None: return
 		self.master.serial_write(b'!')
 		self.master.serial.flush()
@@ -333,7 +335,6 @@ class _GenericController:
 	def purgeController(self):
 		# remember and send all G commands
 		self.softReset(False)			# reset controller
-		self.purgeControllerExtra()
 		self.master.runEnded()
 		self.master.stopProbe()
 		self.master.sendGCode("?")
