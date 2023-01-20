@@ -399,9 +399,9 @@ class BarEndButton(ButtonPanel):
         super().__init__(app,index)
     def on(self):
         CNC.vars["barEnd"] = 1
+        self.app.feedHold()
     def off(self):
         CNC.vars["barEnd"] = 0
-        self.app.feedHold()
 
 class ResetButton(ButtonPanel):
     def __init__(self, app, index) -> None:
