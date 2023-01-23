@@ -1,6 +1,7 @@
 class Command:
-	def __init__(self, cmd: str|tuple) -> None:
+	def __init__(self, cmd):
 		self.src = cmd
+		self.isJog = False
 		self.rawArgs = self.extractRawArgs()
 		self.args = {}
 		for (a,b) in self.rawArgs.items():
@@ -13,6 +14,9 @@ class Command:
 		if not isinstance(self.src, str): return {}
 
 		cmd = self.src.upper().replace(' ','')
+		if cmd.startswith("$J="):
+			cmd = cmd[3:]
+			self.isJog = True
 		args = {}
 		commentCount = 0
 		currentName = "" # stage 0

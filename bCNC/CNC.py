@@ -735,7 +735,7 @@ class CNC:
 			"beginLine"  : 0,
 			"pgmEnd"     : False,
 			"inputs"     : 0,
-			"barEnd"     : 1,
+			"barEnd"     : 0,
 			"SafeDoor"   : 0,
 			"pitch"      : -1,
 
@@ -4805,13 +4805,7 @@ class GCode:
 					self.cnc.motionEnd()
 					continue
 				else:
-					# FIXME expansion policy here variable needed
-					# Canned cycles
-					if CNC.drillPolicy==1 and \
-					   self.cnc.gcode in (81,82,83,85,86,89):
-						expand = self.cnc.macroGroupG8X()
-					# Tool change
-					elif self.cnc.mval == 6:
+					if self.cnc.mval == 6:
 						if CNC.toolPolicy == 0:
 							pass	# send to grbl
 						elif CNC.toolPolicy == 1:
