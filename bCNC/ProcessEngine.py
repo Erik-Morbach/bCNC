@@ -8,6 +8,7 @@ class ProcessNode:
 		self.shouldWait = 0
 		self.cmd = ""
 		self.app = None
+		self.name = "Null"
 
 	def shouldEvaluateHere(self, cmd) -> bool:
 		pass
@@ -17,6 +18,9 @@ class ProcessNode:
 
 	def process(self) -> list[Command.Command]:
 		pass
+
+	def __str__(self) -> str:
+		return self.name
 
 
 class ProcessEngine:
@@ -42,6 +46,7 @@ class ProcessEngine:
 class EvaluateNode(ProcessNode):
 	def __init__(self) -> None:
 		super().__init__()
+		self.name = "Evaluate"
 
 	def shouldEvaluateHere(self, cmd) -> bool:
 		if isinstance(cmd.src, list): return True
@@ -71,6 +76,8 @@ class CannedCycleNode(ProcessNode):
 		self.shouldWait = 1
 		self.cycles = {}
 		self.cycles[83] = self.g83
+		self.name = "Canned Cycles"
+
 
 	def g83(self, cmd):
 		lines = []
@@ -83,6 +90,8 @@ class CannedCycleNode(ProcessNode):
 
 		peck = cmd.args['Q']
 		feed = cmd.args['F']
+		if peck < 0:
+			peck = abs(peck)
 
 		lineNumberCode = ""
 		if 'N' in cmd.rawArgs.keys():
@@ -122,6 +131,7 @@ class MacroNode(ProcessNode):
 	def __init__(self) -> None:
 		super().__init__()
 		self.shouldWait = 1
+		self.name = "Macro"
 
 	def shouldEvaluateHere(self, cmd) -> bool:
 		if 'M' not in cmd.args.keys(): return False
