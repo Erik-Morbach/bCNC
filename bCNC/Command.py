@@ -1,5 +1,5 @@
 class Command:
-	def __init__(self, cmd: str|tuple) -> None:
+	def __init__(self, cmd):
 		self.src = cmd
 		self.isJog = False
 		self.rawArgs = self.extractRawArgs()

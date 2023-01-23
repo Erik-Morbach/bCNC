@@ -4,34 +4,34 @@ import Command
 from CNC import CNC
 
 class ProcessNode:
-	def __init__(self) -> None:
+	def __init__(self):
 		self.shouldWait = 0
 		self.cmd = ""
 		self.app = None
 		self.name = "Null"
 
-	def shouldEvaluateHere(self, cmd) -> bool:
+	def shouldEvaluateHere(self, cmd):
 		pass
 
 	def preprocessCommand(self, cmd):
 		self.cmd = cmd
 
-	def process(self) -> list[Command.Command]:
+	def process(self):
 		pass
 
-	def __str__(self) -> str:
+	def __str__(self):
 		return self.name
 
 
 class ProcessEngine:
-	def __init__(self, app) -> None:
+	def __init__(self, app):
 		self.nodes = []
 		self.app = app
 		self.registerProcessNode(EvaluateNode())
 		self.registerProcessNode(CannedCycleNode())
 		self.registerProcessNode(MacroNode())
 
-	def getValidProcessNode(self, cmd) -> ProcessNode|None:
+	def getValidProcessNode(self, cmd):
 		nodesCp = self.nodes[:]
 		for node in nodesCp:
 			if node.shouldEvaluateHere(cmd):
@@ -44,16 +44,16 @@ class ProcessEngine:
 
 
 class EvaluateNode(ProcessNode):
-	def __init__(self) -> None:
+	def __init__(self):
 		super().__init__()
 		self.name = "Evaluate"
 
-	def shouldEvaluateHere(self, cmd) -> bool:
+	def shouldEvaluateHere(self, cmd):
 		if isinstance(cmd.src, list): return True
 		if isinstance(cmd.src, types.CodeType): return True
 		return False
 
-	def process(self) -> list[Command.Command]:
+	def process(self):
 		line = ""
 		response = []
 		try:
@@ -71,7 +71,7 @@ class EvaluateNode(ProcessNode):
 
 
 class CannedCycleNode(ProcessNode):
-	def __init__(self) -> None:
+	def __init__(self):
 		super().__init__()
 		self.shouldWait = 1
 		self.cycles = {}
@@ -120,25 +120,25 @@ class CannedCycleNode(ProcessNode):
 		lines = [w+'\n' for w in lines]
 		return lines
 
-	def shouldEvaluateHere(self, cmd) -> bool:
+	def shouldEvaluateHere(self, cmd):
 		if 'G' not in cmd.args.keys(): return False
 		return int(cmd.args['G']) in self.cycles.keys()
 
-	def process(self) -> list[Command.Command]:
+	def process(self):
 		return self.cycles[int(self.cmd.args['G'])](self.cmd)
 
 class MacroNode(ProcessNode):
-	def __init__(self) -> None:
+	def __init__(self):
 		super().__init__()
 		self.shouldWait = 1
 		self.name = "Macro"
 
-	def shouldEvaluateHere(self, cmd) -> bool:
+	def shouldEvaluateHere(self, cmd):
 		if 'M' not in cmd.args.keys(): return False
 		mcode = int(cmd.args['M'])
 		return Utils.macroExists(mcode)
 
-	def process(self) -> list[Command.Command]:
+	def process(self):
 		mcode = int(self.cmd.args['M'])
 		executor = Utils.macroExecutor(mcode, self.app, CNC)
 		try:
