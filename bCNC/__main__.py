@@ -23,8 +23,6 @@ import getopt
 import socket
 import traceback
 import threading
-import requests
-from ftplib import FTP
 
 from datetime import datetime
 
@@ -88,11 +86,6 @@ import CNCCanvas
 _openserial = True  # override ini parameters
 _device = None
 _baud = None
-GRBL_HAL = 1
-GRBL_ESP32 = 2
-firmware = GRBL_HAL if Utils.getStr('CNC', 'firmware', 'Grbl_Esp32') == 'Grbl_HAL' else GRBL_ESP32
-print("FIRMWARE =", firmware)
-grblIPAddress = '192.168.5.1' if firmware == GRBL_HAL else 'http://192.168.0.1'
 
 MONITOR_AFTER = 33  # ms
 DRAW_AFTER = 5000  # ms
@@ -2246,68 +2239,6 @@ class Application(Toplevel, Sender):
         else:
             self.saveDialog()
         return "break"
-
-    def sendWithFTP(self, sdFileName, fileName):
-        ftp = FTP(grblIPAddress)
-        ftp.login()
-        file = open(fileName, 'rb')
-        ftp.storbinary('STOR ' + sdFileName, file)
-        file.close()
-        ftp.quit()
-
-    def sendWithHttp(self, sdFileName, fileName):
-        postArgs = {}
-        postArgs['path'] = '/'
-        postArgs[sdFileName + 'S'] = os.path.getsize(fileName)
-
-        with open(fileName, 'rb') as tmp:
-            postFile = {'myfile[]': (sdFileName, tmp)}
-            exists = requests.get(grblIPAddress + '/upload?path=/&PAGEID=0', timeout=5)
-            response = requests.post(grblIPAddress + '/upload', data=postArgs, files=postFile)
-            print(response.json())
-
-    def saveToSD(self, event=None):
-        def function():
-            self.setStatus("prepare to save file...")
-
-            def computeFile(filename):
-                dump = Queue()
-                path = self.gcode.compile(dump, fromSD=True)
-                with open(filename, 'w') as myfile:
-                    while not dump.empty():
-                        val = dump.get()
-                        if not isinstance(val, str):
-                            val = exec(val)
-                            if val is None:
-                                val = ""
-                        myfile.write(val + '\n')
-
-            sdFileName = "TmpFile.nc"
-            tmpFileName = "TmpFilePre"
-            try:
-                computeFile(tmpFileName)
-                self.setStatus("Sending File to SD...")
-                if firmware == GRBL_HAL:
-                    self.sendWithFTP(sdFileName, tmpFileName)
-                else:
-                    self.sendWithHttp(sdFileName, tmpFileName)
-                self.setStatus("File Send complete!")
-            except BaseException as err:
-                print(err)
-                self.setStatus("Error while sending! Check your connection and try again")
-            finally:
-                if os.path.exists(tmpFileName):
-                    os.remove(tmpFileName)
-
-        threading.Thread(target=function).start()
-
-    def deleteFromSD(self, event=None):
-        sdFileName = "TmpFile"
-        if firmware == GRBL_HAL:
-            self.sendGCode("$FD=" + sdFileName)
-        else:
-            self.sendGCode("$SD/Delete=" + sdFileName)
-        self.setStatus("SD File Deleted")
 
     # -----------------------------------------------------------------------
     def reload(self, event=None):
