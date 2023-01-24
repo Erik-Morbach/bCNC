@@ -724,13 +724,14 @@ class Sender:
 	#----------------------------------------------------------------------
 	def stopRun(self, event=None):
 		self.feedHold()
-		self._stop = True
-		self.gcode.repeatEngine.cleanState()
-		self.purgeController()
 		self.emptyDeque()
+		self.gcode.repeatEngine.cleanState()
 		if self.repeatLock is not None:
 			if not self.repeatLock.locked():
 				self.repeatLock.acquire()
+		self.emptyDeque()
+		self._stop = True
+		self.purgeController()
 		self.purgeController()
 
 	#----------------------------------------------------------------------
