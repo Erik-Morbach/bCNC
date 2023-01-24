@@ -1811,7 +1811,7 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		self._gUpdate = False
 		self.app = app
-		self.port = [0,0]
+		self.port = [-1,-1]
 		CNCRibbon.PageLabelFrame.__init__(self, master, "ProgramCreate", _("ProgramCreate"), app)
 		f = Frame(self)
 		b = Button(f, text="G0 to Current Position",
@@ -1830,13 +1830,19 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		self.feed.bind('<Return>',lambda ev=None, s=self: s.app.focus_set())
 		self.feed.bind('<KP_Enter>',lambda ev=None, s=self: s.app.focus_set())
 		f2.pack(side=TOP, fill=NONE, expand=False)
-		b = Button(f, text="Save Program",
+		f2 = Frame(f)
+		b = Button(f2, text="Save Program",
 					command=self.saveProgram,
 					activebackground="LightYellow")
-		b.pack(side=TOP, fill=BOTH)
+		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
 		self.addWidget(b)
+		b = Button(f2, text="Clean",
+			 command=self.clean, activebackground="LightYellow")
+		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
+		f2.pack(side=TOP, fill=Y, expand=False)
 		f.pack(side=LEFT, fill=Y, expand=False)
-		self.lastAxis = 50
+	def clean(self):
+		self.port = [-1,-1]
 	
 	def saveProgram(self, *args):
 		self.app.saveAll()
@@ -1851,29 +1857,30 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 	def getPort(self, numb):
 		return 1 if numb>6 else 0
 	def getPortState(self, numb):
-		return ((numb-1)//3)%2
+		numb -= 1 # numb e [1,12] => numb e [0,12]
+		numb //= 3 # 123 -> 0, 456->1, 789->2, 101112->3
+		return numb%2
 
-	def goToPosition(self):
+	def prepareMove(self):
 		number = CNC.vars["currentJogAxisNumber"].get()
 		port = self.getPort(number)
 		newState = self.getPortState(number)
 		if self.port[port] != newState:
 			self.port[port] = newState
-			first = ((number-1)//3)*3 + 1
+			first = number - (number-1)%3 # get the first number of the triplet
 			self.app.gcode._addLine("M{}{}{}".format(first,first+1, first+2))
 		axis = CNC.vars["currentJogAxis"]
 		position = CNC.vars["w{}".format(axis.lower())]
+		return axis, position
+
+
+	def goToPosition(self):
+		axis, position = self.prepareMove()
 		cmd = "G0 {} {}".format(axis, position)
 		self.app.gcode._addLine(cmd)
 
 	def traverseToPosition(self):
-		number = CNC.vars["currentJogAxisNumber"].get()
-		port = self.getPort(number)
-		newState = self.getPortState(number)
-		if self.port[port] != newState:
-			self.port[port] = newState
-			first = ((number-1)//3)*3 + 1
-			self.app.gcode._addLine("M{}{}{}".format(first,first+1, first+2))
+		axis, position = self.prepareMove()
 		axis = CNC.vars["currentJogAxis"]
 		position = CNC.vars["w{}".format(axis.lower())]
 		cmd = "G1 {} {} F{}".format(axis, position, self.getFeed())

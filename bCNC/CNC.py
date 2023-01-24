@@ -706,6 +706,12 @@ class CNC:
 			"ma"         : 0.0,
 			"mb"         : 0.0,
 			"mc"         : 0.0,
+			"fwx"         : 0.0,
+			"fwy"         : 0.0,
+			"fwz"         : 0.0,
+			"fwa"         : 0.0,
+			"fwb"         : 0.0,
+			"fwc"         : 0.0,
 			"wcox"       : 0.0,
 			"wcoy"       : 0.0,
 			"wcoz"       : 0.0,
@@ -747,7 +753,13 @@ class CNC:
 			"JogActive"  : False,
 			"execution"  : False,
 			"debug"      : False,
-
+			"currentTool": 0,
+			"toolLimits" : {
+					1:(0,0,0,0,0,0),
+					-1:(0,0,0,0,0,0),
+					2:(0,0,0,0,0,0),
+					-2:(0,0,0,0,0,0)
+					},
 			"currentJogAxis" : 'X',
 			"currentJogAxisNumber" : 1,
 

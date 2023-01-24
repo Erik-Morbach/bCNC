@@ -124,8 +124,9 @@ class _GenericController:
 				self.master.execute("$H"+w)
 				self.master.execute("%wait")
 		self.master._alarm = False
-		for i in range(1,13):
-			self.master.execute("M999")
+
+		self.master.execute("M999")
+
 		self.master.execute("M123")
 		ref("XYZ")
 		self.master.execute("M789")

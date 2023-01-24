@@ -7,6 +7,7 @@ def fun():
     set("Motor8Position", get("wb"))
     set("Motor9Position", get("wc"))
     a, b, c = get("Motor10Position"), get("Motor11Position"), get("Motor12Position")
+    a = -4
     code("G10 L20 P1 A{} B{} C{}".format(a,b,c))
     code("G4P0.05")
 fun()

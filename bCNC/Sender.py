@@ -122,6 +122,7 @@ class Sender:
 		self.workTable = Table("WorkTable.csv")
 		self.toolTable = Table("ToolTable.csv")
 		self.compensationTable = Table("CompensationTable.csv")
+		self.limitTable = Table("LimitTable.csv")
 
 		self.log	 = Queue()	# Log queue returned from GRBL
 		self.deque	 = lib.Deque.Deque()	# Command queue to be send to GRBL
@@ -724,13 +725,14 @@ class Sender:
 	#----------------------------------------------------------------------
 	def stopRun(self, event=None):
 		self.feedHold()
-		self._stop = True
-		self.gcode.repeatEngine.cleanState()
-		self.purgeController()
 		self.emptyDeque()
+		self.gcode.repeatEngine.cleanState()
 		if self.repeatLock is not None:
 			if not self.repeatLock.locked():
 				self.repeatLock.acquire()
+		self.emptyDeque()
+		self._stop = True
+		self.purgeController()
 		self.purgeController()
 
 	#----------------------------------------------------------------------
@@ -779,6 +781,8 @@ class Sender:
 	def controllerStateChange(self, state):
 		print("Controller state changed to: %s (Running: %s)"%(state, self.running))
 		if state in ("Idle"):
+			for w in 'xyzabc':
+				CNC.vars['fw{}'.format(w)] = CNC.vars['w{}'.format(w)]
 			if time.time() - self._updateChangedState > 20:
 				self.mcontrol.viewParameters()
 				self.mcontrol.viewState()
@@ -990,8 +994,16 @@ class Sender:
 				processNode = None
 				continue
 
+			if not toSend.checkLimitsValid(self):
+				if toSend.isJog:
+					continue
+				self.stopRun()
+				continue
+
 			if self._checkAndEvaluateStop():
 				continue
+
+			toSend.processFuture()
 
 			self._sline.append(toSend.src)
 			self._cline.append(len(toSend.src))
