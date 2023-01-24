@@ -4706,20 +4706,12 @@ class GCode:
 	#----------------------------------------------------------------------
 	# Use probe information to modify the g-code to autolevel
 	#----------------------------------------------------------------------
-	def compile(self, deque, stopFunc=None,doNotUploadDeque:bool=False, fromSD:bool=False):
+	def compile(self, deque, stopFunc=None):
 		#lines  = [self.cnc.startup]
 		paths   = []
-		self.repeatEngine.fromSD = fromSD
 
-		if fromSD and doNotUploadDeque:
-			fileName = "TmpFile.nc"
-			if Utils.getStr('CNC', 'firmware') == 'Grbl_HAL':
-				deque.append("$F="+fileName+"\n")
-			else:
-				deque.append("$SD/run=/{}\n".format(fileName))
-			
 		def add(line, path):
-			if line is not None and not doNotUploadDeque:
+			if line is not None:
 				if isinstance(line,str):
 					deque.append(line+"\n")
 				else:
