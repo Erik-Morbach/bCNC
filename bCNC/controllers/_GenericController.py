@@ -126,9 +126,9 @@ class _GenericController:
 		self.master._alarm = False
 
 		self.master.execute("M123")
-		self.master.execute("M456")
-		self.master.execute("M999")
 		self.master.execute("M789")
+		self.master.execute("M999")
+		self.master.execute("M456")
 		self.master.execute("M101112")
 		self.master.execute("M999")
 
