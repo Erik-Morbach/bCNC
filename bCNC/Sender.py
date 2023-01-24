@@ -907,6 +907,7 @@ class Sender:
 		if not isinstance(cmds, list): 
 			cmds = [cmds]
 		if len(cmds) == 0:
+			self._runLines -= 1 # remove line from path
 			return
 		self._runLines += len(cmds) - 1 # consider that is already added to _runLines
 		self.deque.appendleft((END_RUN_MACRO,))
