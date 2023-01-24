@@ -425,6 +425,7 @@ class _GenericController:
 			self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.master._stop = True
 			self.reseted = True
+			self.master.sio_count = 0 # Buffers cleaned, then this is needed
 			del cline[:]	# After reset clear the buffer counters
 			del sline[:]
 			CNC.vars["version"] = line.split()[1]
