@@ -732,7 +732,6 @@ class Sender:
 		self.emptyDeque()
 		self._stop = True
 		self.purgeController()
-		self.purgeController()
 
 	#----------------------------------------------------------------------
 	# This should be called everytime that milling of g-code file is finished
@@ -745,31 +744,12 @@ class Sender:
 
 	def repeatProgram(self):
 		def th():
-			print("Repeating")
-			if self.repeatLock.locked():
-				self.repeatLock.release()
-				return
 			self.sendGCode((WAIT,))
-			while CNC.vars["state"].lower() in ["run", "hold"] or len(self.deque) or self.sio_wait:
-				if self.repeatLock.locked(): 
-					self.repeatLock.release()
-					return
-				time.sleep(0.01)
 			time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT/1000)
-			while sum([1 if w in CNC.vars["state"].lower() else 0 for w in ["run", "hold"]])!=0:
-				if self.repeatLock.locked():
-					self.repeatLock.release()
-					return
-				time.sleep(0.01)
-			if CNC.vars["state"].lower() != "idle":
-				return
-			if self.gcode.repeatEngine.fromSD:
-				pass
-			else:
-				self.event_generate("<<Run>>")
 			if self.repeatLock.locked():
 				self.repeatLock.release()
-			print("end repeating")
+				return
+			self.event_generate("<<Run>>", when="tail")
 		threading.Thread(target=th).start()
 
 	#----------------------------------------------------------------------

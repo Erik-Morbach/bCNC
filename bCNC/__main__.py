@@ -2423,10 +2423,13 @@ class Application(Toplevel, Sender):
     def run(self, lines=None, fromSD: bool = False, cleanRepeat=False):
         if CNC.vars["SafeDoor"]:
             return
+        if self.checkStop():
+            return
         if cleanRepeat:
             self.gcode.repeatEngine.cleanState()
         if self.repeatLock is not None and self.repeatLock.locked():
             self.repeatLock.release()
+            return
         self.cleanAfter = True  # Clean when this operation stops
         print("Will clean after this operation")
 
