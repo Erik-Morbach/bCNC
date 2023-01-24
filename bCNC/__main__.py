@@ -288,9 +288,7 @@ class Application(Toplevel, Sender):
         self.bind('<<Import>>', lambda x, s=self: s.importFile())
         self.bind('<<Save>>', self.saveAll)
         self.bind('<<SaveAs>>', self.saveDialog)
-        self.bind('<<SaveToSD>>', self.saveToSD)
         self.bind('<<Reload>>', self.reload)
-        self.bind('<<DeleteFromSD>>', self.deleteFromSD)
 
         self.bind('<<Recent0>>', self._loadRecent0)
         self.bind('<<Recent1>>', self._loadRecent1)
@@ -311,7 +309,6 @@ class Application(Toplevel, Sender):
         self.bind('<<Resume>>', lambda e, s=self: s.resume())
         self.bind('<<Run>>', lambda e, s=self: s.run())
         self.bind('<<RunBegin>>', lambda e, s=self: s.run(cleanRepeat=True))
-        self.bind('<<RunFromSD>>', lambda e, s=self: s.run(fromSD=True))
         self.bind('<<Stop>>', self.stopRun)
         self.bind('<<Pause>>', self.pause)
         #		self.bind('<<TabAdded>>',	self.tabAdded)
@@ -2351,7 +2348,7 @@ class Application(Toplevel, Sender):
     # Send enabled gcode file to the CNC machine
     # -----------------------------------------------------------------------
 
-    def run(self, lines=None, fromSD: bool = False, cleanRepeat=False):
+    def run(self, lines=None, cleanRepeat=False):
         if CNC.vars["SafeDoor"]:
             return
         if self.checkStop():
@@ -2413,7 +2410,7 @@ class Application(Toplevel, Sender):
             #		print ">>>",line
             # self._paths = self.gcode.compile(MyQueue(), self.checkStop)
             # return
-            self._paths = self.gcode.compile(self.deque, self.checkStop, doNotUploadDeque=fromSD, fromSD=fromSD)
+            self._paths = self.gcode.compile(self.deque, self.checkStop)
 
             if self._paths is None:
                 self.emptyDeque()
@@ -2443,12 +2440,8 @@ class Application(Toplevel, Sender):
 
             self.gcode.repeatEngine.countRepetition()
 
-            if fromSD:
-                self._runLines = 10000
-                self._gcount = 0
-            else:
-                # the buffer of the machine should be empty?
-                self._runLines = len(self._paths) + 1  # plus the wait
+            # the buffer of the machine should be empty?
+            self._runLines = len(self._paths) + 1  # plus the wait
         else:
             n = 1  # including one wait command
             for line in CNC.compile(lines):
@@ -2459,8 +2452,7 @@ class Application(Toplevel, Sender):
                         self.deque.append(line)
                     n += 1
             self._runLines = n  # set it at the end to be sure that all lines are queued
-        if not fromSD:
-            self.deque.append((WAIT,))  # wait at the end to become idle
+        self.deque.append((WAIT,))  # wait at the end to become idle
 
         self.setStatus(_("Running..."))
         self.statusbar.setLimits(0, self._runLines)
