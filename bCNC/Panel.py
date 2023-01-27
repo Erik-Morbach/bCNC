@@ -57,15 +57,16 @@ class Member:
         return wp.digitalRead(pin)
 
     def waitDebounce(self):
+        debounceQnt = 100
         pinValues = [self.read(pin) for pin in self.pins]
-        for _ in range(10):
-            time.sleep(self.debounce/10)
+        for _ in range(debounceQnt):
+            time.sleep(self.debounce/debounceQnt)
             pinValuesDebounced = [self.read(pin) for pin in self.pins]
             for i in range(len(pinValues)):
                 pinValues[i] += pinValuesDebounced[i]
 
         for i in range(len(pinValues)):
-            pinValues[i] = 1 if pinValues[i]>=5 else 0
+            pinValues[i] = 1 if pinValues[i]>=debounceQnt else 0
             if self.inversion & (2**i):
                 pinValues[i] = not pinValues[i]
         self.callback(pinValues)
