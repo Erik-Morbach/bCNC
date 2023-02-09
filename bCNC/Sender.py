@@ -31,6 +31,7 @@ from datetime import datetime
 
 try:
 	import serial
+	import Serial
 except ImportError:
 	serial = None
 try:
@@ -568,7 +569,7 @@ class Sender:
 	#----------------------------------------------------------------------
 	def open(self, device, baudrate):
 		#self.serial = serial.Serial(
-		self.serial = serial.serial_for_url(
+		self.serial = Serial.Serial(
 						device.replace('\\', '\\\\'), #Escape for windows
 						baudrate,
 						bytesize=serial.EIGHTBITS,
@@ -777,8 +778,10 @@ class Sender:
 			time.sleep(0.0001)
 			# Anything to receive?
 			try:
-				line = str(self.serial.read(max(self.serial.in_waiting,1)).decode())
-				buff += str(line)
+				line = str(self.serial.read().decode())
+				for w in line:
+					if w != '':
+						buff += w
 			except:
 				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
 			if (index:=buff.find('\n'))!=-1:
