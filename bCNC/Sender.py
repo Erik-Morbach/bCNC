@@ -60,7 +60,8 @@ SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
-WRITE_THREAD_PERIOD = 0.016 #s
+WRITE_THREAD_PERIOD = 0.040 #s
+WRITE_THREAD_RT_PERIOD = 0.016 #s
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")
@@ -575,7 +576,6 @@ class Sender:
 						bytesize=serial.EIGHTBITS,
 						parity=serial.PARITY_NONE,
 						stopbits=serial.STOPBITS_TWO,
-						timeout=SERIAL_TIMEOUT,
 						xonxoff=False,
 						rtscts=False)
 		time.sleep(0.2)
@@ -801,10 +801,10 @@ class Sender:
 		self.sio_count = 0
 		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
 		while self.writeRTThread:
-			time.sleep(WRITE_THREAD_PERIOD)
+			time.sleep(WRITE_THREAD_RT_PERIOD)
 			t = time.time()
 			# refresh machine position?
-			if t-tr > SERIAL_POLL and self.sio_count<10:
+			if t-tr > SERIAL_POLL:
 				self.sio_count += 1
 				self.mcontrol.viewStatusReport()
 				tr = t
@@ -978,8 +978,9 @@ class Sender:
 			if self._checkAndEvaluateStop():
 				continue
 
-			self._sline.append(toSend.src)
-			self._cline.append(len(toSend.src))
+			if "%" not in toSend.src:
+				self._sline.append(toSend.src)
+				self._cline.append(len(toSend.src))
 
 			hasStoped = False
 			while self.isRxBufferFull():

@@ -168,6 +168,7 @@ class _GenericController:
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "{}{}".format(axe.upper(), val)
 			self.master.deque.append(cmd+'\n',)
+			self.master.deque.append((4,))
 		self.clearError()
 		self.master.deque.append("G43\n")
 
@@ -184,6 +185,7 @@ class _GenericController:
 				if axe in work.keys():
 					cmd += "{}{}".format(axe.upper(), work[axe])
 			self.master.deque.append(cmd+'\n')
+			self.master.deque.append((4,))
 		self.clearError()
 		self.master.deque.append(currentMode+'\n')
 

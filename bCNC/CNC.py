@@ -4703,6 +4703,7 @@ class GCode:
 		self.initPath()
 
 		add('%', None) #program demarcation
+		paths.pop()
 		for line in CNC.compile(self.cnc.startup.splitlines()):
 			add(line, None)
 
@@ -4824,6 +4825,7 @@ class GCode:
 
 				add("".join(newcmd), (i,j))
 		add("%", None) # Program demarcation
+		paths.pop()
 		return paths
 
 #if __name__=="__main__":

@@ -38,7 +38,6 @@ class Controller(_GenericGRBL):
 		self.has_override = True
 		self.master = master
 		self.reseted = False
-		self.lastSDStatus = -1 
 		self.hasSD = False
 		self.pidSP = 0
 		self.pidTS = 0
@@ -112,7 +111,6 @@ class Controller(_GenericGRBL):
 		self.master.runningPrev = self.master.running
 
 		self.displayState(fields[0])
-		currentStatus = -1
 
 		for field in fields[1:]:
 			word = SPLITPAT.split(field)
@@ -209,16 +207,6 @@ class Controller(_GenericGRBL):
 					CNC.vars["inputs"] = int(word[1])
 				except (ValueError,IndexError):
 					break
-			elif word[0] == "SD":
-				try:
-					self.hasSD = True
-					currentStatus = int(max(float(word[1])-5,0)*100)
-				except (ValueError,IndexError):
-					break	
-		if self.hasSD and currentStatus != -1:
-			self.master._gcount = currentStatus	
-		self.lastSDStatus = currentStatus
-
 		# Machine is Idle buffer is empty stop waiting and go on
 		if self.master.sio_wait and not cline and sum([1 if w in fields[0] else 0 for w in ("Run", "Jog", "Hold")])==0:
 			#if not self.master.running: self.master.jobDone() #This is not a good idea, it purges the controller while waiting for toolchange. see #1061
