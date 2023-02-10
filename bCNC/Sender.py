@@ -784,7 +784,8 @@ class Sender:
 						buff += w
 			except:
 				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
-			if (index:=buff.find('\n'))!=-1:
+			index = buff.find('\n')
+			if index != -1:
 				line = buff[:index+1].strip()
 				buff = buff[index+1:]
 			else:
