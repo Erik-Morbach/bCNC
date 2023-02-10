@@ -979,9 +979,8 @@ class Sender:
 			if self._checkAndEvaluateStop():
 				continue
 
-			if "%" not in toSend.src:
-				self._sline.append(toSend.src)
-				self._cline.append(len(toSend.src))
+			self._sline.append(toSend.src)
+			self._cline.append(len(toSend.src))
 
 			hasStoped = False
 			while self.isRxBufferFull():
