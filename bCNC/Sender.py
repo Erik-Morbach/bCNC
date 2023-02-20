@@ -45,7 +45,7 @@ except ImportError:
 	from tkinter import *
 	import tkinter.messagebox as tkMessageBox
 
-from CNC import END_RUN_MACRO, RUN_MACRO, WAIT, MSG, UPDATE, WCS, CNC, GCode
+from CNC import END_RUN_MACRO, RUN_MACRO, WAIT, MSG, UPDATE, WCS, CNC, GCode, SLEEP
 import Utils
 import Pendant
 from _GenericGRBL import ERROR_CODES
@@ -60,7 +60,7 @@ SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
-WRITE_THREAD_PERIOD = 0.040 #s
+WRITE_THREAD_PERIOD = 0.050 #s
 WRITE_THREAD_RT_PERIOD = 0.016 #s
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
@@ -135,6 +135,7 @@ class Sender:
 		self.repeatLock = threading.Lock()
 		self.macrosRunning = 0
 		self.processEngine = ProcessEngine.ProcessEngine(self)
+		self.onStopComplete = None
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -595,6 +596,7 @@ class Sender:
 		self.writeThread.start()
 		self.writeRTThread.start()
 		self.readThread.start()
+		self.mcontrol.softReset()
 		return True
 
 	#----------------------------------------------------------------------
@@ -629,9 +631,6 @@ class Sender:
 				self.deque.append(cmd)
 			elif isinstance(cmd, str):
 				self.deque.append(cmd+"\n")
-			else:
-				for w in cmd:
-					self.sendGCode(w)
 			return True
 		return False
 
@@ -858,6 +857,13 @@ class Sender:
 			self._gcount += 1
 			if value is not None:
 				self._msg = value
+		elif id == SLEEP:
+			if not value: return
+			value = int(value)
+			if value>1:
+				self.deque.appendleft((SLEEP, value-1))
+			else: 
+				self.deque.appendleft((SLEEP,))
 		elif id == UPDATE:
 			self._gcount += 1
 			self._update = value
@@ -897,6 +903,9 @@ class Sender:
 			# so don't stop
 			if self._runLines != sys.maxsize:
 				self._stop = False
+				if self.onStopComplete:
+					self.onStopComplete()
+					self.onStopComplete = None
 			return True
 		return False
 
@@ -935,7 +944,6 @@ class Sender:
 		self.macrosRunning = 0
 		toSend = None			# next string to send
 		processNode = None
-
 		while self.writeThread:
 			time.sleep(WRITE_THREAD_PERIOD)
 

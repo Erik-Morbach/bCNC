@@ -495,7 +495,6 @@ class Application(Toplevel, Sender):
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
 
-        self.bind('<<LoadTables>>', lambda x,s=self: s.mcontrol.loadTables())
         self.bind('<Key-exclam>', self.feedHold)
         self.bind('<Key-asciitilde>', self.resume)
 
@@ -2306,7 +2305,6 @@ class Application(Toplevel, Sender):
             device = _device or serialPage.portCombo.get()  # .split("\t")[0]
             baudrate = _baud or serialPage.baudCombo.get()
             if self.open(device, baudrate):
-                self.mcontrol.resetSettings()
                 serialPage.connectBtn.config(text=_("Close"),
                                              background="LightGreen",
                                              activebackground="LightGreen")
