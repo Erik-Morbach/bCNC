@@ -44,6 +44,7 @@ WAIT   = 4
 UPDATE = 5
 RUN_MACRO = 6
 END_RUN_MACRO = 7
+SLEEP = 8
 
 XY   = 0
 XZ   = 1
@@ -739,6 +740,8 @@ class CNC:
 			"SafeDoor"   : 0,
 			"pitch"      : -1,
 
+			"workTable": {},
+			"toolTable": {},
 			"tool"       : 0,
 			"feed"       : 0.0,
 			"rpm"        : 0.0,
