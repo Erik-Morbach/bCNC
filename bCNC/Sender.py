@@ -24,6 +24,7 @@ import struct
 import MacroEngine
 import Command
 import ProcessEngine
+import ProgramEngine
 import lib.Deque
 import types
 
@@ -45,7 +46,7 @@ except ImportError:
 	from tkinter import *
 	import tkinter.messagebox as tkMessageBox
 
-from CNC import END_RUN_MACRO, RUN_MACRO, WAIT, MSG, UPDATE, WCS, CNC, GCode, SLEEP
+from CNC import END_RUN_MACRO, RUN_MACRO, WAIT, MSG, UPDATE, WCS, CNC, GCode, SLEEP, BEGIN_REPEAT_M30, END_REPEAT_M30, END_REPEAT
 import Utils
 import Pendant
 from _GenericGRBL import ERROR_CODES
@@ -136,6 +137,8 @@ class Sender:
 		self.macrosRunning = 0
 		self.processEngine = ProcessEngine.ProcessEngine(self)
 		self.onStopComplete = None
+
+		self.programEngine = ProgramEngine.ProgramEngine(self)
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -669,6 +672,7 @@ class Sender:
 	#----------------------------------------------------------------------
 	def emptyDeque(self):
 		self.deque.clear()
+		self.programEngine.reset()
 
 	#----------------------------------------------------------------------
 	def stopProbe(self):
@@ -684,6 +688,7 @@ class Sender:
 		self._quit   = 0
 		self._pause  = False
 		self._paths  = None
+		self.programEngine.reset()
 		self.running = True
 		self.macrosRunning = 0
 		self.disable()
@@ -698,10 +703,7 @@ class Sender:
 			self.log.put((Sender.MSG_RUNEND,_("Run ended")))
 			self.log.put((Sender.MSG_RUNEND, str(datetime.now())))
 			self.log.put((Sender.MSG_RUNEND, str(CNC.vars["msg"])))
-			if self.gcode.repeatEngine.isRepeatable():
-				self.after(50, self.repeatProgram)
-			else:
-				self.after(1000, self.purgeController)
+			self.after(500, self.purgeController)
 
 			if self._onStop:
 				try:
@@ -831,6 +833,8 @@ class Sender:
 		return False
 
 	def getNextCommand(self):
+		if self.running and self._runLines != sys.maxsize:
+			return self.programEngine.getNextCommand()
 		return self.deque.popleft()
 
 	def isInternalStrCommand(self, code):
@@ -851,6 +855,20 @@ class Sender:
 			value = None
 		if id == WAIT:
 			self.sio_wait = True
+		elif id == BEGIN_REPEAT_M30:
+			self.sio_wait = True
+			self.programEngine.sendNext((END_REPEAT_M30,))
+		elif id == END_REPEAT_M30:
+			if self.gcode.repeatEngine.isRepeatable():
+				self.gcode.repeatEngine.countRepetition()
+				self._gcount = 0
+				self._runLines = self._compiledRunLines
+				self.programEngine.reset()
+			else:
+				self.programEngine.sendNext((END_REPEAT,))
+		elif id == END_REPEAT:
+			self._gcount = self._runLines
+			self.runEnded()
 		elif id == MSG:
 			self._gcount += 1
 			if value is not None:

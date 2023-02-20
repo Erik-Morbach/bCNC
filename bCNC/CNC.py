@@ -45,6 +45,9 @@ UPDATE = 5
 RUN_MACRO = 6
 END_RUN_MACRO = 7
 SLEEP = 8
+BEGIN_REPEAT_M30 = 9
+END_REPEAT_M30 = 10
+END_REPEAT = 11
 
 XY   = 0
 XZ   = 1
@@ -4691,16 +4694,16 @@ class GCode:
 	#----------------------------------------------------------------------
 	# Use probe information to modify the g-code to autolevel
 	#----------------------------------------------------------------------
-	def compile(self, deque, stopFunc=None):
+	def compile(self, container, stopFunc=None):
 		#lines  = [self.cnc.startup]
 		paths   = []
 
 		def add(line, path):
 			if line is not None:
 				if isinstance(line,str):
-					deque.append(line+"\n")
+					container.append(line+"\n")
 				else:
-					deque.append(line)
+					container.append(line)
 			paths.append(path)
 		autolevel = not self.probe.isEmpty()
 		self.initPath()
