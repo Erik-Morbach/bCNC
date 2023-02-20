@@ -45,7 +45,7 @@ except ImportError:
 	from tkinter import *
 	import tkinter.messagebox as tkMessageBox
 
-from CNC import END_RUN_MACRO, RUN_MACRO, WAIT, MSG, UPDATE, WCS, CNC, GCode
+from CNC import END_RUN_MACRO, RUN_MACRO, WAIT, MSG, UPDATE, WCS, CNC, GCode, SLEEP
 import Utils
 import Pendant
 from _GenericGRBL import ERROR_CODES
@@ -60,7 +60,8 @@ SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
-WRITE_THREAD_PERIOD = 0.016 #s
+WRITE_THREAD_PERIOD = 0.050 #s
+WRITE_THREAD_RT_PERIOD = 0.016 #s
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")
@@ -134,6 +135,7 @@ class Sender:
 		self.repeatLock = threading.Lock()
 		self.macrosRunning = 0
 		self.processEngine = ProcessEngine.ProcessEngine(self)
+		self.onStopComplete = None
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -575,7 +577,6 @@ class Sender:
 						bytesize=serial.EIGHTBITS,
 						parity=serial.PARITY_NONE,
 						stopbits=serial.STOPBITS_TWO,
-						timeout=SERIAL_TIMEOUT,
 						xonxoff=False,
 						rtscts=False)
 		time.sleep(0.2)
@@ -595,6 +596,7 @@ class Sender:
 		self.writeThread.start()
 		self.writeRTThread.start()
 		self.readThread.start()
+		self.mcontrol.softReset()
 		return True
 
 	#----------------------------------------------------------------------
@@ -629,9 +631,6 @@ class Sender:
 				self.deque.append(cmd)
 			elif isinstance(cmd, str):
 				self.deque.append(cmd+"\n")
-			else:
-				for w in cmd:
-					self.sendGCode(w)
 			return True
 		return False
 
@@ -782,7 +781,8 @@ class Sender:
 				buff += line
 			except:
 				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
-			if (index:=buff.find('\n'))!=-1:
+			index = buff.find('\n')
+			if index != -1:
 				line = buff[:index+1].strip()
 				buff = buff[index+1:]
 			else:
@@ -799,10 +799,10 @@ class Sender:
 		self.sio_count = 0
 		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
 		while self.writeRTThread:
-			time.sleep(WRITE_THREAD_PERIOD)
+			time.sleep(WRITE_THREAD_RT_PERIOD)
 			t = time.time()
 			# refresh machine position?
-			if t-tr > SERIAL_POLL and self.sio_count<10:
+			if t-tr > SERIAL_POLL:
 				self.sio_count += 1
 				self.mcontrol.viewStatusReport()
 				tr = t
@@ -855,6 +855,13 @@ class Sender:
 			self._gcount += 1
 			if value is not None:
 				self._msg = value
+		elif id == SLEEP:
+			if not value: return
+			value = int(value)
+			if value>1:
+				self.deque.appendleft((SLEEP, value-1))
+			else: 
+				self.deque.appendleft((SLEEP,))
 		elif id == UPDATE:
 			self._gcount += 1
 			self._update = value
@@ -894,6 +901,9 @@ class Sender:
 			# so don't stop
 			if self._runLines != sys.maxsize:
 				self._stop = False
+				if self.onStopComplete:
+					self.onStopComplete()
+					self.onStopComplete = None
 			return True
 		return False
 
@@ -932,7 +942,6 @@ class Sender:
 		self.macrosRunning = 0
 		toSend = None			# next string to send
 		processNode = None
-
 		while self.writeThread:
 			time.sleep(WRITE_THREAD_PERIOD)
 

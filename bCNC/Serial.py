@@ -4,8 +4,8 @@ import ecc
 
 
 class Serial:
-	def __init__(self, path, baudrate, bytesize, parity, stopbits, timeout, xonxoff, rtscts) -> None:
-		self.serial = serial.serial_for_url(path, baudrate, bytesize, parity, stopbits, timeout, xonxoff, rtscts)
+	def __init__(self, *args, **kwargs) -> None:
+		self.serial = serial.serial_for_url(*args, **kwargs)
 		self.activeEcc = Utils.getBool("CNC", "ecc", True)
 		self.inside = 0
 		self.last = 0
