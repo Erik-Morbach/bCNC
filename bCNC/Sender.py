@@ -779,9 +779,7 @@ class Sender:
 			# Anything to receive?
 			try:
 				line = str(self.serial.read().decode())
-				for w in line:
-					if w != '':
-						buff += w
+				buff += line
 			except:
 				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
 			if (index:=buff.find('\n'))!=-1:
