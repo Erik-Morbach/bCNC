@@ -2408,7 +2408,8 @@ class Application(Toplevel, Sender):
             #		print ">>>",line
             # self._paths = self.gcode.compile(MyQueue(), self.checkStop)
             # return
-            self._paths = self.gcode.compile(self.deque, self.checkStop)
+            self.compiledProgram = []
+            self._paths = self.gcode.compile(self.compiledProgram, self.checkStop)
 
             if self._paths is None:
                 self.emptyDeque()
@@ -2440,6 +2441,7 @@ class Application(Toplevel, Sender):
 
             # the buffer of the machine should be empty?
             self._runLines = len(self._paths) + 1  # plus the wait
+            self._compiledRunLines = self._runLines
         else:
             n = 1  # including one wait command
             for line in CNC.compile(lines):
@@ -2646,8 +2648,6 @@ class Application(Toplevel, Sender):
                                                    width=2,
                                                    fill=CNCCanvas.PROCESS_COLOR)
                     self._selectI += 1
-            if self._gcount >= self._runLines:
-                self.runEnded()
 
     # -----------------------------------------------------------------------
     # "thread" timed function looking for messages in the serial thread
