@@ -43,6 +43,7 @@ class Controller(_GenericGRBL):
 		self.pidTS = 0
 		self.pidTarget = []
 		self.pidActual = []
+		self.runOnceOnResetFunctions = []
 		#print("grbl1 loaded")
 
 	def jog(self, dir):

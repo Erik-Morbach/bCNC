@@ -34,6 +34,9 @@ class _GenericController:
 
 	def executeCommand(self, oline, line, cmd):
 		return False
+	
+	def registerRunOnceOnReset(self, function):
+		self.runOnceOnResetFunctions.append(function)
 
 	def onRecieveSetting(self, id, value):
 		if self.validSetting(id, value): return
@@ -51,6 +54,9 @@ class _GenericController:
 		self.master.stopProbe()
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.unlock()
+		while len(self.runOnceOnResetFunctions):
+			self.runOnceOnResetFunctions[0]()
+			del self.runOnceOnResetFunctions[0]
 
 	def hardResetPre(self):
 		pass
@@ -391,14 +397,15 @@ class _GenericController:
 	# a reset to clear the buffer of the controller
 	#---------------------------------------------------------------------
 	def purgeController(self):
-		# remember and send all G commands
+		def function():
+			self.master.runEnded()
+			self.master.stopProbe()
+			self.master.sendGCode("?")
+			self.master.sendGCode("$X")
+			self.master.sendGCode("?")
+			self.viewState()
+		self.registerRunOnceOnReset(function)
 		self.softReset(False)			# reset controller
-		self.master.runEnded()
-		self.master.stopProbe()
-		self.master.sendGCode("?")
-		self.master.sendGCode("$X")
-		self.master.sendGCode("?")
-		self.viewState()
 
 
 	#----------------------------------------------------------------------
