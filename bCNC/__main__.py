@@ -492,7 +492,6 @@ class Application(Toplevel, Sender):
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
 
-        self.bind('<<LoadTables>>', lambda x,s=self: s.mcontrol.loadTables())
         self.bind('<Key-exclam>', self.feedHold)
         self.bind('<Key-asciitilde>', self.resume)
 
@@ -2303,7 +2302,6 @@ class Application(Toplevel, Sender):
             device = _device or serialPage.portCombo.get()  # .split("\t")[0]
             baudrate = _baud or serialPage.baudCombo.get()
             if self.open(device, baudrate):
-                self.mcontrol.resetSettings()
                 serialPage.connectBtn.config(text=_("Close"),
                                              background="LightGreen",
                                              activebackground="LightGreen")
@@ -2407,7 +2405,8 @@ class Application(Toplevel, Sender):
             #		print ">>>",line
             # self._paths = self.gcode.compile(MyQueue(), self.checkStop)
             # return
-            self._paths = self.gcode.compile(self.deque, self.checkStop)
+            self.compiledProgram = []
+            self._paths = self.gcode.compile(self.compiledProgram, self.checkStop)
 
             if self._paths is None:
                 self.emptyDeque()
@@ -2439,6 +2438,7 @@ class Application(Toplevel, Sender):
 
             # the buffer of the machine should be empty?
             self._runLines = len(self._paths) + 1  # plus the wait
+            self._compiledRunLines = self._runLines
         else:
             n = 1  # including one wait command
             for line in CNC.compile(lines):
@@ -2645,8 +2645,6 @@ class Application(Toplevel, Sender):
                                                    width=2,
                                                    fill=CNCCanvas.PROCESS_COLOR)
                     self._selectI += 1
-            if self._gcount >= self._runLines:
-                self.runEnded()
 
     # -----------------------------------------------------------------------
     # "thread" timed function looking for messages in the serial thread

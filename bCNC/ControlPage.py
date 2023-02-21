@@ -181,7 +181,7 @@ class SetCompensationDialog(Dialog):
 		index = int(self.tool.get())
 		compensate = self.getCompensationFromScreen()
 		self.app.mcontrol._toolCompensate(index, **compensate)
-		self.app.event_generate("<<LoadTables>>", when='tail')
+		self.app.unlock()
 
 	def onExit(self):
 		self.destroy()
@@ -289,7 +289,7 @@ class SetToolZeroDialog(Dialog):
 		for axe in self.axes:
 			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe] - float(wcs[axe])
 		self.app.mcontrol._tloSet(index, **tlo)
-		self.app.event_generate("<<LoadTables>>", when='tail')
+		self.app.unlock()
 
 	def onExit(self):
 		self.destroy()
@@ -365,7 +365,7 @@ class SetWorkZeroDialog(Dialog):
 		index = WCS.index(self.wcs.get())
 		wco = self.getWco()
 		self.app.mcontrol._wcsSet(**wco, wcsIndex=index)
-		self.app.event_generate("<<LoadTables>>", when='tail')
+		self.app.unlock()
 
 	def onExit(self):
 		self.destroy()
@@ -382,7 +382,7 @@ class SetWorkZeroDialog(Dialog):
 				if field in allAxis:
 					row[field] = '0'
 		table.save(rows)
-		self.app.event_generate("<<LoadTables>>", when='tail')
+		self.app.unlock()
 		self.destroy()
 
 
