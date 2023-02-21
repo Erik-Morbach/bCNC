@@ -24,6 +24,7 @@ import tkinter.ttk as ttk
 import math
 from math import * #Math in DRO
 
+from CNCRibbon import Page
 from CNC import CNC
 import functools
 import Utils
@@ -1807,22 +1808,22 @@ class NotebookFrame(CNCRibbon.PageLabelFrame):
 
 
 #===============================================================================
-# ProgramCreaterame
+# ProgramCreateFrame
 #===============================================================================
 class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		self._gUpdate = False
 		self.app = app
-		self.port = [-1,-1]
 		CNCRibbon.PageLabelFrame.__init__(self, master, "ProgramCreate", _("ProgramCreate"), app)
 		f = Frame(self)
-		b = Button(f, text="G0 to Current Position",
+		Label(f, text="Movimentacao").pack(side=TOP, fill=BOTH)
+		b = Button(f, text="Movimento rapido para posicao atual",
 					command=self.goToPosition,
 					activebackground="LightYellow")
 		b.pack(side=TOP, fill=BOTH)
 		self.addWidget(b)
 		f2 = Frame(f)
-		b = Button(f2, text="G1 to Current Position",
+		b = Button(f2, text="Movimento controlado para posicao atual",
 					command=self.traverseToPosition,
 					activebackground="LightYellow")
 		b.pack(side=LEFT,fill=BOTH, expand=TRUE)
@@ -1832,24 +1833,35 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		self.feed.bind('<Return>',lambda ev=None, s=self: s.app.focus_set())
 		self.feed.bind('<KP_Enter>',lambda ev=None, s=self: s.app.focus_set())
 		f2.pack(side=TOP, fill=NONE, expand=False)
+		f.pack(side=LEFT, fill=Y, expand=False)
+		f = Frame(self)
 		f2 = Frame(f)
-		b = Button(f2, text="Save Program",
+		b = Button(f2, text="Salvar Programa",
 					command=self.saveProgram,
 					activebackground="LightYellow")
 		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
 		self.addWidget(b)
-		b = Button(f2, text="Clean",
+		b = Button(f2, text="Novo Programa",
 			 command=self.clean, activebackground="LightYellow")
+		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
+		b = Button(f2, text="Recarrega Programa",
+			 command=self.reloadProgram, activebackground="LightYellow")
 		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
 		f2.pack(side=TOP, fill=Y, expand=False)
 		f.pack(side=LEFT, fill=Y, expand=False)
+		f = Frame(self)
+		f.pack(side=LEFT, fill=Y, expand=False)
+
+	def reloadProgram(self):
+		Page.lframes["Notebook"].gcodeViewFrame.reload()
+
 	def clean(self):
-		self.port = [-1,-1]
-	
+		self.app.newFile()
+
 	def saveProgram(self, *args):
 		self.app.saveAll()
 		self.app.reload()
-	
+
 	def getFeed(self):
 		try:
 			return float(self.feed.get())
@@ -1865,12 +1877,8 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 
 	def prepareMove(self):
 		number = CNC.vars["currentJogAxisNumber"].get()
-		port = self.getPort(number)
-		newState = self.getPortState(number)
-		if self.port[port] != newState:
-			self.port[port] = newState
-			first = number - (number-1)%3 # get the first number of the triplet
-			self.app.gcode._addLine("M{}{}{}".format(first,first+1, first+2))
+		first = number - (number-1)%3 # get the first number of the triplet
+		self.app.gcode._addLine("M{}{}{} (Seleciona motor {})".format(first,first+1, first+2, number))
 		axis = CNC.vars["currentJogAxis"]
 		position = CNC.vars["w{}".format(axis.lower())]
 		return axis, position
@@ -1878,15 +1886,14 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 
 	def goToPosition(self):
 		axis, position = self.prepareMove()
-		cmd = "G0 {} {}".format(axis, position)
+		cmd = "G0 {} {} (Movimento rapido com motor {})".format(axis, position, CNC.vars["currentJogAxisNumber"].get())
 		self.app.gcode._addLine(cmd)
+		Page.lframes["Notebook"].gcodeViewFrame.reload()
 
 	def traverseToPosition(self):
 		axis, position = self.prepareMove()
-		axis = CNC.vars["currentJogAxis"]
-		position = CNC.vars["w{}".format(axis.lower())]
-		cmd = "G1 {} {} F{}".format(axis, position, self.getFeed())
-		self.app.gcode._addLine(cmd)
+		cmd = "G1 {} {} F{} (Movimento controlado com motor {})".format(axis, position, self.getFeed(), CNC.vars["currentJogAxisNumber"].get())
+		Page.lframes["Notebook"].gcodeViewFrame.reload()
 
 #===============================================================================
 # SpindleFrame
@@ -2308,7 +2315,7 @@ class JogPage(CNCRibbon.Page):
 		wcsvar.set(0)
 
 		self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup, ToolGroup),
-			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, SpindleFrame, MdiFrame, ProgramCreateFrame))
+			(DROFrame, abcDROFrame, NotebookFrame, ControlFrame, abcControlFrame, StateFrame, SpindleFrame, MdiFrame, ProgramCreateFrame))
 	def activate(self, **kwargs):
 		CNC.vars["JogActive"] = True
 
