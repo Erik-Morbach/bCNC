@@ -172,9 +172,9 @@ class _GenericController:
 
 		workTable = self.master.workTable.getTable()
 		work, index = self.master.workTable.getRow(1)
-		workTable[index]['a'] = CNC.vars["a2Position"]
+		workTable[index]['a'] = float(CNC.vars["a2Position"])
 		self.master.workTable.save(workTable)
-		self.sendWork(workTable)
+		self.sendWork(1)
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
