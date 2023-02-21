@@ -23,8 +23,6 @@ import getopt
 import socket
 import traceback
 import threading
-import requests
-from ftplib import FTP
 
 from datetime import datetime
 
@@ -88,13 +86,8 @@ import CNCCanvas
 _openserial = True  # override ini parameters
 _device = None
 _baud = None
-GRBL_HAL = 1
-GRBL_ESP32 = 2
-firmware = GRBL_HAL if Utils.getStr('CNC', 'firmware', 'Grbl_Esp32') == 'Grbl_HAL' else GRBL_ESP32
-print("FIRMWARE =", firmware)
-grblIPAddress = '192.168.5.1' if firmware == GRBL_HAL else 'http://192.168.0.1'
 
-MONITOR_AFTER = 40  # ms
+MONITOR_AFTER = 33  # ms
 DRAW_AFTER = 5000  # ms
 
 RX_BUFFER_SIZE = 512
@@ -295,9 +288,7 @@ class Application(Toplevel, Sender):
         self.bind('<<Import>>', lambda x, s=self: s.importFile())
         self.bind('<<Save>>', self.saveAll)
         self.bind('<<SaveAs>>', self.saveDialog)
-        self.bind('<<SaveToSD>>', self.saveToSD)
         self.bind('<<Reload>>', self.reload)
-        self.bind('<<DeleteFromSD>>', self.deleteFromSD)
 
         self.bind('<<Recent0>>', self._loadRecent0)
         self.bind('<<Recent1>>', self._loadRecent1)
@@ -318,7 +309,6 @@ class Application(Toplevel, Sender):
         self.bind('<<Resume>>', lambda e, s=self: s.resume())
         self.bind('<<Run>>', lambda e, s=self: s.run())
         self.bind('<<RunBegin>>', lambda e, s=self: s.run(cleanRepeat=True))
-        self.bind('<<RunFromSD>>', lambda e, s=self: s.run(fromSD=True))
         self.bind('<<Stop>>', self.stopRun)
         self.bind('<<Pause>>', self.pause)
         #		self.bind('<<TabAdded>>',	self.tabAdded)
@@ -443,13 +433,15 @@ class Application(Toplevel, Sender):
         def bDown(*args):
             self.control.moveBdown()
             releaseJogMutex()
-        def jog(data="", *args):
+        def jog(*args):
+            data = self.jogData
             axis = ""
             directions = ""
-            for i in range(len(data)):
+            for i in range(0, len(data), 2):
                 axis += data[i]
                 directions += data[i+1]
             self.control.move(axis, directions, 1)
+            releaseJogMutex()
 
         self.bind('<<JOG>>', jog)
 
@@ -464,7 +456,7 @@ class Application(Toplevel, Sender):
 
         def stopJog(*args):
             if self.serial is None: return
-            self.emptyQueue()
+            self.emptyDeque()
             for _ in range(20):
                 self.serial_write(chr(0x85))
             self.serial.flush()
@@ -503,7 +495,6 @@ class Application(Toplevel, Sender):
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
 
-        self.bind('<<LoadTables>>', lambda x,s=self: s.mcontrol.loadTables())
         self.bind('<Key-exclam>', self.feedHold)
         self.bind('<Key-asciitilde>', self.resume)
 
@@ -1309,10 +1300,6 @@ class Application(Toplevel, Sender):
     def execute(self, line):
         # print
         # print "<<<",line
-        if self.isExpandable(line):
-            for w in self.expand(line):
-                self.execute(w)
-            return
         try:
             line = self.evaluate(line)
         except:
@@ -2249,68 +2236,6 @@ class Application(Toplevel, Sender):
             self.saveDialog()
         return "break"
 
-    def sendWithFTP(self, sdFileName, fileName):
-        ftp = FTP(grblIPAddress)
-        ftp.login()
-        file = open(fileName, 'rb')
-        ftp.storbinary('STOR ' + sdFileName, file)
-        file.close()
-        ftp.quit()
-
-    def sendWithHttp(self, sdFileName, fileName):
-        postArgs = {}
-        postArgs['path'] = '/'
-        postArgs[sdFileName + 'S'] = os.path.getsize(fileName)
-
-        with open(fileName, 'rb') as tmp:
-            postFile = {'myfile[]': (sdFileName, tmp)}
-            exists = requests.get(grblIPAddress + '/upload?path=/&PAGEID=0', timeout=5)
-            response = requests.post(grblIPAddress + '/upload', data=postArgs, files=postFile)
-            print(response.json())
-
-    def saveToSD(self, event=None):
-        def function():
-            self.setStatus("prepare to save file...")
-
-            def computeFile(filename):
-                dump = Queue()
-                path = self.gcode.compile(dump, fromSD=True)
-                with open(filename, 'w') as myfile:
-                    while not dump.empty():
-                        val = dump.get()
-                        if not isinstance(val, str):
-                            val = exec(val)
-                            if val is None:
-                                val = ""
-                        myfile.write(val + '\n')
-
-            sdFileName = "TmpFile.nc"
-            tmpFileName = "TmpFilePre"
-            try:
-                computeFile(tmpFileName)
-                self.setStatus("Sending File to SD...")
-                if firmware == GRBL_HAL:
-                    self.sendWithFTP(sdFileName, tmpFileName)
-                else:
-                    self.sendWithHttp(sdFileName, tmpFileName)
-                self.setStatus("File Send complete!")
-            except BaseException as err:
-                print(err)
-                self.setStatus("Error while sending! Check your connection and try again")
-            finally:
-                if os.path.exists(tmpFileName):
-                    os.remove(tmpFileName)
-
-        threading.Thread(target=function).start()
-
-    def deleteFromSD(self, event=None):
-        sdFileName = "TmpFile"
-        if firmware == GRBL_HAL:
-            self.sendGCode("$FD=" + sdFileName)
-        else:
-            self.sendGCode("$SD/Delete=" + sdFileName)
-        self.setStatus("SD File Deleted")
-
     # -----------------------------------------------------------------------
     def reload(self, event=None):
         self.load(self.gcode.filename)
@@ -2380,7 +2305,6 @@ class Application(Toplevel, Sender):
             device = _device or serialPage.portCombo.get()  # .split("\t")[0]
             baudrate = _baud or serialPage.baudCombo.get()
             if self.open(device, baudrate):
-                self.mcontrol.resetSettings()
                 serialPage.connectBtn.config(text=_("Close"),
                                              background="LightGreen",
                                              activebackground="LightGreen")
@@ -2422,13 +2346,16 @@ class Application(Toplevel, Sender):
     # Send enabled gcode file to the CNC machine
     # -----------------------------------------------------------------------
 
-    def run(self, lines=None, fromSD: bool = False, cleanRepeat=False):
+    def run(self, lines=None, cleanRepeat=False):
         if CNC.vars["SafeDoor"]:
+            return
+        if self.checkStop():
             return
         if cleanRepeat:
             self.gcode.repeatEngine.cleanState()
         if self.repeatLock is not None and self.repeatLock.locked():
             self.repeatLock.release()
+            return
         self.cleanAfter = True  # Clean when this operation stops
         print("Will clean after this operation")
 
@@ -2481,10 +2408,11 @@ class Application(Toplevel, Sender):
             #		print ">>>",line
             # self._paths = self.gcode.compile(MyQueue(), self.checkStop)
             # return
-            self._paths = self.gcode.compile(self.queue, self.checkStop, doNotUploadQueue=fromSD, fromSD=fromSD)
+            self.compiledProgram = []
+            self._paths = self.gcode.compile(self.compiledProgram, self.checkStop)
 
             if self._paths is None:
-                self.emptyQueue()
+                self.emptyDeque()
                 self.purgeController()
                 return
             elif not self._paths:
@@ -2511,24 +2439,20 @@ class Application(Toplevel, Sender):
 
             self.gcode.repeatEngine.countRepetition()
 
-            if fromSD:
-                self._runLines = 10000
-                self._gcount = 0
-            else:
-                # the buffer of the machine should be empty?
-                self._runLines = len(self._paths) + 1  # plus the wait
+            # the buffer of the machine should be empty?
+            self._runLines = len(self._paths) + 1  # plus the wait
+            self._compiledRunLines = self._runLines
         else:
             n = 1  # including one wait command
             for line in CNC.compile(lines):
                 if line is not None:
                     if isinstance(line, str):
-                        self.queue.put(line + "\n")
+                        self.deque.append(line + "\n")
                     else:
-                        self.queue.put(line)
+                        self.deque.append(line)
                     n += 1
             self._runLines = n  # set it at the end to be sure that all lines are queued
-        if not fromSD:
-            self.queue.put((WAIT,))  # wait at the end to become idle
+        self.deque.append((WAIT,))  # wait at the end to become idle
 
         self.setStatus(_("Running..."))
         self.statusbar.setLimits(0, self._runLines)
@@ -2708,7 +2632,7 @@ class Application(Toplevel, Sender):
         self.panel.update()
 
         if self.running:
-            self.statusbar.setProgress(self._runLines - self.queue.qsize(),
+            self.statusbar.setProgress(self._runLines - len(self.deque),
                                        self._gcount)
             CNC.vars["msg"] = self.statusbar.msg
             self.bufferbar.setProgress(Sender.getBufferFill(self))
@@ -2724,9 +2648,6 @@ class Application(Toplevel, Sender):
                                                    width=2,
                                                    fill=CNCCanvas.PROCESS_COLOR)
                     self._selectI += 1
-
-            if self._gcount >= self._runLines:
-                self.runEnded()
 
     # -----------------------------------------------------------------------
     # "thread" timed function looking for messages in the serial thread

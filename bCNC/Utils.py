@@ -6,6 +6,7 @@
 #   Date: 16-Apr-2015
 from __future__ import absolute_import
 from __future__ import print_function
+
 __author__ = "Vasilis Vlachoudis"
 __email__  = "vvlachoudis@gmail.com"
 __version__ = "0.9.14-dev"
@@ -19,6 +20,10 @@ import glob
 import traceback
 import gettext
 import pathlib
+import queue
+import threading
+
+import MacroEngine as macros
 
 __platform_fingerprint__ = "(%s py%s.%s.%s)"%(
 		sys.platform, sys.version_info.major,
@@ -243,55 +248,34 @@ def loadConfiguration(systemOnly=False):
 # Load Macros
 #------------------------------------------------------------------------------
 def loadMacros():
-    global macros
-    macros = {}
+    global macrosCache
+    macrosCache = {}
     entries = pathlib.Path('macros/')
     for file in entries.iterdir():
-        name = file.name
-        name = name[:name.rfind('.')]
-        if len(name)==0: continue
-        if name[0] == 'M':
-            isMacro = True
-            for w in name[1:]:
-                if not w.isnumeric():
-                    isMacro = False
-                    break
-            if not isMacro:
-                continue
-            mCode = int(name[1:])
-            buff = ""
-            with open('macros/'+file.name) as fileObj:
-                buff = "".join(fileObj.readlines())
-            macros[mCode] = compile(buff, '', 'exec')
+        macro = macros.Macro(file.name)
+        if macro.mCode == -1: continue
+        macrosCache[macro.mCode] = macro
+        print("Macro {} found".format(macro.mCode))
+
+#------------------------------------------------------------------------------
+# Load Macros
+#------------------------------------------------------------------------------
+def getLoadedMacros():
+    global macrosCache
+    return macrosCache.values()
 
 #------------------------------------------------------------------------------
 # Macros Exists
 #------------------------------------------------------------------------------
 def macroExists(id):
-    global macros
-    return id in macros.keys()
+    global macrosCache
+    return int(id) in macrosCache.keys()
 
-class Executor:
-    def __init__(self):
-        self.s = []
-    def code(self, gcode):
-        self.s += [gcode + '\n']
-    def wait(self):
-        self.s += ["%wait\n"]
-    def setSettings(self, id, value):
-        self.wait()
-        self.s += ["${}={}\n".format(id, value)]
-        self.wait()
-    def getUserCode(self):
-        return self.s
-#------------------------------------------------------------------------------
-# Execute Macro
-#------------------------------------------------------------------------------
-def macroExecute(id):
-    global macros
-    executor = Executor()
-    exec(macros[id], None, {"code":executor.code, "wait":executor.wait, "setSettings":executor.setSettings})
-    return executor.getUserCode()
+
+def macroExecutor(id, app, CNCRef):
+    global macrosCache
+    executor = macros.Executor(macrosCache[id], app, CNCRef)
+    return executor
 
 #------------------------------------------------------------------------------
 # Save configuration file

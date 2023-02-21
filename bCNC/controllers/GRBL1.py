@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 from _GenericGRBL import _GenericGRBL
-from _GenericController import SPLITPAT
+from _GenericController import SPLITPAT, TOOLSPLITPAT
 from CNC import CNC
 from CNCRibbon    import Page
 import time
@@ -37,7 +37,7 @@ class Controller(_GenericGRBL):
 		self.gcode_case = 0
 		self.has_override = True
 		self.master = master
-		self.lastSDStatus = -1 
+		self.reseted = False
 		self.hasSD = False
 		self.pidSP = 0
 		self.pidTS = 0
@@ -111,7 +111,6 @@ class Controller(_GenericGRBL):
 		self.master.runningPrev = self.master.running
 
 		self.displayState(fields[0])
-		currentStatus = -1
 
 		for field in fields[1:]:
 			word = SPLITPAT.split(field)
@@ -208,18 +207,8 @@ class Controller(_GenericGRBL):
 					CNC.vars["inputs"] = int(word[1])
 				except (ValueError,IndexError):
 					break
-			elif word[0] == "SD":
-				try:
-					self.hasSD = True
-					currentStatus = int(max(float(word[1])-5,0)*100)
-				except (ValueError,IndexError):
-					break	
-		if self.hasSD and currentStatus != -1:
-			self.master._gcount = currentStatus	
-		self.lastSDStatus = currentStatus
-
 		# Machine is Idle buffer is empty stop waiting and go on
-		if self.master.sio_wait and not cline and fields[0] not in ("Run", "Jog", "Hold"):
+		if self.master.sio_wait and not cline and sum([1 if w in fields[0] else 0 for w in ("Run", "Jog", "Hold")])==0:
 			#if not self.master.running: self.master.jobDone() #This is not a good idea, it purges the controller while waiting for toolchange. see #1061
 			self.master.sio_wait = False
 			self.master._gcount += 1
@@ -238,6 +227,14 @@ class Controller(_GenericGRBL):
 				 CNC.vars["prbz"]-CNC.vars["wcoz"])
 			self.master._probeUpdate = True
 			CNC.vars[word[0]] = word[1:]
+		if word[0] in ["G54", "G55", "G56", "G57", "G58", "G59"]:
+			workId = int(word[0][1:])-53
+			CNC.vars["workTable"][workId] = [float(w) for w in word[1:]]
+			self.onRecieveWork(workId, CNC.vars["workTable"][workId])
+		if word[0] in ["G59.1", "G59.2", "G59.3"]:
+			workId = int(word[0][1:3]) + int(word[0][4:])-53
+			CNC.vars["workTable"][workId] = [float(w) for w in word[1:]]
+			self.onRecieveWork(workId, CNC.vars["workTable"][workId])
 		if word[0] == "G92":
 			CNC.vars["G92X"] = float(word[1])
 			CNC.vars["G92Y"] = float(word[2])
@@ -293,5 +290,10 @@ class Controller(_GenericGRBL):
 				CNC.vars["pitch"] = float(word[1])
 			except:
 				CNC.vars["pitch"] = -1
+		elif word[0] == "T":
+			toolWord = TOOLSPLITPAT.split(line[1:-1])
+			id = int(toolWord[1])
+			CNC.vars["toolTable"][id] = [float(w) for w in toolWord[2:]]
+			self.onRecieveTool(id, CNC.vars["toolTable"][id])
 		else:
 			CNC.vars[word[0]] = word[1:]

@@ -57,15 +57,16 @@ class Member:
         return wp.digitalRead(pin)
 
     def waitDebounce(self):
+        debounceQnt = 100
         pinValues = [self.read(pin) for pin in self.pins]
-        for _ in range(10):
-            time.sleep(self.debounce/10)
+        for _ in range(debounceQnt):
+            time.sleep(self.debounce/debounceQnt)
             pinValuesDebounced = [self.read(pin) for pin in self.pins]
             for i in range(len(pinValues)):
                 pinValues[i] += pinValuesDebounced[i]
 
         for i in range(len(pinValues)):
-            pinValues[i] = 1 if pinValues[i]>=5 else 0
+            pinValues[i] = 1 if pinValues[i]>=debounceQnt else 0
             if self.inversion & (2**i):
                 pinValues[i] = not pinValues[i]
         self.callback(pinValues)
@@ -116,7 +117,14 @@ class Jog(MemberImpl):
     def __init__(self, app):
         self.active = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
 
-        self.type = Utils.getBool("Jog", "dirMode", True)
+        self.type = Utils.getBool("Jog", "directionMode", True)
+        #directionMode:
+        # pin0: axis
+        # pin1: direction
+        #
+        # directMode:
+        # pin0: axis+
+        # pin1: axis-
 
         self.axisMap = "XYZABC"
         self.directionMap = {0: "Up", 1: "Down"}
@@ -176,11 +184,14 @@ class Jog(MemberImpl):
                         continue
                 data += con[0]
                 data += '+' if con[1:] == "Up" else '-'
+        if len(data) == 0:
+            return
         mutex = threading.Lock()
         mutex.acquire()
         self.app.jogMutex = mutex
         self.app.focus_set()
-        self.app.event_generate("<<JOG>>", when="tail", data=data)
+        self.app.jogData = data
+        self.app.event_generate("<<JOG>>", when="tail")
         self.jogLastAction = self.JOGMOTION
         mutex.acquire(blocking=True, timeout=0.5)
         self.app.jogMutex = None
@@ -216,27 +227,30 @@ class Selector(MemberImpl):
         self.selectorName = "Selector{}".format(index)
         self.active = Utils.getBool(self.selectorName, "panel", False)
         debounce = Utils.getFloat(self.selectorName, "debounce", 0.1)
-        self.selectorType = Utils.getBool(self.selectorName, "binary", False)
+        self.selectorBinaryType = Utils.getBool(self.selectorName, "binary", False)
+        self.grayCodeActive = Utils.getBool(self.selectorName, "gray", False)
 
         binary =  lambda index, id: index + (2**id)
         direct = lambda index, id: id
-        self.typeFunction = binary if self.selectorType else direct
+        self.typeFunction = binary if self.selectorBinaryType else direct
 
         self.variableBegin = Utils.getFloat(self.selectorName, "begin", -1)
         self.variableEnd = Utils.getFloat(self.selectorName, "end", -1)
         self.variableOptions = getArrayWhileExists(self.selectorName, "v", Utils.getFloat, 0)
 
-
-
         pins, inversion = self.load_pins()
 
         self.useBeginEnd = self.variableBegin!=-1
         self.resolution = len(pins)
-        if self.selectorType:
-            self.resolution = 2**self.resolution
+        if self.selectorBinaryType:
+            self.resolution = 2**self.resolution-1
+        self.resolution = Utils.getInt(self.selectorName, "resolution", self.resolution)
 
         print(self.selectorName, end= ' ')
-        self.currentVar = self.variableOptions[0]
+        if self.useBeginEnd:
+            self.currentVar = self.variableBegin
+        else:
+            self.currentVar = self.variableOptions[0]
         super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
@@ -244,11 +258,22 @@ class Selector(MemberImpl):
         inversion = Utils.getInt(self.selectorName, "inversion", 0)
         return pins, inversion
 
+    @staticmethod
+    def grayToBinary(num):
+        num ^= num >> 16
+        num ^= num >> 8
+        num ^= num >> 4
+        num ^= num >> 2
+        num ^= num >> 1
+        return num
+
     def calculateIndex(self, selector: list):
         index = 0
         for id, w in enumerate(selector):
             if w == 1:
                 index = self.typeFunction(index, id)
+        if self.grayCodeActive:
+            index = Selector.grayToBinary(index)
         return index
 
     def callback(self, selector: list):
@@ -331,9 +356,9 @@ class StartButton(ButtonPanel):
     def __init__(self, app, index) -> None:
          super().__init__(app, index)
     def on(self):
-        if CNC.vars["state"] == "Idle" and not self.app.running:
+        if "idle" in CNC.vars["state"].lower() and not self.app.running:
             self.app.event_generate("<<Run>>", when="tail")
-        elif CNC.vars["state"] == "Hold":
+        elif "hold" in CNC.vars["state"].lower():
             self.app.resume()
 
 class PauseButton(ButtonPanel):
@@ -375,9 +400,9 @@ class BarEndButton(ButtonPanel):
         super().__init__(app,index)
     def on(self):
         CNC.vars["barEnd"] = 1
+        self.app.feedHold()
     def off(self):
         CNC.vars["barEnd"] = 0
-        self.app.feedHold()
 
 class ResetButton(ButtonPanel):
     def __init__(self, app, index) -> None:
