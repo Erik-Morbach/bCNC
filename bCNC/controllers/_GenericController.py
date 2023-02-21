@@ -115,31 +115,30 @@ class _GenericController:
 	def home(self, event=None):
 		def ref(axis):
 			for w in axis:
-				self.master.execute("%wait")
-				self.master.execute("$H"+w)
-				self.master.execute("%wait")
+				self.master.sendGCode((4,))
+				self.master.sendGCode("$H"+w)
+				self.master.sendGCode((4,))
 		self.master._alarm = False
 
+		self.master.sendGCode("M999")
+		self.master.sendGCode("M456")
+		self.master.sendGCode("M101112")
 
-		self.master.execute("M999")
-		self.master.execute("M456")
-		self.master.execute("M101112")
+	#	self.master.sendGCode("M123")
+	#	ref("XYZ")
+	#	self.master.sendGCode("M789")
+	#	ref("AB")
+	#	self.master.sendGCode("M456")
+	#	ref("XYZ")
+	#	self.master.sendGCode("M101112")
+	#	ref("C")
 
-		self.master.execute("M123")
-		ref("XYZ")
-		self.master.execute("M789")
-		ref("AB")
-		self.master.execute("M456")
-		ref("XYZ")
-		self.master.execute("M101112")
-		ref("C")
-
-		self.master.execute("M123")
-		self.master.execute("M789")
-		self.master.execute("M999")
-		self.master.execute("M456")
-		self.master.execute("M101112")
-		self.master.execute("M999")
+		self.master.sendGCode("M123")
+		self.master.sendGCode("M789")
+		self.master.sendGCode("M999")
+		self.master.sendGCode("M456")
+		self.master.sendGCode("M101112")
+		self.master.sendGCode("M999")
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')

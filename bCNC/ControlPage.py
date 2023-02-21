@@ -1857,6 +1857,8 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 
 	def clean(self):
 		self.app.newFile()
+		self.app.gcode._addLine("M47 P1")
+		Page.lframes["Notebook"].gcodeViewFrame.reload()
 
 	def saveProgram(self, *args):
 		self.app.saveAll()
@@ -1893,6 +1895,7 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 	def traverseToPosition(self):
 		axis, position = self.prepareMove()
 		cmd = "G1 {} {} F{} (Movimento controlado com motor {})".format(axis, position, self.getFeed(), CNC.vars["currentJogAxisNumber"].get())
+		self.app.gcode._addLine(cmd)
 		Page.lframes["Notebook"].gcodeViewFrame.reload()
 
 #===============================================================================
