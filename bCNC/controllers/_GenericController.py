@@ -82,20 +82,16 @@ class _GenericController:
 	def overrideSet(self):
 		pass
 
-	def setConnection(self, id, value, buffer=None):
-		if not buffer:
-			self.master.sendGCode("$%d=%d"%(id, value))
-			self.master.sendGCode((4,))
-		else:
-			buffer.append("$%d=%d" % (id, value))
-			buffer.append((4,))
+	def setConnection(self, id, value):
+		self.master.sendGCode("$%d=%d"%(id, value))
+		self.master.sendGCode((8,2))
 
-	def xConnection(self, connection, buffer=None):
-		self.setConnection(500, connection, buffer)
-	def zConnection(self, connection, buffer=None):
-		self.setConnection(502, connection, buffer)
-	def aConnection(self, connection, buffer=None):
-		self.setConnection(503, connection, buffer)
+	def xConnection(self, connection):
+		self.setConnection(500, connection)
+	def zConnection(self, connection):
+		self.setConnection(502, connection)
+	def aConnection(self, connection):
+		self.setConnection(503, connection)
 
 	def hardReset(self):
 		self.master.busy()
@@ -133,54 +129,52 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
-		lines = []
-		self.zConnection(1, buffer=lines)
-		lines.append("$HZ")
-		lines.append((4,))
-		self.zConnection(2, buffer=lines)
-		lines.append("$HZ")
-		lines.append((4,))
+		self.zConnection(1)
+		self.master.sendGCode("$HZ")
+		self.master.sendGCode((4,))
+		self.zConnection(2)
+		self.master.sendGCode("$HZ")
+		self.master.sendGCode((4,))
 		distance = CNC.vars["zGangedDifference"]
-		lines.append("G91G0Z%.3f" % distance)
-		lines.append((4,))
-		self.zConnection(3, buffer=lines)
-		lines.append("$HZ")
-		lines.append((4,))
+		self.master.sendGCode("G91G0Z%.3f" % distance)
+		self.master.sendGCode((4,))
+		self.zConnection(3)
+		self.master.sendGCode("$HZ")
+		self.master.sendGCode((4,))
 
-		self.xConnection(1, buffer=lines)
-		lines.append("$HX")
-		lines.append((4,))
-		self.xConnection(2, buffer=lines)
-		lines.append("$HX")
-		lines.append((4,))
+		self.xConnection(1)
+		self.master.sendGCode("$HX")
+		self.master.sendGCode((4,))
+		self.xConnection(2)
+		self.master.sendGCode("$HX")
+		self.master.sendGCode((4,))
 		distance = CNC.vars["cavityDistance"] - CNC.vars["punctureDistance"]
-		lines.append("G91G0X%.3f" % distance)
-		lines.append((4,))
-		self.xConnection(3, buffer=lines)
-		lines.append("$HX")
-		lines.append((4,))
+		self.master.sendGCode("G91G0X%.3f" % distance)
+		self.master.sendGCode((4,))
+		self.xConnection(3)
+		self.master.sendGCode("$HX")
+		self.master.sendGCode((4,))
 
-		lines.append("$HY")
-		lines.append((4,))
+		self.master.sendGCode("$HY")
+		self.master.sendGCode((4,))
 
-		self.aConnection(1, buffer=lines)
-		lines.append("$HA")
-		lines.append((4,))
-		lines.append("G53 G0 A%.3f" % CNC.vars["a1Position"])
-		lines.append((4,))
-		self.aConnection(2, buffer=lines)
-		lines.append("$HA")
-		lines.append((4,))
-		lines.append("G53 G0 A%.3f" % CNC.vars["a2Position"])
-		self.master.run(lines=lines)
-		#wait complete and zero A axis
-		def zeroA():
-			time.sleep(2)
-			while self.master.running:
-				time.sleep(0.1)
-			self.master.sendGCode((4,))
-			self._wcsSet(a=0)
-		threading.Thread(target=zeroA).start()
+		self.aConnection(1)
+		self.master.sendGCode("$HA")
+		self.master.sendGCode((4,))
+		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a1Position"])
+		self.master.sendGCode((4,))
+		self.aConnection(2)
+		self.master.sendGCode("$HA")
+		self.master.sendGCode((4,))
+		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a2Position"])
+		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a2Position"])
+		self.master.sendGCode((4,))
+
+		workTable = self.master.workTable.getTable()
+		work, index = self.master.workTable.getRow(1)
+		workTable[index]['a'] = CNC.vars["a2Position"]
+		self.master.workTable.save(workTable)
+		self.sendWork(workTable)
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
@@ -419,7 +413,6 @@ class _GenericController:
 		cmd += pos
 		self.master.workTable.save(workTable)
 		self.sendWork(p+1)
-
 
 		self.viewParameters()
 		self.master.event_generate("<<Status>>",
