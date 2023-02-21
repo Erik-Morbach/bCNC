@@ -601,6 +601,8 @@ class Sender:
 		self.writeRTThread.start()
 		self.readThread.start()
 		self.mcontrol.softReset()
+		self.serial_write("$$\n$#\n")
+		self.serial.flush()
 		return True
 
 	#----------------------------------------------------------------------
@@ -674,6 +676,7 @@ class Sender:
 	def emptyDeque(self):
 		self.deque.clear()
 		self.programEngine.reset()
+		self.compiledProgram = []
 
 	#----------------------------------------------------------------------
 	def stopProbe(self):

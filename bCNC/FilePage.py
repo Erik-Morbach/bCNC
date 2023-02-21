@@ -395,8 +395,8 @@ class StartupFrame(CNCRibbon.PageLabelFrame):
 		b.pack(side=TOP,fill=BOTH, expand=TRUE)
 		f.pack(side=TOP)
 	def reference(self):
+		self.app.mcontrol.registerRunOnceOnReset(self.app.mcontrol.home)
 		self.app.mcontrol.softReset()
-		self.app.mcontrol.home()
 
 #===============================================================================
 # File Page
