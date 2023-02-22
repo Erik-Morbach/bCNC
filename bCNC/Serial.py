@@ -10,6 +10,8 @@ class Serial:
 		self.inside = 0
 		self.last = 0
 		self.have = 0
+		self.serial.write(b'\x01')
+		self.serial.flush()
 		pass
 
 	def flushInput(self):
