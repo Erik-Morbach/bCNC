@@ -40,6 +40,10 @@ class Serial:
 		data = bytes()
 		recieved = self.serial.read(n)
 		for w in recieved:
+			if w == 0x01:
+				self.have = 0
+				self.last = 0
+				continue
 			if not self.have:
 				self.have = 1
 				self.last = w
