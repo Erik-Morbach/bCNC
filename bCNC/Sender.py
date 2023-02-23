@@ -850,6 +850,12 @@ class Sender:
 			return self.isInternalStrCommand(code)
 		return False
 
+	def appendLeftOnCurrentDeque(self, cmd):
+		if self.running and self._runLines != sys.maxsize:
+			self.programEngine.appendLeft(cmd)
+		else:
+			self.deque.appendleft(cmd)
+
 	def executeTupleInternalCommand(self, code):
 		id = code[0]
 		if len(code)==2:
@@ -860,7 +866,7 @@ class Sender:
 			self.sio_wait = True
 		elif id == BEGIN_REPEAT_M30:
 			self.sio_wait = True
-			self.programEngine.sendNext((END_REPEAT_M30,))
+			self.programEngine.appendLeft((END_REPEAT_M30,))
 		elif id == END_REPEAT_M30:
 			if self.gcode.repeatEngine.isRepeatable():
 				self.gcode.repeatEngine.countRepetition()
@@ -868,7 +874,7 @@ class Sender:
 				self._runLines = self._compiledRunLines
 				self.programEngine.reset()
 			else:
-				self.programEngine.sendNext((END_REPEAT,))
+				self.programEngine.appendLeft((END_REPEAT,))
 		elif id == END_REPEAT:
 			self._gcount = self._runLines
 			self.runEnded()
@@ -880,9 +886,9 @@ class Sender:
 			if not value: return
 			value = int(value)
 			if value>1:
-				self.deque.appendleft((SLEEP, value-1))
+				self.appendLeftOnCurrentDeque((SLEEP, value-1))
 			else: 
-				self.deque.appendleft((SLEEP,))
+				self.appendLeftOnCurrentDeque((SLEEP,))
 		elif id == UPDATE:
 			self._gcount += 1
 			self._update = value
@@ -942,11 +948,11 @@ class Sender:
 			self._runLines -= 1 # remove line from path
 			return
 		self._runLines += len(cmds) - 1 # consider that is already added to _runLines
-		self.deque.appendleft((END_RUN_MACRO,))
+		self.appendLeftOnCurrentDeque((END_RUN_MACRO,))
 		while len(cmds):
-			self.deque.appendleft(cmds[-1])
+			self.appendLeftOnCurrentDeque(cmds[-1])
 			del cmds[-1]
-		self.deque.appendleft((RUN_MACRO,))
+		self.appendLeftOnCurrentDeque((RUN_MACRO,))
 
 	def process(self, pNode):
 		cmds = pNode.process()
