@@ -1100,8 +1100,7 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			n = number - 1
 			CNC.vars["currentJogAxis"] = axis[n]
 			CNC.vars["currentJogAxisNumber"].set(n+1)
-			first = (n//3)*3 + 1
-			self.app.execute("M{}{}{}".format(first,first+1,first+2))
+			self.app.sendGCode("M10%02d" % number)
 
 		for i in range(1, 13):
 			self.app.bind("<<setAxis{}>>".format(i), functools.partial(setAxis, i))
@@ -1815,7 +1814,7 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		self._gUpdate = False
 		self.app = app
 		CNCRibbon.PageLabelFrame.__init__(self, master, "ProgramCreate", _("ProgramCreate"), app)
-		f = Frame(self)
+		f = Frame(self, highlightbackground="black", highlightthickness=2)
 		Label(f, text="Movimentacao").pack(side=TOP, fill=BOTH)
 		b = Button(f, text="Movimento rapido para posicao atual",
 					command=self.goToPosition,
@@ -1834,26 +1833,27 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		self.feed.bind('<KP_Enter>',lambda ev=None, s=self: s.app.focus_set())
 		f2.pack(side=TOP, fill=NONE, expand=False)
 		f.pack(side=LEFT, fill=Y, expand=False)
-		f = Frame(self)
+		ttk.Separator(self, orient=VERTICAL).pack(side=LEFT, padx=5)
+		f = Frame(self, highlightbackground="black", highlightthickness=2)
+		Label(f, text="Programa").pack(side=TOP, fill=BOTH)
 		f2 = Frame(f)
 		b = Button(f2, text="Salvar Programa",
 					command=self.saveProgram,
 					activebackground="LightYellow")
-		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
+		b.pack(side=TOP, fill=BOTH, expand=FALSE)
 		self.addWidget(b)
 		b = Button(f2, text="Novo Programa",
 			 command=self.clean, activebackground="LightYellow")
-		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
+		b.pack(side=TOP, fill=BOTH, expand=FALSE)
 		b = Button(f2, text="Recarrega Programa",
 			 command=self.reloadProgram, activebackground="LightYellow")
-		b.pack(side=LEFT, fill=BOTH, expand=FALSE)
+		b.pack(side=TOP, fill=BOTH, expand=FALSE)
 		f2.pack(side=TOP, fill=Y, expand=False)
-		f.pack(side=LEFT, fill=Y, expand=False)
-		f = Frame(self)
 		f.pack(side=LEFT, fill=Y, expand=False)
 
 	def reloadProgram(self):
 		Page.lframes["Notebook"].gcodeViewFrame.reload()
+		Page.lframes["Notebook"].gcodeViewFrame.seeLastElement()
 
 	def clean(self):
 		self.app.newFile()
@@ -1879,8 +1879,7 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 
 	def prepareMove(self):
 		number = CNC.vars["currentJogAxisNumber"].get()
-		first = number - (number-1)%3 # get the first number of the triplet
-		self.app.gcode._addLine("M{}{}{} (Seleciona motor {})".format(first,first+1, first+2, number))
+		self.app.gcode._addLine("M10%02d (Seleciona motor %d)" % (number, number))
 		axis = CNC.vars["currentJogAxis"]
 		position = CNC.vars["w{}".format(axis.lower())]
 		return axis, position
@@ -1891,12 +1890,14 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		cmd = "G0 {} {} (Movimento rapido com motor {})".format(axis, position, CNC.vars["currentJogAxisNumber"].get())
 		self.app.gcode._addLine(cmd)
 		Page.lframes["Notebook"].gcodeViewFrame.reload()
+		Page.lframes["Notebook"].gcodeViewFrame.seeLastElement()
 
 	def traverseToPosition(self):
 		axis, position = self.prepareMove()
 		cmd = "G1 {} {} F{} (Movimento controlado com motor {})".format(axis, position, self.getFeed(), CNC.vars["currentJogAxisNumber"].get())
 		self.app.gcode._addLine(cmd)
 		Page.lframes["Notebook"].gcodeViewFrame.reload()
+		Page.lframes["Notebook"].gcodeViewFrame.seeLastElement()
 
 #===============================================================================
 # SpindleFrame

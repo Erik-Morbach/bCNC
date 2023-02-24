@@ -42,6 +42,8 @@ class GCodeViewer:
                 lastFocus.focus_set()
             self.lb.see(lineNumber)
 
+    def seeLastElement(self):
+        self.lb.see(self.lb.size()-1)
 
     def reload(self):
         self.lb.delete(0, self.lb.size()-1)

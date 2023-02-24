@@ -140,6 +140,14 @@ class MacroNode(ProcessNode):
 
 	def process(self):
 		mcode = int(self.cmd.args['M'])
+		if 'P' in self.cmd.args.keys():
+			CNC.vars["macroP"] = int(self.cmd.args['P'])
+		else:
+			CNC.vars["macroP"] = 0
+		if 'Q' in self.cmd.args.keys():
+			CNC.vars["macroQ"] = int(self.cmd.args['Q'])
+		else:
+			CNC.vars["macroQ"] = 0
 		executor = Utils.macroExecutor(mcode, self.app, CNC)
 		try:
 			executor.execute(CNC.vars, self.app.gcode.vars)

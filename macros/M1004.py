@@ -10,3 +10,5 @@ def m456():
     code("G10 L20 P1 X{} Y{} Z{}".format(x,y,z))
     code("G4P0.05")
 m456()
+set("currentJogAxis", 'X')
+setVar("currentJogAxisNumber", 4)

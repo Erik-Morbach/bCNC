@@ -11,3 +11,5 @@ def m101112():
     code("G10 L20 P1 A{} B{} C{}".format(a,b,c))
     code("G4P0.05")
 m101112()
+set("currentJogAxis", 'B')
+setVar("currentJogAxisNumber", 11)
