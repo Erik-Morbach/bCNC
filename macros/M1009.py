@@ -8,6 +8,7 @@ def m789():
     set("Motor12Position", get("wc"))
     a, b, c = get("Motor7Position"), get("Motor8Position"), get("Motor9Position")
     code("G10 L20 P1 A{} B{} C{}".format(a,b,c))
+    send((8,2))
     code("G4P0.05")
 m789()
 set("currentJogAxis", 'C')

@@ -48,6 +48,7 @@ class Executor:
         loca["get"] = self.get
         loca["set"] = self.set
         loca["setVar"] = self.setVar
+        loca["send"] = self.send
         exec(self.macro.compiled, loca, globa)
 
     def code(self, gcode):
@@ -61,6 +62,9 @@ class Executor:
 
     def setVar(self, name, value):
         self.CNC.vars[name].set(value)
+
+    def send(self, code):
+        self.queue.put(code)
 
     def set(self, name, value):
         self.CNC.vars[name] = value

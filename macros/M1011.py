@@ -9,6 +9,7 @@ def m101112():
     a, b, c = get("Motor10Position"), get("Motor11Position"), get("Motor12Position")
     b = -4
     code("G10 L20 P1 A{} B{} C{}".format(a,b,c))
+    send((8,2))
     code("G4P0.05")
 m101112()
 set("currentJogAxis", 'B')

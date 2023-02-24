@@ -8,6 +8,7 @@ def m456():
     set("Motor3Position", get("wz"))
     x, y, z = get("Motor4Position"), get("Motor5Position"), get("Motor6Position")
     code("G10 L20 P1 X{} Y{} Z{}".format(x,y,z))
+    send((8,2))
     code("G4P0.05")
 m456()
 set("currentJogAxis", 'Z')
