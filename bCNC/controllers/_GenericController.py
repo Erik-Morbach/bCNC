@@ -274,6 +274,9 @@ class _GenericController:
 		a=None, b=None, c=None):
 		compensation = self.master.compensationTable
 		table = compensation.getTable()
+		if toolNumber is None:
+			toolNumber = int(CNC.vars["tool"])
+		if toolNumber == 0: return
 		row, index = compensation.getRow(toolNumber)
 		if index==-1: #assume that this function only adds one entry to tool table
 			table.append({'index', toolNumber})
@@ -287,6 +290,7 @@ class _GenericController:
 
 	def getCurrentToolOffset(self):
 		index = CNC.vars["tool"]
+		if index==0: return [0.000]*6
 		tool, index = self.master.toolTable.getRow(index)
 		return tool
 
@@ -296,6 +300,7 @@ class _GenericController:
 		table = tools.getTable()
 		if toolNumber is None:
 			toolNumber = int(CNC.vars["tool"])
+		if toolNumber == 0: return
 		tool, index = tools.getRow(toolNumber)
 		if index==-1: #assume that this function only adds one entry to tool table
 			table.append({'index':toolNumber})
