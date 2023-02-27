@@ -315,13 +315,8 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def _wcsSet(self, x=None, y=None, z=None, a=None, b=None, c=None, wcsIndex=None):
-		currentTool = self.getCurrentToolOffset()
 		workTable = self.master.workTable.getTable()
 		radiusMode = CNC.vars["radius"]
-		if currentTool is None:
-			currentTool = {}
-			for w in "xyzabc":
-				currentTool[w] = 0.00
 
 		#global wcsvar
 		#p = wcsvar.get()
@@ -343,23 +338,23 @@ class _GenericController:
 			cmd = "G92"
 
 		pos = ""
-		if x is not None and abs(float(x))<10000.0: 
-			workTable[index]['x'] = str(CNC.vars['mx'] - float(currentTool['x']) - float(x))
+		if x is not None and abs(float(x))<10000.0:
+			workTable[index]['x'] = str(CNC.vars['mx'] - float(x))
 			pos += "X"+workTable[index]['x']
-		if y is not None and abs(float(y))<10000.0: 
-			workTable[index]['y'] = str(CNC.vars['my'] - float(currentTool['y']) - float(y))
+		if y is not None and abs(float(y))<10000.0:
+			workTable[index]['y'] = str(CNC.vars['my'] - float(y))
 			pos += "Y"+workTable[index]['y']
-		if z is not None and abs(float(z))<10000.0: 
-			workTable[index]['z'] = str(CNC.vars['mz'] - float(currentTool['z']) - float(z))
+		if z is not None and abs(float(z))<10000.0:
+			workTable[index]['z'] = str(CNC.vars['mz'] - float(z))
 			pos += "Z"+workTable[index]['z']
-		if a is not None and abs(float(a))<10000.0: 
-			workTable[index]['a'] = str(CNC.vars['ma'] - float(currentTool['a']) - float(a))
+		if a is not None and abs(float(a))<10000.0:
+			workTable[index]['a'] = str(CNC.vars['ma'] - float(a))
 			pos += "A"+workTable[index]['a']
-		if b is not None and abs(float(b))<10000.0: 
-			workTable[index]['b'] = str(CNC.vars['mb'] - float(currentTool['b']) - float(b))
+		if b is not None and abs(float(b))<10000.0:
+			workTable[index]['b'] = str(CNC.vars['mb'] - float(b))
 			pos += "B"+workTable[index]['b']
-		if c is not None and abs(float(c))<10000.0: 
-			workTable[index]['c'] = str(CNC.vars['mc'] - float(currentTool['c']) - float(c))
+		if c is not None and abs(float(c))<10000.0:
+			workTable[index]['c'] = str(CNC.vars['mc'] - float(c))
 			pos += "C"+workTable[index]['c']
 		cmd += pos
 		self.master.workTable.save(workTable)
