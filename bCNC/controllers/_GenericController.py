@@ -202,8 +202,10 @@ class _GenericController:
 				value = float(tool[axe]) + float(compensation[axe])
 				wantedOff += [value]
 			skip = True
-			for i in range(0, len(wantedOff)):
+			for i in range(0, min(len(wantedOff), len(mcuOff))):
 				skip = skip and _GenericController.verifyEquality(wantedOff[i], mcuOff[i])
+			if not skip:
+				print("Tool {} is not the same as mcu value: mcu={}; rasp={};".format(id, mcuOff, wantedOff))
 			return skip
 		return True
 
@@ -232,8 +234,10 @@ class _GenericController:
 			for axe in axis:
 				wantedOff += [work[axe]]
 			skip = True
-			for i in range(0, len(wantedOff)):
+			for i in range(0, min(len(wantedOff), len(mcuOff))):
 				skip = skip and _GenericController.verifyEquality(wantedOff[i], mcuOff[i])
+			if not skip:
+				print("WCS {} is not the same as mcu value: mcu={}; rasp={};".format(id, mcuOff, wantedOff))
 			return skip
 		return True
 
