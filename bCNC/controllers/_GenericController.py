@@ -140,9 +140,9 @@ class _GenericController:
 	@staticmethod
 	def verifyEquality(value0, value1):
 		if value0 is None or value1 is None: return False
-		value0 = int(float(value0)*1000)/1000
-		value1 = int(float(value1)*1000)/1000
-		return value0 == value1
+		value0 = float(value0)
+		value1 = float(value1)
+		return abs(value0 - value1) <= 0.001
 
 
 	def validSetting(self, id, mcuValue): # TODO: please, do this the proper way
