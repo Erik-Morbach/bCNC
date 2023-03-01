@@ -164,9 +164,9 @@ class _GenericController:
 	@staticmethod
 	def verifyEquality(value0, value1):
 		if value0 is None or value1 is None: return False
-		value0 = int(float(value0)*1000)/1000
-		value1 = int(float(value1)*1000)/1000
-		return value0 == value1
+		value0 = float(value0)
+		value1 = float(value1)
+		return abs(value0 - value1) <= 0.001
 
 
 	def validSetting(self, id, mcuValue): # TODO: please, do this the proper way
@@ -226,8 +226,10 @@ class _GenericController:
 				value = float(tool[axe]) + float(compensation[axe])
 				wantedOff += [value]
 			skip = True
-			for i in range(0, len(wantedOff)):
+			for i in range(0, min(len(wantedOff), len(mcuOff))):
 				skip = skip and _GenericController.verifyEquality(wantedOff[i], mcuOff[i])
+			if not skip:
+				print("Tool {} is not the same as mcu value: mcu={}; rasp={};".format(id, mcuOff, wantedOff))
 			return skip
 		return True
 
@@ -256,8 +258,10 @@ class _GenericController:
 			for axe in axis:
 				wantedOff += [work[axe]]
 			skip = True
-			for i in range(0, len(wantedOff)):
+			for i in range(0, min(len(wantedOff), len(mcuOff))):
 				skip = skip and _GenericController.verifyEquality(wantedOff[i], mcuOff[i])
+			if not skip:
+				print("WCS {} is not the same as mcu value: mcu={}; rasp={};".format(id, mcuOff, wantedOff))
 			return skip
 		return True
 
@@ -339,13 +343,8 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def _wcsSet(self, x=None, y=None, z=None, a=None, b=None, c=None, wcsIndex=None):
-		currentTool = self.getCurrentToolOffset()
 		workTable = self.master.workTable.getTable()
 		radiusMode = CNC.vars["radius"]
-		if currentTool is None:
-			currentTool = {}
-			for w in "xyzabc":
-				currentTool[w] = 0.00
 
 		#global wcsvar
 		#p = wcsvar.get()
@@ -367,23 +366,23 @@ class _GenericController:
 			cmd = "G92"
 
 		pos = ""
-		if x is not None and abs(float(x))<10000.0: 
-			workTable[index]['x'] = str(CNC.vars['mx'] - float(currentTool['x']) - float(x))
+		if x is not None and abs(float(x))<10000.0:
+			workTable[index]['x'] = str(CNC.vars['mx'] - float(x))
 			pos += "X"+workTable[index]['x']
-		if y is not None and abs(float(y))<10000.0: 
-			workTable[index]['y'] = str(CNC.vars['my'] - float(currentTool['y']) - float(y))
+		if y is not None and abs(float(y))<10000.0:
+			workTable[index]['y'] = str(CNC.vars['my'] - float(y))
 			pos += "Y"+workTable[index]['y']
-		if z is not None and abs(float(z))<10000.0: 
-			workTable[index]['z'] = str(CNC.vars['mz'] - float(currentTool['z']) - float(z))
+		if z is not None and abs(float(z))<10000.0:
+			workTable[index]['z'] = str(CNC.vars['mz'] - float(z))
 			pos += "Z"+workTable[index]['z']
-		if a is not None and abs(float(a))<10000.0: 
-			workTable[index]['a'] = str(CNC.vars['ma'] - float(currentTool['a']) - float(a))
+		if a is not None and abs(float(a))<10000.0:
+			workTable[index]['a'] = str(CNC.vars['ma'] - float(a))
 			pos += "A"+workTable[index]['a']
-		if b is not None and abs(float(b))<10000.0: 
-			workTable[index]['b'] = str(CNC.vars['mb'] - float(currentTool['b']) - float(b))
+		if b is not None and abs(float(b))<10000.0:
+			workTable[index]['b'] = str(CNC.vars['mb'] - float(b))
 			pos += "B"+workTable[index]['b']
-		if c is not None and abs(float(c))<10000.0: 
-			workTable[index]['c'] = str(CNC.vars['mc'] - float(currentTool['c']) - float(c))
+		if c is not None and abs(float(c))<10000.0:
+			workTable[index]['c'] = str(CNC.vars['mc'] - float(c))
 			pos += "C"+workTable[index]['c']
 		cmd += pos
 		self.master.workTable.save(workTable)
