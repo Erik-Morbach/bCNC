@@ -202,6 +202,7 @@ class Controller(_GenericGRBL):
 				except (ValueError,IndexError):
 					break
 			elif word[0] == "In":
+				print("Input = {}".format(word[1]))
 				pass
 			elif word[0] == "Inps":
 				try:
