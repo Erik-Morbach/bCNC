@@ -59,7 +59,7 @@ class Member:
     def waitDebounce(self):
         haveErro = False
         debounceQnt = 100
-        pinValues = [self.read(pin) for pin in self.pins]
+        pinValues = [0]*len(self.pins)
         for _ in range(debounceQnt):
             time.sleep(self.debounce/debounceQnt)
             pinValuesDebounced = [self.read(pin) for pin in self.pins]
