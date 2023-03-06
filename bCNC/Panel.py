@@ -67,7 +67,7 @@ class Member:
                 pinValues[i] += pinValuesDebounced[i]
 
         for i in range(len(pinValues)):
-            if pinValues[i] >= debounceQnt:
+            if pinValues[i] > 0 and pinValues[i] < debounceQnt:
                 haveErro = True
                 break
             pinValues[i] = 1 if pinValues[i]==debounceQnt else 0
