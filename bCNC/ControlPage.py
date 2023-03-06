@@ -1098,7 +1098,6 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			axis="XYZXYZABCABC"
 			number = int(number)
 			n = number - 1
-			CNC.vars["currentJogAxis"] = axis[n]
 			CNC.vars["currentJogAxisNumber"].set(n+1)
 			self.app.sendGCode("M10%02d" % number)
 
@@ -1880,10 +1879,10 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 	def prepareMove(self):
 		number = CNC.vars["currentJogAxisNumber"].get()
 		self.app.gcode._addLine("M10%02d (Seleciona motor %d)" % (number, number))
-		axis = CNC.vars["currentJogAxis"]
+		self.app.gcode._addLine("G4P0.05")
+		axis = self.app.getJogAxis()
 		position = CNC.vars["w{}".format(axis.lower())]
 		return axis, position
-
 
 	def goToPosition(self):
 		axis, position = self.prepareMove()

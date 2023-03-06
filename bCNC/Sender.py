@@ -758,6 +758,9 @@ class Sender:
 			self.event_generate("<<Run>>", when="tail")
 		threading.Thread(target=th).start()
 
+	def getJogAxis(self):
+		axis = "XYZXYZABCABC"
+		return axis[CNC.vars["currentJogAxisNumber"]-1]
 	#----------------------------------------------------------------------
 	# This is called everytime that motion controller changes the state
 	# YOU SHOULD PASS ONLY REAL HW STATE TO THIS, NOT BCNC STATE
@@ -766,8 +769,6 @@ class Sender:
 	def controllerStateChange(self, state):
 		print("Controller state changed to: %s (Running: %s)"%(state, self.running))
 		if state in ("Idle"):
-			for w in 'xyzabc':
-				CNC.vars['fw{}'.format(w)] = CNC.vars['w{}'.format(w)]
 			if time.time() - self._updateChangedState > 20:
 				self.mcontrol.viewParameters()
 				self.mcontrol.viewState()
@@ -1012,16 +1013,11 @@ class Sender:
 				processNode = None
 				continue
 
-			if not toSend.checkLimitsValid(self):
-				if toSend.isJog:
-					continue
-				self.stopRun()
-				continue
-
 			if self._checkAndEvaluateStop():
 				continue
 
-			toSend.processFuture()
+			if toSend.src == None:
+				continue
 
 			self._sline.append(toSend.src)
 			self._cline.append(len(toSend.src))

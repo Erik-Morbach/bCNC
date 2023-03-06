@@ -710,12 +710,6 @@ class CNC:
 			"ma"         : 0.0,
 			"mb"         : 0.0,
 			"mc"         : 0.0,
-			"fwx"         : 0.0,
-			"fwy"         : 0.0,
-			"fwz"         : 0.0,
-			"fwa"         : 0.0,
-			"fwb"         : 0.0,
-			"fwc"         : 0.0,
 			"wcox"       : 0.0,
 			"wcoy"       : 0.0,
 			"wcoz"       : 0.0,
@@ -766,11 +760,7 @@ class CNC:
 					2:(0,0,0,0,0,0),
 					-2:(0,0,0,0,0,0)
 					},
-			"currentJogAxis" : 'X',
 			"currentJogAxisNumber" : 1,
-
-			"port0State": 0,
-			"port1State": 0,
 
 			"planner"    : -1,
 			"rxbytes"    : 0,

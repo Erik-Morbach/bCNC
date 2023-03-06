@@ -297,5 +297,11 @@ class Controller(_GenericGRBL):
 			id = int(toolWord[1])
 			CNC.vars["toolTable"][id] = [float(w) for w in toolWord[2:]]
 			self.onRecieveTool(id, CNC.vars["toolTable"][id])
+		elif word[0] == "MSG":
+			if len(word)<2: return
+			splited = word[1].split(' ')
+			if len(splited)<2: return
+			motorIndex = int(splited[1])
+			CNC.vars["currentJogAxisNumber"] = motorIndex
 		else:
 			CNC.vars[word[0]] = word[1:]
