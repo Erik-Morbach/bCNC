@@ -760,7 +760,7 @@ class Sender:
 
 	def getJogAxis(self):
 		axis = "XYZXYZABCABC"
-		return axis[CNC.vars["currentJogAxisNumber"]-1]
+		return axis[CNC.vars["currentJogAxisNumber"].get()-1]
 	#----------------------------------------------------------------------
 	# This is called everytime that motion controller changes the state
 	# YOU SHOULD PASS ONLY REAL HW STATE TO THIS, NOT BCNC STATE

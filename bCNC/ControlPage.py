@@ -1095,10 +1095,7 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 
 		f2 = Frame(self)
 		def setAxis(number, *args):
-			axis="XYZXYZABCABC"
 			number = int(number)
-			n = number - 1
-			CNC.vars["currentJogAxisNumber"].set(n+1)
 			self.app.sendGCode("M10%02d" % number)
 
 		for i in range(1, 13):
@@ -1878,8 +1875,10 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 
 	def prepareMove(self):
 		number = CNC.vars["currentJogAxisNumber"].get()
+		sleepPeriod = Utils.getFloat("CNC", "sleepPeriod", 0.2)
 		self.app.gcode._addLine("M10%02d (Seleciona motor %d)" % (number, number))
-		self.app.gcode._addLine("G4P0.05")
+		if sleepPeriod >= 0:
+			self.app.gcode._addLine("G4P%.3f" % (sleepPeriod))
 		axis = self.app.getJogAxis()
 		position = CNC.vars["w{}".format(axis.lower())]
 		return axis, position

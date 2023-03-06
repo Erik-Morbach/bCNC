@@ -301,7 +301,10 @@ class Controller(_GenericGRBL):
 			if len(word)<2: return
 			splited = word[1].split(' ')
 			if len(splited)<2: return
-			motorIndex = int(splited[1])
-			CNC.vars["currentJogAxisNumber"] = motorIndex
+			try:
+				motorIndex = int(splited[1])
+				CNC.vars["currentJogAxisNumber"].set(motorIndex)
+			except:
+				pass
 		else:
 			CNC.vars[word[0]] = word[1:]
