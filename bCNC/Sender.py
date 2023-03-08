@@ -52,6 +52,7 @@ import Pendant
 from _GenericGRBL import ERROR_CODES
 from RepeatEngine import RepeatEngine
 from Table import Table
+import ScriptEngine
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
@@ -139,6 +140,7 @@ class Sender:
 		self.onStopComplete = None
 
 		self.programEngine = ProgramEngine.ProgramEngine(self)
+		self.scripts = ScriptEngine.ScriptEngine(self)
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -417,6 +419,8 @@ class Sender:
 		elif self.mcontrol.executeCommand(oline, line, cmd):
 			pass
 
+		elif self.scripts.find(cmd):
+			self.scripts.execute(cmd, locals(), globals())
 		else:
 			return _("unknown command"),_("Invalid command %s")%(oline)
 

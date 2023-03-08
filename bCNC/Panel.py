@@ -328,11 +328,14 @@ class RapidSelector(Selector):
 class ButtonPanel(MemberImpl):
     def __init__(self, app, index) -> None:
         self.panelName = "Button{}".format(index)
+        self.description = Utils.getStr(self.panelName, "name", self.panelName)
         self.active = Utils.getBool(self.panelName, "panel", False)
         debounce = Utils.getFloat(self.panelName, "debounce", 0.5)
         pins, inversion = self.load_pins()
         print("Button{}".format(index), end=' ')
         self.lastState = [0]
+        self.onOnExecute = Utils.getStr(self.panelName, "on", "")
+        self.onOffExecute = Utils.getStr(self.panelName, "off", "")
         super().__init__(app,pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
@@ -352,9 +355,9 @@ class ButtonPanel(MemberImpl):
             return
         self.on()
     def on(self):
-        pass
+        self.app.execute(self.onOnExecute)
     def off(self):
-        pass
+        self.app.execute(self.onOffExecute)
 
 
 class StartButton(ButtonPanel):
@@ -426,7 +429,8 @@ class Panel:
                 "feedselector":FeedSelector, "startbutton":StartButton,
                 "pausebutton":PauseButton, "startpausebutton":StartPauseButton,
                 "clampbutton":ClampButton, "safetydoorbutton":SafetyDoorButton,
-                "barendbutton":BarEndButton, "resetbutton": ResetButton}
+                "barendbutton":BarEndButton, "resetbutton": ResetButton,
+                "button":ButtonPanel}
         self.members = []
         self.members += [Jog(app)]
         index = 0
