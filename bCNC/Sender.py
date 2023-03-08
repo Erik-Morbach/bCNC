@@ -404,6 +404,10 @@ class Sender:
 				self.modifyConfiguration("${}".format(index), value)
 			except:
 				pass
+		elif cmd == "OVERMINUS":
+			self.gstate.overrideMinus()
+		elif cmd == "OVERPLUS":
+			self.gstate.overridePlus()
 
 		# UNL*OCK: unlock grbl
 		elif rexx.abbrev("UNLOCK",cmd,3):
