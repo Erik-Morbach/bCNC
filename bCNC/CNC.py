@@ -753,6 +753,7 @@ class CNC:
 			"rpm"        : 0.0,
 			"realRpm"    : 0.0,
 			"JogSpeed"   : 3000.0,
+			"jogOldStep" : -1,
 			"JogActive"  : False,
 			"execution"  : False,
 			"debug"      : False,
