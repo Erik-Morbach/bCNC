@@ -57,8 +57,9 @@ class Member:
         return wp.digitalRead(pin)
 
     def waitDebounce(self):
+        haveErro = False
         debounceQnt = 100
-        pinValues = [self.read(pin) for pin in self.pins]
+        pinValues = [0]*len(self.pins)
         for _ in range(debounceQnt):
             time.sleep(self.debounce/debounceQnt)
             pinValuesDebounced = [self.read(pin) for pin in self.pins]
@@ -66,10 +67,14 @@ class Member:
                 pinValues[i] += pinValuesDebounced[i]
 
         for i in range(len(pinValues)):
-            pinValues[i] = 1 if pinValues[i]>=debounceQnt else 0
+            if pinValues[i] > 0 and pinValues[i] < debounceQnt:
+                haveErro = True
+                break
+            pinValues[i] = 1 if pinValues[i]==debounceQnt else 0
             if self.inversion & (2**i):
                 pinValues[i] = not pinValues[i]
-        self.callback(pinValues)
+        if not haveErro:
+            self.callback(pinValues)
         self.mutex.release()
 
     def check(self):
@@ -202,7 +207,7 @@ class Jog(MemberImpl):
         shouldStop = False
         if len(self.lastPinValues) == len(pinValues):
             for (a,b) in zip(self.lastPinValues, pinValues):
-                if a==1 and b==0:
+                if a!=b:
                     shouldStop = True
         self.lastPinValues = pinValues
         if shouldStop and self.jogLastAction != self.JOGSTOP:

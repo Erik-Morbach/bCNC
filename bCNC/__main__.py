@@ -315,6 +315,8 @@ class Application(Toplevel, Sender):
 
         tkExtra.bindEventData(self, "<<Status>>", self.updateStatus)
         tkExtra.bindEventData(self, "<<Coords>>", self.updateCanvasCoords)
+        self.bind('<<OverrideMinus>>', lambda e, s=self: s.execute("OVERMINUS"))
+        self.bind('<<OverridePlus>>', lambda e, s=self: s.execute("OVERPLUS"))
 
         # Editor bindings
         self.bind("<<Add>>", self.editor.insertItem)
@@ -392,7 +394,6 @@ class Application(Toplevel, Sender):
         self.bind('<Control-Key-y>', self.redo)
         self.bind('<Control-Key-z>', self.undo)
         self.bind('<Control-Key-Z>', self.redo)
-        self.canvas.bind('<Key-space>', self.commandFocus)
         self.bind('<Control-Key-space>', self.commandFocus)
         self.bind('<<CommandFocus>>', self.commandFocus)
 
@@ -491,9 +492,6 @@ class Application(Toplevel, Sender):
                 'C-': self.control.moveCdown}
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
-
-        self.bind('<Key-exclam>', self.feedHold)
-        self.bind('<Key-asciitilde>', self.resume)
 
         for x in self.widgets:
             if isinstance(x, Entry):
@@ -648,12 +646,14 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def loadShortcuts(self):
-        for name, value in Utils.config.items("Shortcut"):
-            # Convert to uppercase
-            key = name.title()
-            self.unbind("<%s>" % (key))  # unbind any possible old value
-            if value:
-                self.bind("<%s>" % (key), lambda e, s=self, c=value: s.execute(c))
+        with open("shortcuts.txt") as shortcuts:
+            for line in shortcuts.readlines():
+                if len(line) == 0: continue
+                key, value = line.split('=')
+                functor = lambda e, s=self, c=value: s.execute(c)
+                self.unbind(key)
+                self.bind(key, functor)
+
 
     # -----------------------------------------------------------------------
     def showUserFile(self):

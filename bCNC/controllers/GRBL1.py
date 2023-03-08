@@ -16,9 +16,9 @@ OV_FEED_i1      = b'\x93'
 OV_FEED_d1      = b'\x94'
 
 OV_RAPID_100    = b'\x95'
-OV_RAPID_50     = b'\x96'
-OV_RAPID_25     = b'\x97'
-OV_RAPID_1      = b'\x98'
+OV_RAPID_i10    = b'\x96'
+OV_RAPID_d10    = b'\x97'
+OV_RAPID_d1     = b'\x98'
 
 OV_SPINDLE_100  = b'\x99'
 OV_SPINDLE_i10  = b'\x9A'
@@ -66,22 +66,27 @@ class Controller(_GenericGRBL):
 				diff -= 1
 		CNC.vars["OvFeed"] = CNC.vars["_OvFeed"]
 		# Check rapid
-		target  = CNC.vars["_OvRapid"]
-		current = CNC.vars["OvRapid"]
-		if target == current:
-			pass
-		elif target >= 100:
-			if current != 100:
-				self.master.serial_write(OV_RAPID_100)
-		elif target >= 50:
-			if current != 50:
-				self.master.serial_write(OV_RAPID_50)
-		elif target >= 25:
-			if current != 25:
-				self.master.serial_write(OV_RAPID_25)
-		elif target >= 0:
-			if current != 1:
-				self.master.serial_write(OV_RAPID_1)
+		diff = CNC.vars["_OvRapid"] - CNC.vars["OvRapid"]
+		direction = diff>0
+		diff = abs(diff)
+		if CNC.vars["_OvRapid"] == 100 and diff>0:
+			self.master.serial_write(OV_RAPID_100)
+			diff = 0
+		while diff > 0:
+			if diff >= 10:
+				if direction: self.master.serial_write(OV_RAPID_i10)
+				else: self.master.serial_write(OV_RAPID_d10)
+				diff -= 10
+				continue
+			if diff >= 1:
+				if direction:
+					self.master.serial_write(OV_RAPID_i10)
+					diff = 10 - diff
+					direction = not direction
+					continue
+				self.master.serial_write(OV_RAPID_d1)
+				diff -= 1
+		CNC.vars["OvRapid"] = CNC.vars["_OvRapid"]
 		# Check Spindle
 		diff = CNC.vars["_OvSpindle"] - CNC.vars["OvSpindle"]
 		direction = diff>0
