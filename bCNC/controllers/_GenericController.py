@@ -119,32 +119,16 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
-		def ref(axis):
-			for w in axis:
-				self.master.sendGCode((4,))
-				self.master.sendGCode("$H"+w)
-				self.master.sendGCode((4,))
-		self.master._alarm = False
+		mcodes = [1000 + motorId for motorId in range(1,13)]
+		axisSet = [600,601,602,600,601,602,603,604,605,603,604,605]
+		for (mcode, setting) in zip(mcodes, axisSet):
+			self.master.sendGCode("M%d"%mcode)
+			self.master.sendGCode("$%d = 0" %  setting)
+			self.master.sendGCode((8,2))
 
-		self.master.sendGCode("M999")
-		self.master.sendGCode("M456")
-		self.master.sendGCode("M101112")
-
-	#	self.master.sendGCode("M123")
-	#	ref("XYZ")
-	#	self.master.sendGCode("M789")
-	#	ref("AB")
-	#	self.master.sendGCode("M456")
-	#	ref("XYZ")
-	#	self.master.sendGCode("M101112")
-	#	ref("C")
-
-		self.master.sendGCode("M123")
-		self.master.sendGCode("M789")
-		self.master.sendGCode("M999")
-		self.master.sendGCode("M456")
-		self.master.sendGCode("M101112")
-		self.master.sendGCode("M999")
+		self.master.sendGCode("M1001")
+		self.master.sendGCode("$600 = 0")
+		self.master.sendGCode((8,2))
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
