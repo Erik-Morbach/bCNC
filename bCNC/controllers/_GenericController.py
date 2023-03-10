@@ -127,7 +127,7 @@ class _GenericController:
 			self.master.sendGCode((8,2))
 
 		self.master.sendGCode("M1001")
-		self.master.sendGCode("$600 = 0")
+		self.master.sendGCode("$600 = -4")
 		self.master.sendGCode((8,2))
 
 	def viewStatusReport(self):
