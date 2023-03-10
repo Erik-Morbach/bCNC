@@ -123,7 +123,7 @@ class _GenericController:
 		axisSet = [600,601,602,600,601,602,603,604,605,603,604,605]
 		for (mcode, setting) in zip(mcodes, axisSet):
 			self.master.sendGCode("M%d"%mcode)
-			self.master.sendGCode("$%d = 0" %  setting)
+			self.master.sendGCode("$%d = -4" %  setting)
 			self.master.sendGCode((8,2))
 
 		self.master.sendGCode("M1001")
