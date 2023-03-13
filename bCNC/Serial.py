@@ -24,9 +24,8 @@ class Serial:
 			return
 		outData = bytes()
 		for w in data:
-			value = ecc.encodeOne(w)
-			outData += b'\x01'
-			outData += value.to_bytes(2, byteorder='big')
+			outData += ecc.encodeOne(1).to_bytes(2, 'big')
+			outData += ecc.encodeOne(w).to_bytes(2, 'big')
 		self.serial.write(outData)
 	
 	def in_waiting(self):
