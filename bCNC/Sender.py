@@ -800,10 +800,13 @@ class Sender:
 				buff = buff[index+1:]
 			else:
 				continue
-			if self.mcontrol.parseLine(line, self._cline, self._sline):
-				pass
-			else:
-				self.log.put((Sender.MSG_RECEIVE, line))
+			try:
+				if self.mcontrol.parseLine(line, self._cline, self._sline):
+					pass
+				else:
+					self.log.put((Sender.MSG_RECEIVE, line))
+			except:
+				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
 
 	#----------------------------------------------------------------------
 	# thread performing I/O on serial line
