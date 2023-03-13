@@ -38,6 +38,7 @@ class Controller(_GenericGRBL):
 		self.has_override = True
 		self.master = master
 		self.reseted = False
+		self.expectingReset = False
 		self.hasSD = False
 		self.pidSP = 0
 		self.pidTS = 0

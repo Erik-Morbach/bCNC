@@ -57,6 +57,11 @@ class _GenericController:
 		while len(self.runOnceOnResetFunctions):
 			self.runOnceOnResetFunctions[0]()
 			del self.runOnceOnResetFunctions[0]
+		if not self.expectingReset:
+			#self.master.showErrorPopup("Erro interno. Referência é necessária para a continuação")
+			pass
+		self.expectingReset = False
+
 
 	def hardResetPre(self):
 		pass
@@ -104,6 +109,7 @@ class _GenericController:
 	#----------------------------------------------------------------------
 	def softReset(self, clearAlarm=True):
 		if not self.master.serial: return
+		self.expectingReset = True
 		self.master.serial_write(b"\x18")
 		self.master.serial.flush()
 
@@ -455,6 +461,7 @@ class _GenericController:
 			self.master._alarm = True
 			self.displayState(line)
 			if self.master.running:
+				self.feedHold()
 				self.master._stop = True
 
 		elif line.find("ok")>=0:
