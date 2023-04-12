@@ -391,7 +391,7 @@ class ClampButton(ButtonPanel):
     def __init__(self, app, index) -> None:
          super().__init__(app, index)
     def on(self):
-        self.app.event_generate("<<ClampToggle>>", when="tail")
+        self.app.executeCommand("ClampToggle")
 
 class SafetyDoorButton(ButtonPanel):
     def __init__(self, app, index) -> None:
