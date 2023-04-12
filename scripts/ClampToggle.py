@@ -1,3 +1,8 @@
+try:
+    global clampToggleCounter
+    clampToggleCounter
+except:
+    clampToggleCounter = 0
 if self.serial is None or CNC.vars['state'].lower() not in ["idle"]: 
     pass
 else:

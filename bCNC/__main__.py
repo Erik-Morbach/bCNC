@@ -463,9 +463,6 @@ class Application(Toplevel, Sender):
             self.serial.flush()
             releaseJogMutex()
 
-        global clampToggleCounter
-        clampToggleCounter = 0
-
         self.bind('<<JogStop>>', stopJog)
         # up, down
         keys = {'X+': self.control.moveXup,
