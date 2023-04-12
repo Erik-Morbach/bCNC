@@ -2862,6 +2862,8 @@ def main(args=None):
 
 
 if __name__ == "__main__":
+    with open("myLog.txt", 'a') as logFile:
+        logFile.write("PROGRAM INITIALIZED\n")
     main()
 
 # vim:ts=8:sw=8:sts=8:noet

@@ -601,6 +601,8 @@ class Sender:
 		self.serial_write("\n\n")
 		self._gcount = 0
 		self._alarm  = True
+		with open("myLog.txt", 'a') as logFile:
+			logFile.write("THREADS INITIALIZED "+time.ctime()+"\n")
 		self.writeThread  = threading.Thread(target=self.serialIOWrite)
 		self.writeRTThread  = threading.Thread(target=self.serialIOWriteRT)
 		self.readThread = threading.Thread(target=self.serialIORead)
@@ -622,6 +624,8 @@ class Sender:
 		except:
 			pass
 		self._runLines = 0
+		with open("myLog.txt", 'a') as logFile:
+			logFile.write("THREADS STOPED "+time.ctime() + "\n")
 		self.writeThread = None
 		self.writeRTThread = None
 		self.readThread = None
