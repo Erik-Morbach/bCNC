@@ -107,6 +107,9 @@ class CannedCycleNode(ProcessNode):
 		if 'X' in cmd.args.keys():
 			lines.append(lineNumberCode + CNC.grapid(x=cmd.args['X']))
 
+		if 'Y' in cmd.args.keys():
+			lines.append(lineNumberCode + CNC.grapid(y=cmd.args['Y']))
+
 		# Rapid move parallel to retract
 		currentZ = z
 
