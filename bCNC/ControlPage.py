@@ -1870,7 +1870,8 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		floodToogle = Button(f2, text=_("Liga/Desliga"),
 				command=self.coolantFlood,
 				padx=1,
-				pady=0)
+				pady=0,
+				font=DROFrame.dro_mpos)
 		tkExtra.Balloon.set(floodToogle, _("liga/desliga refrigeracao"))
 		floodToogle.pack(side=LEFT)
 		f2.pack(side=TOP)
