@@ -89,7 +89,10 @@ class CannedCycleNode(ProcessNode):
 		retract = cmd.args['R']
 
 		peck = cmd.args['Q']
-		feed = cmd.args['F']
+		feed = CNC.vars["feed"]
+		if 'F' in cmd.args.keys():
+			feed = cmd.args['F']
+
 		if peck < 0:
 			peck = abs(peck)
 
@@ -103,6 +106,9 @@ class CannedCycleNode(ProcessNode):
 
 		if 'X' in cmd.args.keys():
 			lines.append(lineNumberCode + CNC.grapid(x=cmd.args['X']))
+
+		if 'Y' in cmd.args.keys():
+			lines.append(lineNumberCode + CNC.grapid(y=cmd.args['Y']))
 
 		# Rapid move parallel to retract
 		currentZ = z

@@ -7,6 +7,7 @@ from tkinter.simpledialog import Dialog
 from tkinter.messagebox import askokcancel
 from ControlPage import DROFrame
 import Utils
+from mttkinter import *
 
 from CNC import WAIT, WCS, CNC
 

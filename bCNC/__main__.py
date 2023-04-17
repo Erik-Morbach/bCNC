@@ -84,6 +84,8 @@ import CNCCanvas
 
 from IteceProcess import IteceProcess
 
+from mttkinter import *
+
 _openserial = True  # override ini parameters
 _device = None
 _baud = None
@@ -468,20 +470,7 @@ class Application(Toplevel, Sender):
             self.serial.flush()
             releaseJogMutex()
 
-        global clampToggleCounter
-        clampToggleCounter = 0
-        def clampToggle(*args):
-            if self.serial is None or CNC.vars['state'].lower() not in ["idle"]: return
-            global clampToggleCounter
-            if clampToggleCounter % 2 == 0: self.serial_write(chr(0xA5))
-            else: self.serial_write(chr(0xA6))
-            self.serial.flush()
-            clampToggleCounter+=1
-
-
         self.bind('<<JogStop>>', stopJog)
-        self.bind('<<ClampToggle>>', clampToggle)
-
         # up, down
         keys = {'X+': self.control.moveXup,
                 'X-': self.control.moveXdown,
@@ -2881,6 +2870,8 @@ def main(args=None):
 
 
 if __name__ == "__main__":
+    with open("myLog.txt", 'a') as logFile:
+        logFile.write("PROGRAM INITIALIZED\n")
     main()
 
 # vim:ts=8:sw=8:sts=8:noet

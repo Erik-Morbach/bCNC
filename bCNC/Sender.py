@@ -54,6 +54,8 @@ from RepeatEngine import RepeatEngine
 from Table import Table
 import ScriptEngine
 
+from mttkinter import *
+
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
 SERIAL_POLL    = 0.03	# s
@@ -601,6 +603,8 @@ class Sender:
 		self.serial_write("\n\n")
 		self._gcount = 0
 		self._alarm  = True
+		with open("myLog.txt", 'a') as logFile:
+			logFile.write("THREADS INITIALIZED "+time.ctime()+"\n")
 		self.writeThread  = threading.Thread(target=self.serialIOWrite)
 		self.writeRTThread  = threading.Thread(target=self.serialIOWriteRT)
 		self.readThread = threading.Thread(target=self.serialIORead)
@@ -622,6 +626,8 @@ class Sender:
 		except:
 			pass
 		self._runLines = 0
+		with open("myLog.txt", 'a') as logFile:
+			logFile.write("THREADS STOPED "+time.ctime() + "\n")
 		self.writeThread = None
 		self.writeRTThread = None
 		self.readThread = None
@@ -786,27 +792,32 @@ class Sender:
 		self._cline = []
 		self._sline = []
 		buff = ""
-		while self.readThread:
-			time.sleep(0.0001)
-			# Anything to receive?
-			try:
-				line = str(self.serial.read().decode())
-				buff += line
-			except:
-				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
-			index = buff.find('\n')
-			if index != -1:
-				line = buff[:index+1].strip()
-				buff = buff[index+1:]
-			else:
-				continue
-			try:
-				if self.mcontrol.parseLine(line, self._cline, self._sline):
-					pass
+		try:
+			while self.readThread:
+				time.sleep(0.0001)
+				# Anything to receive?
+				try:
+					line = str(self.serial.read().decode())
+					buff += line
+				except:
+					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+				index = buff.find('\n')
+				if index != -1:
+					line = buff[:index+1].strip()
+					buff = buff[index+1:]
 				else:
-					self.log.put((Sender.MSG_RECEIVE, line))
-			except:
-				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+					continue
+				try:
+					if self.mcontrol.parseLine(line, self._cline, self._sline):
+						pass
+					else:
+						self.log.put((Sender.MSG_RECEIVE, line))
+				except:
+					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+		except:
+			with open("myLog.txt",'a') as logfile:
+				logfile.write("EXCEPTION {} {} : {}".format(time.ctime(), "Read" ,str(traceback.format_exc())))
+			traceback.print_exc()
 
 	#----------------------------------------------------------------------
 	# thread performing I/O on serial line
@@ -814,19 +825,24 @@ class Sender:
 	def serialIOWriteRT(self):
 		self.sio_count = 0
 		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
-		while self.writeRTThread:
-			time.sleep(WRITE_THREAD_RT_PERIOD)
-			t = time.time()
-			# refresh machine position?
-			if t-tr > SERIAL_POLL:
-				self.sio_count += 1
-				self.mcontrol.viewStatusReport()
-				tr = t
+		try:
+			while self.writeRTThread:
+				time.sleep(WRITE_THREAD_RT_PERIOD)
+				t = time.time()
+				# refresh machine position?
+				if t-tr > SERIAL_POLL:
+					self.sio_count += 1
+					self.mcontrol.viewStatusReport()
+					tr = t
 
-				#If Override change, attach feed
-			if t-to > OVERRIDE_POLL:
-				to = t
-				self.mcontrol.overrideSet()
+					#If Override change, attach feed
+				if t-to > OVERRIDE_POLL:
+					to = t
+					self.mcontrol.overrideSet()
+		except:
+			with open("myLog.txt",'a') as logfile:
+				logfile.write("EXCEPTION {} {} :\n{}".format(time.ctime(), "WriteRt" ,traceback.format_exc()))
+			traceback.print_exc()
 
 	#----------------------------------------------------------------------
 	# Helper functions for serialIOWrite
@@ -980,62 +996,67 @@ class Sender:
 		self.macrosRunning = 0
 		toSend = None			# next string to send
 		processNode = None
-		while self.writeThread:
-			time.sleep(WRITE_THREAD_PERIOD)
+		try:
+			while self.writeThread:
+				time.sleep(WRITE_THREAD_PERIOD)
 
-			if self._checkAndEvaluateStop():
-				continue
-
-			if not self.shouldSend():
-				continue
-
-			if processNode is not None:
-				self.process(processNode)
-				processNode = None
-				continue
-
-			toSend = None
-			if self.hasNewCommand():
-				toSend = Command.cmdFactory(self.getNextCommand())
-			else:
-				continue
-
-			if self.shouldSkipCommand(toSend): 
-				# TODO: This can be done inside Command class
-				# or in the Process class
-				continue
-
-			if self.isInternalCommand(toSend): # TODO: This should be an ProcessNode
-				self.executeInternalCommand(toSend)
-				continue
-
-			processNode = self.processEngine.getValidProcessNode(toSend)
-			if processNode is not None:
-				processNode.preprocessCommand(toSend)
-				if processNode.shouldWait:
-					self.executeInternalCommand(Command.Command((WAIT,)))
-					self._runLines += 1
-					continue
-				self.process(processNode)
-				processNode = None
-				continue
-
-			if self._checkAndEvaluateStop():
-				continue
-
-			self._sline.append(toSend.src)
-			self._cline.append(len(toSend.src))
-
-			hasStoped = False
-			while self.isRxBufferFull():
-				time.sleep(0.001)
 				if self._checkAndEvaluateStop():
-					hasStoped = True
-					break
-			if hasStoped:
-				continue
+					continue
 
-			self._sumcline = sum(self._cline)
-			self.serial_write(toSend.src)
-			self.serial.flush()
-			self.log.put((Sender.MSG_SEND, toSend.src))
+				if not self.shouldSend():
+					continue
+
+				if processNode is not None:
+					self.process(processNode)
+					processNode = None
+					continue
+
+				toSend = None
+				if self.hasNewCommand():
+					toSend = Command.cmdFactory(self.getNextCommand())
+				else:
+					continue
+
+				if self.shouldSkipCommand(toSend): 
+					# TODO: This can be done inside Command class
+					# or in the Process class
+					continue
+
+				if self.isInternalCommand(toSend): # TODO: This should be an ProcessNode
+					self.executeInternalCommand(toSend)
+					continue
+
+				processNode = self.processEngine.getValidProcessNode(toSend)
+				if processNode is not None:
+					processNode.preprocessCommand(toSend)
+					if processNode.shouldWait:
+						self.executeInternalCommand(Command.Command((WAIT,)))
+						self._runLines += 1
+						continue
+					self.process(processNode)
+					processNode = None
+					continue
+
+				if self._checkAndEvaluateStop():
+					continue
+
+				self._sline.append(toSend.src)
+				self._cline.append(len(toSend.src))
+
+				hasStoped = False
+				while self.isRxBufferFull():
+					time.sleep(0.001)
+					if self._checkAndEvaluateStop():
+						hasStoped = True
+						break
+				if hasStoped:
+					continue
+
+				self._sumcline = sum(self._cline)
+				self.serial_write(toSend.src)
+				self.serial.flush()
+				self.log.put((Sender.MSG_SEND, toSend.src))
+		except:
+			with open("myLog.txt",'a') as logfile:
+				logfile.write("EXCEPTION {} {} : {}".format(time.ctime(), "Write" ,str(traceback.format_exc())))
+			traceback.print_exc()
