@@ -17,6 +17,7 @@ except ImportError:
 import Ribbon
 import tkExtra
 
+from mttkinter import *
 
 #===============================================================================
 # Link to main app

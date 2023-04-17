@@ -54,6 +54,8 @@ from RepeatEngine import RepeatEngine
 from Table import Table
 import ScriptEngine
 
+from mttkinter import *
+
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
 SERIAL_POLL    = 0.03	# s

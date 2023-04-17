@@ -89,7 +89,10 @@ class CannedCycleNode(ProcessNode):
 		retract = cmd.args['R']
 
 		peck = cmd.args['Q']
-		feed = cmd.args['F']
+		feed = CNC.vars["feed"]
+		if 'F' in cmd.args.keys():
+			feed = cmd.args['F']
+
 		if peck < 0:
 			peck = abs(peck)
 

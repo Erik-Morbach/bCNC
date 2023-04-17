@@ -31,6 +31,8 @@ import CNCRibbon
 
 from CNC import CNC
 
+from mttkinter import *
+
 _EXE_FONT = ("Helvetica",12,"bold")
 
 

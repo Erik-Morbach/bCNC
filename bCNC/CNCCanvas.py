@@ -33,6 +33,8 @@ except:
 	numpy    = None
 	RESAMPLE = None
 
+from mttkinter import *
+
 ANTIALIAS_CHEAP = False
 
 VIEW_XY   = 0

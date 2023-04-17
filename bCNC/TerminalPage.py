@@ -20,6 +20,7 @@ import tkExtra
 
 import CNCRibbon
 
+from mttkinter import *
 
 #===============================================================================
 # Terminal Group

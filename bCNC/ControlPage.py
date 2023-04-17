@@ -39,6 +39,8 @@ import GCodeViewer
 import PidLog
 import CNCCanvas
 
+from mttkinter import *
+
 _LOWSTEP   = 0.0001
 _HIGHSTEP  = 1000.0
 _HIGHZSTEP = 10.0

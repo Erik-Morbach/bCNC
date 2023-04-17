@@ -4,6 +4,8 @@ from CNC import CNC
 
 import tkExtra
 
+from mttkinter import *
+
 class GCodeViewer:
     def __init__(self, frame, app, *args, **kwargs):
         self.lb = tk.Listbox(frame,

@@ -13,6 +13,7 @@ except ImportError:
 	from tkinter import *
 	import tkinter as Tkinter
 
+from mttkinter import *
 
 class PidLogFrame(Frame, object):
 	def __init__(self, master, app, *kw, **kwargs):

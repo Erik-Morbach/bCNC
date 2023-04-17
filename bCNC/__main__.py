@@ -83,6 +83,8 @@ from ThreadConfigurator import ThreadConfigurator
 import CNCCanvas
 
 
+from mttkinter import *
+
 _openserial = True  # override ini parameters
 _device = None
 _baud = None
