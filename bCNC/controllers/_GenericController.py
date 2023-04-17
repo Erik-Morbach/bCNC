@@ -6,12 +6,15 @@ from __future__ import print_function
 
 from CNC import CNC, WCS
 from CNCRibbon    import Page
+import Utils
 import os.path
 import time
 import re
+import threading
 
 #GRBLv1
 SPLITPAT  = re.compile(r"[:,]")
+TOOLSPLITPAT  = re.compile(r"[:|,]")
 
 #GRBLv0 + Smoothie
 STATUSPAT = re.compile(r"^<(\w*?),MPos:([+\-]?\d*\.\d*),([+\-]?\d*\.\d*),([+\-]?\d*\.\d*)(?:,[+\-]?\d*\.\d*)?(?:,[+\-]?\d*\.\d*)?(?:,[+\-]?\d*\.\d*)?,WPos:([+\-]?\d*\.\d*),([+\-]?\d*\.\d*),([+\-]?\d*\.\d*)(?:,[+\-]?\d*\.\d*)?(?:,[+\-]?\d*\.\d*)?(?:,[+\-]?\d*\.\d*)?(?:,.*)?>$")
@@ -20,7 +23,10 @@ TLOPAT	  = re.compile(r"^\[(...):([+\-]?\d*\.\d*)\]$")
 DOLLARPAT = re.compile(r"^\[G\d* .*\]$")
 
 #Only used in this file
-VARPAT    = re.compile(r"^\$(\d+)=(\d*\.?\d*) *\(?.*")
+VARPAT    = re.compile(r"^\$(\d+) *= *(\d*\.?\d*) *\(?.*")
+
+global lastTime
+lastTime = time.time() 
 
 class _GenericController:
 	def test(self):
@@ -28,6 +34,34 @@ class _GenericController:
 
 	def executeCommand(self, oline, line, cmd):
 		return False
+	
+	def registerRunOnceOnReset(self, function):
+		self.runOnceOnResetFunctions.append(function)
+
+	def onRecieveSetting(self, id, value):
+		if self.validSetting(id, value): return
+		self.sendSetting(id)
+
+	def onRecieveTool(self, id, off):
+		if self.validTool(id, off): return
+		self.sendTool(id)
+
+	def onRecieveWork(self, id, off):
+		if self.validWork(id, off): return
+		self.sendWork(id)
+
+	def onReset(self):
+		self.master.stopProbe()
+		CNC.vars["_OvChanged"] = True	# force a feed change if any
+		self.unlock()
+		while len(self.runOnceOnResetFunctions):
+			self.runOnceOnResetFunctions[0]()
+			del self.runOnceOnResetFunctions[0]
+		if not self.expectingReset:
+			#self.master.showErrorPopup("Erro interno. Referência é necessária para a continuação")
+			pass
+		self.expectingReset = False
+
 
 	def hardResetPre(self):
 		pass
@@ -70,27 +104,24 @@ class _GenericController:
 		self.master._alarm = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.master.notBusy()
-		self.sendSettings()
-		self.sendParameters()
 		self.viewParameters()
 
 	#----------------------------------------------------------------------
 	def softReset(self, clearAlarm=True):
-		if self.master.serial:
-			self.master.serial_write(b"\x18")
-		self.master.stopProbe()
-		if clearAlarm: self.master._alarm = False
-		CNC.vars["_OvChanged"] = True	# force a feed change if any
-		self.sendSettings()
-		self.sendParameters()
-		self.viewParameters()
+		if not self.master.serial: return
+		self.expectingReset = True
+		self.master.serial_write(b"\x18")
+		self.master.serial.flush()
+
+	#----------------------------------------------------------------------
+	def clearError(self):
+		self.master.deque.append("?$X?\n")
 
 	#----------------------------------------------------------------------
 	def unlock(self, clearAlarm=True):
 		if clearAlarm: self.master._alarm = False
-		self.master.sendGCode("$X")
-		self.sendSettings()
-		self.sendParameters()
+		self.clearError()
+		self.viewParameters()
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
@@ -98,11 +129,12 @@ class _GenericController:
 		self.master.sendGCode("$H")
 
 	def viewStatusReport(self):
-		self.master.serial_write(b'?')
+		self.master.serial_write(b'\x80')
+		self.master.serial.flush()
 		self.master.sio_status = True
 
 	def viewConfiguration(self):
-		self.master.sendGcode("$$")
+		self.master.sendGCode("$$")
 
 	def saveSettings(self):
 		flag = 'x'
@@ -111,12 +143,46 @@ class _GenericController:
 		with open("Settings.txt", flag) as file:
 			file.write("$0 = 5\n")
 
+	@staticmethod
+	def verifyEquality(value0, value1):
+		if value0 is None or value1 is None: return False
+		value0 = float(value0)
+		value1 = float(value1)
+		return abs(value0 - value1) <= 0.001
+
+
+	def validSetting(self, id, mcuValue): # TODO: please, do this the proper way
+		allSettings = self.getSettings()
+		for setting in allSettings:
+			pat = VARPAT.match(setting)
+			if not pat: continue
+			if int(pat.group(1)) == int(id):
+				response = _GenericController.verifyEquality(pat.group(2), mcuValue)
+				if not response:
+					print("Is not valid |{}|!=|{}|".format(mcuValue, pat.group(2)))
+				return response
+		return True
+
+	def sendSetting(self, id): # TODO: Please, do this the proper way
+		allSettings = self.getSettings()
+		for setting in allSettings:
+			pat = VARPAT.match(setting)
+			if not pat: continue
+			if int(pat.group(1)) != int(id): continue
+			value = float(pat.group(2))
+			cmd = "${}={}\n".format(int(id), value)
+			self.master.sendGCode(cmd)
+			self.master.sendGCode((8,2))
+			return
+
 	def sendSettings(self):
 		settings = self.getSettings()
+		self.clearError()
+		CNC.vars["radius"] = Utils.getStr("CNC", "radius", "G90")
 		for settingsUnit in settings:
-			self.master.sendGCode(settingsUnit)
-			if "G7" in settingsUnit:
-				CNC.vars["radius"] = "G7"
+			self.master.deque.append(settingsUnit+'\n')
+		self.master.log.put((self.master.MSG_OK, "Configuration OK"))
+
 
 	def getSettings(self):
 		if not os.path.isfile("Settings.txt"):
@@ -128,70 +194,71 @@ class _GenericController:
 		return settings
 
 	def viewParameters(self):
+		self.master.sendGCode("$$")
 		self.master.sendGCode("$#")
 
-	def getParameters(self):
-		axis = "XYZABC"
-		if not os.path.isfile("WorkCoordinates.txt"):
-			self.saveParameters()
-				
-		workPositions = {}
-		with open("WorkCoordinates.txt", 'r') as workFile:
-			for line in workFile.readlines():
-				positions = line.split(' ')
-				if len(positions) < 7:
-					continue
-				positions[-1] = positions[-1].replace('\n','')
-				positionIndex = int(positions[0])
-				positions = positions[1:]
-				radiusMode = "G90"
-				if len(positions) == 7:
-					radiusMode = positions[6]
-					del positions[-1]
-				workPositions[positionIndex] = {}
-				workPositions[positionIndex]["R"] = radiusMode
-				for (index, currentAxis) in enumerate(axis):
-					workPositions[positionIndex][currentAxis] = positions[index]
-		return workPositions
+	def validTool(self, id, mcuOff):
+		axis = "xyzabc"
+		compensationTable = self.master.compensationTable.getTable()
+		toolTable = self.master.toolTable.getTable()
+		for tool, compensation in zip(toolTable, compensationTable):
+			if int(tool["index"]) != int(id): continue
+			wantedOff = []
+			for axe in axis:
+				value = float(tool[axe]) + float(compensation[axe])
+				wantedOff += [value]
+			skip = True
+			for i in range(0, min(len(wantedOff), len(mcuOff))):
+				skip = skip and _GenericController.verifyEquality(wantedOff[i], mcuOff[i])
+			if not skip:
+				print("Tool {} is not the same as mcu value: mcu={}; rasp={};".format(id, mcuOff, wantedOff))
+			return skip
+		return True
 
-	def saveParameters(self, workPositions=None):
-		axis = "XYZABC"
-		if workPositions == None:
-			workPositions = {}
-		flag = 'x'
-		if os.path.isfile("WorkCoordinates.txt"):
-			flag = 'w'
-
-		with open("WorkCoordinates.txt",flag) as file:
-			for workIndex in range(1, 9):
-				file.write(str(workIndex))
-				if workIndex not in workPositions.keys():
-					workPositions[workIndex] = {}
-					workPositions[workIndex]["R"] = "G90"
-				for currentAxis in axis:
-					if currentAxis not in workPositions[workIndex].keys():
-						workPositions[workIndex][currentAxis] = "0"
-					else:
-						try:
-							workPositions[workIndex][currentAxis] = str(float(workPositions[workIndex][currentAxis]))
-						except:
-							workPositions[workIndex][currentAxis] = "0"
-					file.write(" {}".format(workPositions[workIndex][currentAxis]))
-				file.write(" {}".format(workPositions[workIndex]["R"]))
-				file.write("\n")
-		
-	def sendParameters(self):
-		axis = "XYZABC"
-		parameters = self.getParameters()
-		time.sleep(0.05)
-		currentMode = CNC.vars["radius"]
-		for workIndex in range(1,9):
-			self.master.sendGCode(parameters[workIndex]["R"])
-			cmd = "G10L2P" + str(workIndex)
-			for currentAxis in axis:
-				cmd += currentAxis + parameters[workIndex][currentAxis]
+	def sendTool(self, id):
+		axis = Utils.getStr("CNC", "axis", "xyzabc").lower()
+		compensationTable = self.master.compensationTable.getTable()
+		toolTable = self.master.toolTable.getTable()
+		for tool, compensation in zip(toolTable, compensationTable):
+			if int(tool["index"]) != int(id): continue
+			cmd = "G10L1P{}".format(tool['index'])
+			for axe in axis:
+				if axe in tool.keys():
+					val = float(tool[axe]) + float(compensation[axe])
+					cmd += "%c%.3f" % (axe.upper(), float(val))
 			self.master.sendGCode(cmd)
-		self.master.sendGCode(currentMode)
+			self.master.sendGCode((8,2))
+			self.master.sendGCode("G43")
+			return
+
+	def validWork(self, id, mcuOff):
+		axis = "xyzabc"
+		workTable = self.master.workTable.getTable()
+		for work in workTable:
+			if int(work["index"]) != int(id): continue
+			wantedOff = []
+			for axe in axis:
+				wantedOff += [work[axe]]
+			skip = True
+			for i in range(0, min(len(wantedOff), len(mcuOff))):
+				skip = skip and _GenericController.verifyEquality(wantedOff[i], mcuOff[i])
+			if not skip:
+				print("WCS {} is not the same as mcu value: mcu={}; rasp={};".format(id, mcuOff, wantedOff))
+			return skip
+		return True
+
+	def sendWork(self, id):
+		axis = Utils.getStr("CNC", "axis", "xyzabc").lower()
+		workTable = self.master.workTable.getTable()
+		for work in workTable:
+			if int(work["index"]) != int(id): continue
+			cmd = "G10L2P{}".format(work['index'])
+			for axe in axis:
+				if axe in work.keys():
+					cmd += "%c%.3f" % (axe.upper(), float(work[axe]))
+			self.master.sendGCode(cmd)
+			self.master.sendGCode((8,2))
+			return
 
 	def viewState(self): #Maybe rename to viewParserState() ???
 		self.master.serial_write(b'?')
@@ -212,20 +279,67 @@ class _GenericController:
 		if b is not None: cmd += "B%g"%(b)
 		if c is not None: cmd += "C%g"%(c)
 		self.master.sendGCode("%s"%(cmd))
+	
+	def _toolCompensate(self, toolNumber=None, x=None, y=None, z=None,
+		a=None, b=None, c=None):
+		compensation = self.master.compensationTable
+		table = compensation.getTable()
+		if toolNumber is None:
+			toolNumber = int(CNC.vars["tool"])
+		if toolNumber == 0: return
+		row, index = compensation.getRow(toolNumber)
+		if index==-1: #assume that this function only adds one entry to tool table
+			table.append({'index', toolNumber})
+		axis = "xyzabc"
+		vars = [x,y,z,a,b,c]
+		for (name,value) in zip(axis, vars):
+			if value is not None:
+				table[index][name] = value
+		compensation.save(table)
+		self.sendTool(toolNumber)
+
+	def getCurrentToolOffset(self):
+		index = CNC.vars["tool"]
+		if index==0: return [0.000]*6
+		tool, index = self.master.toolTable.getRow(index)
+		return tool
+
+	def _tloSet(self, toolNumber=None, x=None, y=None, 
+			z=None, a=None, b=None, c=None):
+		tools = self.master.toolTable
+		table = tools.getTable()
+		if toolNumber is None:
+			toolNumber = int(CNC.vars["tool"])
+		if toolNumber == 0: return
+		tool, index = tools.getRow(toolNumber)
+		if index==-1: #assume that this function only adds one entry to tool table
+			table.append({'index':toolNumber})
+		print(tool)
+		axis = "xyzabc"
+		vars = [x,y,z,a,b,c]
+		for (name,value) in zip(axis, vars):
+			if value is not None:
+				table[index][name] = value
+		tools.save(table)
+		self.sendTool(toolNumber)
 
 	#----------------------------------------------------------------------
-	def _wcsSet(self, x, y, z, a=None, b=None, c=None):
-		
-		# Updating WorkCoordinates.txt file
-		parameters = self.getParameters()
+	def _wcsSet(self, x=None, y=None, z=None, a=None, b=None, c=None, wcsIndex=None):
+		workTable = self.master.workTable.getTable()
 		radiusMode = CNC.vars["radius"]
 
 		#global wcsvar
 		#p = wcsvar.get()
-		p = WCS.index(CNC.vars["WCS"])
-		parameters[p+1]["R"] = radiusMode
+		if wcsIndex is None:
+			p = WCS.index(CNC.vars["WCS"])
+		else: p = wcsIndex
+
+		work, index = self.master.workTable.getRow(p+1)
+		workTable[index]["r"] = radiusMode
+
+		cmd = ""
 		if p<6:
-			cmd = "G10L20P%d"%(p+1)
+			cmd = "G10L2P%d"%(p+1)
 		elif p==6:
 			cmd = "G28.1"
 		elif p==7:
@@ -234,28 +348,27 @@ class _GenericController:
 			cmd = "G92"
 
 		pos = ""
-		if x is not None and abs(float(x))<10000.0: 
-			pos += "X"+str(x)
-			parameters[p+1]['X'] = str(CNC.vars['mx'] - float(x))
-		if y is not None and abs(float(y))<10000.0: 
-			pos += "Y"+str(y)
-			parameters[p+1]['Y'] = str(CNC.vars['my'] - float(y))
-		if z is not None and abs(float(z))<10000.0: 
-			pos += "Z"+str(z)
-			parameters[p+1]['Z'] = str(CNC.vars['mz'] - float(z))
-		if a is not None and abs(float(a))<10000.0: 
-			pos += "A"+str(a)
-			parameters[p+1]['A'] = str(CNC.vars['ma'] - float(a))
-		if b is not None and abs(float(b))<10000.0: 
-			pos += "B"+str(b)
-			parameters[p+1]['B'] = str(CNC.vars['mb'] - float(b))
-		if c is not None and abs(float(c))<10000.0: 
-			pos += "C"+str(c)
-			parameters[p+1]['C'] = str(CNC.vars['mc'] - float(c))
+		if x is not None and abs(float(x))<10000.0:
+			workTable[index]['x'] = str(CNC.vars['mx'] - float(x))
+			pos += "X"+workTable[index]['x']
+		if y is not None and abs(float(y))<10000.0:
+			workTable[index]['y'] = str(CNC.vars['my'] - float(y))
+			pos += "Y"+workTable[index]['y']
+		if z is not None and abs(float(z))<10000.0:
+			workTable[index]['z'] = str(CNC.vars['mz'] - float(z))
+			pos += "Z"+workTable[index]['z']
+		if a is not None and abs(float(a))<10000.0:
+			workTable[index]['a'] = str(CNC.vars['ma'] - float(a))
+			pos += "A"+workTable[index]['a']
+		if b is not None and abs(float(b))<10000.0:
+			workTable[index]['b'] = str(CNC.vars['mb'] - float(b))
+			pos += "B"+workTable[index]['b']
+		if c is not None and abs(float(c))<10000.0:
+			workTable[index]['c'] = str(CNC.vars['mc'] - float(c))
+			pos += "C"+workTable[index]['c']
 		cmd += pos
-		self.master.sendGCode(cmd)
-
-		self.saveParameters(parameters)
+		self.master.workTable.save(workTable)
+		self.sendWork(p+1)
 
 
 		self.viewParameters()
@@ -266,7 +379,6 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def feedHold(self, event=None):
-		if event is not None and not self.master.acceptKey(True): return
 		if self.master.serial is None: return
 		self.master.serial_write(b'!')
 		self.master.serial.flush()
@@ -295,19 +407,15 @@ class _GenericController:
 	# a reset to clear the buffer of the controller
 	#---------------------------------------------------------------------
 	def purgeController(self):
-		self.master.serial_write(b'!')
-		self.master.serial.flush()
-		time.sleep(1)
-		# remember and send all G commands
-		G = " ".join([x for x in CNC.vars["G"] if x[0]=="G"])	# remember $G
-		TLO = CNC.vars["TLO"]
+		def function():
+			self.master.runEnded()
+			self.master.stopProbe()
+			self.master.sendGCode("?")
+			self.master.sendGCode("$X")
+			self.master.sendGCode("?")
+			self.viewState()
+		self.registerRunOnceOnReset(function)
 		self.softReset(False)			# reset controller
-		self.purgeControllerExtra()
-		self.master.runEnded()
-		self.master.stopProbe()
-		if G: self.master.sendGCode(G)			# restore $G
-		self.master.sendGCode("G43.1Z%s"%(TLO))	# restore TLO
-		self.viewState()
 
 
 	#----------------------------------------------------------------------
@@ -332,7 +440,7 @@ class _GenericController:
 			return True
 
 		elif line[0]=="<":
-			if not self.master.sio_status:
+			if CNC.vars["debug"]:
 				self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.parseBracketAngle(line, cline)
 
@@ -353,6 +461,7 @@ class _GenericController:
 			self.master._alarm = True
 			self.displayState(line)
 			if self.master.running:
+				self.feedHold()
 				self.master._stop = True
 
 		elif line.find("ok")>=0:
@@ -371,18 +480,20 @@ class _GenericController:
 			pat = VARPAT.match(line)
 			if pat:
 				CNC.vars["grbl_%s"%(pat.group(1))] = pat.group(2)
+				self.onRecieveSetting(int(pat.group(1)), float(pat.group(2)))
 
 		elif line[:4]=="Grbl" or line[:13]=="CarbideMotion": # and self.running:
 			#tg = time.time()
 			self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.master._stop = True
+			self.master.sio_count = 0 # Buffers cleaned, then this is needed
 			del cline[:]	# After reset clear the buffer counters
 			del sline[:]
 			CNC.vars["version"] = line.split()[1]
 			# Detect controller
 			if self.master.controller in ("GRBL0", "GRBL1"):
 				self.master.controllerSet("GRBL%d"%(int(CNC.vars["version"][0])))
-
+			self.master.onStopComplete = self.onReset
 		else:
 			#We return false in order to tell that we can't parse this line
 			#Sender will log the line in such case

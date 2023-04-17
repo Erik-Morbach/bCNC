@@ -23,9 +23,6 @@ import getopt
 import socket
 import traceback
 import threading
-import requests
-from ftplib import FTP
-from externalLib.ymodem.Modem import Modem
 
 from datetime import datetime
 
@@ -58,6 +55,7 @@ sys.path.append(os.path.join(PRGPATH, 'controllers'))
 import Utils
 
 Utils.loadConfiguration()
+Utils.loadMacros()
 
 import rexx
 import tkExtra
@@ -70,7 +68,6 @@ import Ribbon
 import Pendant
 from Sender import Sender, NOT_CONNECTED, STATECOLOR, STATECOLORDEF
 
-import CNCCanvas
 import webbrowser
 
 from Panel import Panel
@@ -78,26 +75,20 @@ from JogController import JogController
 from CNCRibbon import Page
 from ToolsPage import Tools, ToolsPage
 from FilePage import FilePage
-from ControlPage import ControlPage
+from ControlPage import ExecutionPage, JogPage
 from TerminalPage import TerminalPage
 from ProbePage import ProbePage
 from EditorPage import EditorPage
+from ThreadConfigurator import ThreadConfigurator
+import CNCCanvas
 
-import GCodeViewer
-import PidLog
-from IteceProcess import IteceProcess
 
 _openserial = True  # override ini parameters
 _device = None
 _baud = None
-GRBL_HAL = 1
-GRBL_ESP32 = 2
-firmware = GRBL_HAL if Utils.getStr('CNC', 'firmware', 'Grbl_Esp32') == 'Grbl_HAL' else GRBL_ESP32
-print("FIRMWARE =", firmware)
-grblIPAddress = '192.168.5.1' if firmware == GRBL_HAL else 'http://192.168.0.1'
 
-MONITOR_AFTER = 40  # ms
-DRAW_AFTER = 500  # ms
+MONITOR_AFTER = 33  # ms
+DRAW_AFTER = 5000  # ms
 
 RX_BUFFER_SIZE = 512
 
@@ -105,7 +96,8 @@ MAX_HISTORY = 500
 
 # ZERO = ["G28", "G30", "G92"]
 
-FILETYPES = [(_("All accepted"),
+FILETYPES = [(_("All"), "*"),
+             (_("All accepted"),
               ("*.ngc", "*.cnc", "*.nc", "*.tap", "*.gcode", "*.dxf", "*.probe", "*.orient", "*.stl", "*.svg")),
              (_("G-Code"), ("*.ngc", "*.cnc", "*.nc", "*.tap", "*.gcode")),
              (_("G-Code clean"), ("*.txt")),
@@ -113,8 +105,7 @@ FILETYPES = [(_("All accepted"),
              ("SVG", "*.svg"),
              (_("Probe"), ("*.probe", "*.xyz")),
              (_("Orient"), "*.orient"),
-             ("STL", "*.stl"),
-             (_("All"), "*")]
+             ("STL", "*.stl")]
 
 geometry = None
 
@@ -143,7 +134,7 @@ class Application(Toplevel, Sender):
         self.ribbon.pack(side=TOP, fill=X)
 
         # Main frame
-        self.paned = PanedWindow(self, orient=HORIZONTAL)
+        self.paned = PanedWindow(self)
         self.paned.pack(fill=BOTH, expand=YES)
 
         # Status bar
@@ -168,11 +159,10 @@ class Application(Toplevel, Sender):
 
         # --- Left side ---
         frame = Frame(self.paned)
-        self.paned.add(frame)  # , minsize=340)
+        self.paned.add(frame)
 
         pageframe = Frame(frame)
         pageframe.pack(side=TOP, expand=YES, fill=BOTH)
-        self.ribbon.setPageFrame(pageframe)
 
         # Command bar
         f = Frame(frame)
@@ -196,37 +186,20 @@ class Application(Toplevel, Sender):
                               "(move,inkscape, round...) [Space or Ctrl-Space]"))
         self.widgets.append(self.command)
 
-        # --- Right side ---
         frame = Frame(self.paned)
         self.paned.add(frame)
 
-        # --- Canvas ---
-        self.notebook = ttk.Notebook(frame)
-        self.notebook.pack(side=TOP, expand=YES, fill=BOTH)
+        self.rightFrame = Frame(frame)
+        self.rightFrame.pack(side=TOP, expand=YES, fill=BOTH)
 
-        self.gcodeViewFrame = GCodeViewer.GCodeViewer(self.notebook, self)
-        self.gcodeViewFrame.pack(side=TOP, fill=BOTH, expand=YES)
+        self.ribbon.setPageFrame(pageframe, self.rightFrame)
 
-        self.canvasFrame = CNCCanvas.CanvasFrame(self.notebook, self)
-        self.canvasFrame.pack(side=TOP, fill=BOTH, expand=YES)
-
-        if Utils.getBool("CNC", "pidLog", False):
-                self.pidLogFrame = PidLog.PidLogFrame(self.notebook, self)
-                self.pidLogFrame.pack(side=TOP, fill=BOTH, expand=YES)
-
-        self.notebook.add(self.gcodeViewFrame.lb, text="GCode")
-        self.notebook.add(self.canvasFrame, text="Graph")
-
-        if Utils.getBool("CNC", "pidLog", False):
-                self.notebook.add(self.pidLogFrame, text="PidLog")
-
-        # self.paned.add(self.canvasFrame)
-        # XXX FIXME do I need the self.canvas?
-        self.canvas = self.canvasFrame.canvas
+        self.canvas = None
 
         # fist create Pages
         self.pages = {}
-        for cls in (ControlPage,
+        for cls in (ExecutionPage,
+                    JogPage,
                     EditorPage,
                     FilePage,
                     ProbePage,
@@ -267,17 +240,21 @@ class Application(Toplevel, Sender):
                                      "no longer exist in bCNC" % (" ".join(errors)), parent=self)
 
         # remember the editor list widget
-        self.dro = Page.frames["DRO"]
-        self.abcdro = Page.frames["abcDRO"]
-        self.gstate = Page.frames["State"]
-        self.control = Page.frames["Control"]
-        self.abccontrol = Page.frames["abcControl"]
-        self.editor = Page.frames["Editor"].editor
-        self.terminal = Page.frames["Terminal"].terminal
-        self.buffer = Page.frames["Terminal"].buffer
+        self.dro = Page.lframes["DRO"]
+        self.abcdro = Page.lframes["abcDRO"]
+        self.gstate = Page.lframes["State"]
+        self.spindleState = Page.rframes["Spindle"]
+        self.control = Page.rframes["Control"]
+        self.abccontrol = Page.lframes["abcControl"]
+        self.editor = Page.lframes["Editor"].editor
+        self.terminal = Page.lframes["Terminal"].terminal
+        self.buffer = Page.lframes["Terminal"].buffer
+        self.canvasFrame = Page.rframes["Notebook"].canvasFrame
+        self.canvas = self.canvasFrame.canvas
+        self.gcodeViewFrame = Page.rframes["Notebook"].gcodeViewFrame
 
         # XXX FIXME Do we need it or I can takes from Page every time?
-        self.autolevel = Page.frames["Probe:Autolevel"]
+        self.autolevel = Page.lframes["Probe:Autolevel"]
 
         # Left side
         for name in Utils.getStr(Utils.__prg__, "ribbon").split():
@@ -293,7 +270,7 @@ class Application(Toplevel, Sender):
         self.pages["Probe"].tabChange()  # Select "Probe:Probe" tab to show the dialogs!
         self.ribbon.changePage(Utils.getStr(Utils.__prg__, "page", "File"))
 
-        probe = Page.frames["Probe:Probe"]
+        probe = Page.lframes["Probe:Probe"]
         tkExtra.bindEventData(self, "<<OrientSelect>>", lambda e, f=probe: f.selectMarker(int(e.data)))
         tkExtra.bindEventData(self, '<<OrientChange>>', lambda e, s=self: s.canvas.orientChange(int(e.data)))
         self.bind('<<OrientUpdate>>', probe.orientUpdate)
@@ -311,9 +288,7 @@ class Application(Toplevel, Sender):
         self.bind('<<Import>>', lambda x, s=self: s.importFile())
         self.bind('<<Save>>', self.saveAll)
         self.bind('<<SaveAs>>', self.saveDialog)
-        self.bind('<<SaveToSD>>', self.saveToSD)
         self.bind('<<Reload>>', self.reload)
-        self.bind('<<DeleteFromSD>>', self.deleteFromSD)
 
         self.bind('<<Recent0>>', self._loadRecent0)
         self.bind('<<Recent1>>', self._loadRecent1)
@@ -326,9 +301,7 @@ class Application(Toplevel, Sender):
         self.bind('<<Recent8>>', self._loadRecent8)
         self.bind('<<Recent9>>', self._loadRecent9)
 
-        self.iteceProcess = IteceProcess(self)
-
-        self.bind('<<TerminalClear>>', Page.frames["Terminal"].clear)
+        self.bind('<<TerminalClear>>', Page.lframes["Terminal"].clear)
         self.bind('<<AlarmClear>>', self.alarmClear)
         self.bind('<<Help>>', self.help)
         # Do not send the event otherwise it will skip the feedHold/resume
@@ -336,15 +309,14 @@ class Application(Toplevel, Sender):
         self.bind('<<Resume>>', lambda e, s=self: s.resume())
         self.bind('<<Run>>', lambda e, s=self: s.run())
         self.bind('<<RunBegin>>', lambda e, s=self: s.run(cleanRepeat=True))
-        self.bind('<<RunFromSD>>', lambda e, s=self: s.run(fromSD=True))
         self.bind('<<Stop>>', self.stopRun)
         self.bind('<<Pause>>', self.pause)
-        self.bind('<<ProcessInit>>', self.iteceProcess.start)
-        self.bind('<<ProcessEnd>>', self.iteceProcess.end)
         #		self.bind('<<TabAdded>>',	self.tabAdded)
 
         tkExtra.bindEventData(self, "<<Status>>", self.updateStatus)
         tkExtra.bindEventData(self, "<<Coords>>", self.updateCanvasCoords)
+        self.bind('<<OverrideMinus>>', lambda e, s=self: s.execute("OVERMINUS"))
+        self.bind('<<OverridePlus>>', lambda e, s=self: s.execute("OVERPLUS"))
 
         # Editor bindings
         self.bind("<<Add>>", self.editor.insertItem)
@@ -380,7 +352,7 @@ class Application(Toplevel, Sender):
         self.bind('<<MoveGantry>>', self.canvas.setActionGantry)
         self.bind('<<SetWPOS>>', self.canvas.setActionWPOS)
 
-        frame = Page.frames["Probe:Tool"]
+        frame = Page.lframes["Probe:Tool"]
         self.bind('<<ToolCalibrate>>', frame.calibrate)
         self.bind('<<ToolChange>>', frame.change)
 
@@ -422,7 +394,6 @@ class Application(Toplevel, Sender):
         self.bind('<Control-Key-y>', self.redo)
         self.bind('<Control-Key-z>', self.undo)
         self.bind('<Control-Key-Z>', self.redo)
-        self.canvas.bind('<Key-space>', self.commandFocus)
         self.bind('<Control-Key-space>', self.commandFocus)
         self.bind('<<CommandFocus>>', self.commandFocus)
 
@@ -463,6 +434,17 @@ class Application(Toplevel, Sender):
         def bDown(*args):
             self.control.moveBdown()
             releaseJogMutex()
+        def jog(*args):
+            data = self.jogData
+            axis = ""
+            directions = ""
+            for i in range(0, len(data), 2):
+                axis += data[i]
+                directions += data[i+1]
+            self.control.move(axis, directions, 1)
+            releaseJogMutex()
+
+        self.bind('<<JOG>>', jog)
 
         self.bind('<<XUp>>', xUp)
         self.bind('<<XDown>>', xDown)
@@ -473,28 +455,18 @@ class Application(Toplevel, Sender):
         self.bind('<<BUp>>', bUp)
         self.bind('<<BDown>>', bDown)
 
-        def selectorAdjust(*args):
-            step = self.panel.currentStep
-            velocity = self.panel.currentVelocity
-            self.control.setStep(step)
-            self.gstate.overrideCombo.set('Feed')
-            self.gstate.override.set(velocity)
-            self.gstate.overrideChange()
-            self.gstate.overrideCombo.set('Rapid')
-            self.gstate.override.set(velocity)
-            self.gstate.overrideChange()
-            self.gstate.overrideCombo.set('Feed')
-
         def stopJog(*args):
             if self.serial is None: return
-            self.serial_write(chr(0x85))
+            self.emptyDeque()
+            for _ in range(20):
+                self.serial_write(chr(0x85))
             self.serial.flush()
             releaseJogMutex()
 
         global clampToggleCounter
         clampToggleCounter = 0
         def clampToggle(*args):
-            if self.serial is None: return
+            if self.serial is None or CNC.vars['state'].lower() not in ["idle"]: return
             global clampToggleCounter
             if clampToggleCounter % 2 == 0: self.serial_write(chr(0xA5))
             else: self.serial_write(chr(0xA6))
@@ -502,7 +474,6 @@ class Application(Toplevel, Sender):
             clampToggleCounter+=1
 
 
-        self.bind('<<AdjustSelector>>', selectorAdjust)
         self.bind('<<JogStop>>', stopJog)
         self.bind('<<ClampToggle>>', clampToggle)
 
@@ -524,9 +495,6 @@ class Application(Toplevel, Sender):
             keys['B-'] = self.control.moveBdown
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
-
-        self.bind('<Key-exclam>', self.feedHold)
-        self.bind('<Key-asciitilde>', self.resume)
 
         for x in self.widgets:
             if isinstance(x, Entry):
@@ -624,6 +592,7 @@ class Application(Toplevel, Sender):
 
         self.canvas.cameraOff()
         Sender.quit(self)
+        self.jogController.stopTask()
         self.saveConfig()
         self.destroy()
         if Utils.errors and Utils._errorReport:
@@ -680,12 +649,14 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def loadShortcuts(self):
-        for name, value in Utils.config.items("Shortcut"):
-            # Convert to uppercase
-            key = name.title()
-            self.unbind("<%s>" % (key))  # unbind any possible old value
-            if value:
-                self.bind("<%s>" % (key), lambda e, s=self, c=value: s.execute(c))
+        with open("shortcuts.txt") as shortcuts:
+            for line in shortcuts.readlines():
+                if len(line) == 0: continue
+                key, value = line.split('=')
+                functor = lambda e, s=self, c=value: s.execute(c)
+                self.unbind(key)
+                self.bind(key, functor)
+
 
     # -----------------------------------------------------------------------
     def showUserFile(self):
@@ -741,11 +712,11 @@ class Application(Toplevel, Sender):
         Utils.setInt(Utils.__prg__, "height", str(self.winfo_height()))
         # Utils.setInt(Utils.__prg__,  "x",	  str(self.winfo_rootx()))
         # Utils.setInt(Utils.__prg__,  "y",	  str(self.winfo_rooty()))
-        Utils.setInt(Utils.__prg__, "sash", str(self.paned.sash_coord(0)[0]))
+        #Utils.setInt(Utils.__prg__, "sash", str(self.paned.sash_coord(0)[0])) Must not change
 
         # save windowState
         Utils.setStr(Utils.__prg__, "windowstate", str(self.wm_state()))
-        Utils.setStr(Utils.__prg__, "page", str(self.ribbon.getActivePage().name))
+        #Utils.setStr(Utils.__prg__, "page", str(self.ribbon.getActivePage().name)) must always start in page File
 
         # Connection
         Page.saveConfig()
@@ -1359,23 +1330,35 @@ class Application(Toplevel, Sender):
                 Page.groups["Probe:Camera"].switchCamera()
 
             elif rexx.abbrev("SPINDLE", line[1].upper(), 2):
-                Page.frames["Probe:Camera"].registerSpindle()
+                Page.lframes["Probe:Camera"].registerSpindle()
 
             elif rexx.abbrev("CAMERA", line[1].upper(), 1):
-                Page.frames["Probe:Camera"].registerCamera()
+                Page.lframes["Probe:Camera"].registerCamera()
 
         # CLE*AR: clear terminal
         elif rexx.abbrev("CLEAR", cmd, 3) or cmd == "CLS":
             self.ribbon.changePage("Terminal")
-            Page.frames["Terminal"].clear()
+            Page.lframes["Terminal"].clear()
 
         # CLOSE: close path - join end with start with a line segment
         elif rexx.abbrev("CLOSE", cmd, 4):
             self.executeOnSelection("CLOSE", True)
 
-        # CONT*ROL: switch to control tab
-        elif rexx.abbrev("CONTROL", cmd, 4):
-            self.ribbon.changePage("Control")
+        # FILE: switch to File tab
+        elif cmd == "FILE":
+            self.ribbon.changePage("File")
+
+        # FILE: switch to Execution tab
+        elif cmd == "EXECUTION":
+            self.ribbon.changePage("Execution")
+
+        # FILE: switch to Jog tab
+        elif cmd == "JOG":
+            self.ribbon.changePage("Jog")
+
+        # EDITOR: switch to Editor tab
+        elif cmd == "EDITOR":
+            self.ribbon.changePage("Editor")
 
         # CUT [depth] [pass-per-depth] [z-surface] [feed] [feedz]: replicate selected blocks to cut-height
         # default values are taken from the active material
@@ -1406,12 +1389,16 @@ class Application(Toplevel, Sender):
                 feedz = None
             self.executeOnSelection("CUT", True, depth, step, surface, feed, feedz)
 
+
+
         # DOWN: move downward in cutting order the selected blocks
         # UP: move upwards in cutting order the selected blocks
         elif cmd == "DOWN":
             self.editor.orderDown()
         elif cmd == "UP":
             self.editor.orderUp()
+        elif cmd == "CONFIGTHREAD":
+            ThreadConfigurator(self, "Thread Configuration", self);
 
         # DIR*ECTION
         elif rexx.abbrev("DIRECTION", cmd, 3):
@@ -1814,23 +1801,23 @@ class Application(Toplevel, Sender):
 
         # RR*APID:
         elif rexx.abbrev("RRAPID", cmd, 2):
-            Page.frames["Probe:Probe"].recordRapid()
+            Page.lframes["Probe:Probe"].recordRapid()
 
         # RF*EED:
         elif rexx.abbrev("RFEED", cmd, 2):
-            Page.frames["Probe:Probe"].recordFeed()
+            Page.lframes["Probe:Probe"].recordFeed()
 
         # RP*OINT:
         elif rexx.abbrev("RPOINT", cmd, 2):
-            Page.frames["Probe:Probe"].recordPoint()
+            Page.lframes["Probe:Probe"].recordPoint()
 
         # RC*IRCLE:
         elif rexx.abbrev("RCIRCLE", cmd, 2):
-            Page.frames["Probe:Probe"].recordCircle()
+            Page.lframes["Probe:Probe"].recordCircle()
 
         # RFI*NISH:
         elif rexx.abbrev("RFINISH", cmd, 3):
-            Page.frames["Probe:Probe"].recordFinishAll()
+            Page.lframes["Probe:Probe"].recordFinishAll()
 
         # XY: switch to XY view
         # YX: switch to XY view
@@ -2216,12 +2203,17 @@ class Application(Toplevel, Sender):
             self.event_generate("<<OrientUpdate>>")
 
         else:
-            self.editor.selectClear()
-            self.editor.fill()
-            self.canvas.reset()
-            self.draw()
-            self.canvas.fit2Screen()
-            Page.frames["CAM"].populate()
+            def canvDraw():
+                try:
+                    self.editor.selectClear()
+                    self.editor.fill()
+                    self.canvas.reset()
+                    self.draw()
+                    self.canvas.fit2Screen()
+                    Page.lframes["CAM"].populate()
+                except BaseException as err:
+                        print(err)
+            threading.Thread(target=canvDraw).start()
 
         if autoloaded:
             self.setStatus(_("'%s' reloaded at '%s'") % (filename, str(datetime.now())))
@@ -2244,96 +2236,6 @@ class Application(Toplevel, Sender):
             self.saveDialog()
         return "break"
 
-    def sendWithFTP(self, sdFileName, fileName):
-        ftp = FTP(grblIPAddress)
-        ftp.login()
-        file = open(fileName, 'rb')
-        ftp.storbinary('STOR ' + sdFileName, file)
-        file.close()
-        ftp.quit()
-
-    def sendWithYModem(self, sdFileName, fileName):
-        self.close()
-        serialPage = Page.frames["Serial"]
-        device = _device or serialPage.portCombo.get()  # .split("\t")[0]
-        baudrate = _baud or serialPage.baudCombo.get()
-        mySerial = serial.serial_for_url(
-            device.replace('\\', '\\\\'),  # Escape for windows
-            baudrate,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            timeout=1,
-            xonxoff=False,
-            rtscts=False)
-        while mySerial.read(1024):
-            pass
-        time.sleep(0.4)
-        ymodem = Modem(mySerial)
-        file_info = {"name": sdFileName}
-        try:
-            ymodem.send(open(fileName), info=file_info)
-        except BaseException as err:
-            print(err)
-            self.setStatus("Error while sending! Check your connection and try again")
-        finally:
-            time.sleep(0.2)
-            self.openClose()
-
-    def sendWithHttp(self, sdFileName, fileName):
-        postArgs = {}
-        postArgs['path'] = '/'
-        postArgs[sdFileName + 'S'] = os.path.getsize(fileName)
-
-        with open(fileName, 'rb') as tmp:
-            postFile = {'myfile[]': (sdFileName, tmp)}
-            exists = requests.get(grblIPAddress + '/upload?path=/&PAGEID=0', timeout=5)
-            response = requests.post(grblIPAddress + '/upload', data=postArgs, files=postFile)
-            print(response.json())
-
-    def saveToSD(self, event=None):
-        def function():
-            self.setStatus("prepare to save file...")
-
-            def computeFile(filename):
-                dump = Queue()
-                path = self.gcode.compile(dump, fromSD=True)
-                with open(filename, 'w') as myfile:
-                    while not dump.empty():
-                        val = dump.get()
-                        if not isinstance(val, str):
-                            val = exec(val)
-                            if val is None:
-                                val = ""
-                        myfile.write(val + '\n')
-
-            sdFileName = "TmpFile.nc"
-            tmpFileName = "TmpFilePre"
-            try:
-                computeFile(tmpFileName)
-                self.setStatus("Sending File to SD...")
-                if firmware == GRBL_HAL:
-                    self.sendWithYModem(sdFileName, tmpFileName)
-                else:
-                    self.sendWithHttp(sdFileName, tmpFileName)
-                self.setStatus("File Send complete!")
-            except BaseException as err:
-                print(err)
-                self.setStatus("Error while sending! Check your connection and try again")
-            finally:
-                if os.path.exists(tmpFileName):
-                    os.remove(tmpFileName)
-
-        threading.Thread(target=function).start()
-
-    def deleteFromSD(self, event=None):
-        sdFileName = "TmpFile"
-        if firmware == GRBL_HAL:
-            self.sendGCode("$FD=" + sdFileName)
-        else:
-            self.sendGCode("$SD/Delete=" + sdFileName)
-        self.setStatus("SD File Deleted")
-
     # -----------------------------------------------------------------------
     def reload(self, event=None):
         self.load(self.gcode.filename)
@@ -2346,9 +2248,9 @@ class Application(Toplevel, Sender):
                                                    initialfile=os.path.join(
                                                        Utils.getUtf("File", "dir"),
                                                        Utils.getUtf("File", "file")),
-                                                   filetypes=[(_("G-Code"), ("*.ngc", "*.nc", "*.gcode")),
-                                                              ("DXF", "*.dxf"),
-                                                              ("All", "*")])
+                                                   filetypes=[("All", "*"),
+                                                              (_("G-Code"), ("*.ngc", "*.nc", "*.gcode")),
+                                                              ("DXF", "*.dxf")])
         if filename:
             fn, ext = os.path.splitext(filename)
             ext = ext.lower()
@@ -2392,14 +2294,14 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def openClose(self, event=None):
-        serialPage = Page.frames["Serial"]
+        serialPage = Page.lframes["Serial"]
         if self.serial is not None:
             self.close()
             serialPage.connectBtn.config(text=_("Open"),
                                          background="Salmon",
                                          activebackground="Salmon")
         else:
-            serialPage = Page.frames["Serial"]
+            serialPage = Page.lframes["Serial"]
             device = _device or serialPage.portCombo.get()  # .split("\t")[0]
             baudrate = _baud or serialPage.baudCombo.get()
             if self.open(device, baudrate):
@@ -2444,11 +2346,16 @@ class Application(Toplevel, Sender):
     # Send enabled gcode file to the CNC machine
     # -----------------------------------------------------------------------
 
-    def run(self, lines=None, fromSD: bool = False, cleanRepeat=False):
+    def run(self, lines=None, cleanRepeat=False):
         if CNC.vars["SafeDoor"]:
+            return
+        if self.checkStop():
             return
         if cleanRepeat:
             self.gcode.repeatEngine.cleanState()
+        if self.repeatLock is not None and self.repeatLock.locked():
+            self.repeatLock.release()
+            return
         self.cleanAfter = True  # Clean when this operation stops
         print("Will clean after this operation")
 
@@ -2501,10 +2408,11 @@ class Application(Toplevel, Sender):
             #		print ">>>",line
             # self._paths = self.gcode.compile(MyQueue(), self.checkStop)
             # return
-            self._paths = self.gcode.compile(self.queue, self.checkStop, doNotUploadQueue=fromSD, fromSD=fromSD)
+            self.compiledProgram = []
+            self._paths = self.gcode.compile(self.compiledProgram, self.checkStop)
 
             if self._paths is None:
-                self.emptyQueue()
+                self.emptyDeque()
                 self.purgeController()
                 return
             elif not self._paths:
@@ -2515,40 +2423,36 @@ class Application(Toplevel, Sender):
                 return
 
             # reset colors
-            before = time.time()
-            for ij in self._paths:  # Slow loop
-                if not ij: continue
-                path = self.gcode[ij[0]].path(ij[1])
-                if path:
-                    color = self.canvas.itemcget(path, "fill")
-                    if color != CNCCanvas.ENABLE_COLOR:
-                        self.canvas.itemconfig(
-                            path,
-                            width=1,
-                            fill=CNCCanvas.ENABLE_COLOR)
-                    # Force a periodic update since this loop can take time
-                    if time.time() - before > 0.25:
-                        self.update()
-                        before = time.time()
+            def prepareCanvas():
+                before = time.time()
+                for ij in self._paths:  # Slow loop
+                    if not ij: continue
+                    path = self.gcode[ij[0]].path(ij[1])
+                    if path:
+                        color = self.canvas.itemcget(path, "fill")
+                        if color != CNCCanvas.ENABLE_COLOR:
+                            self.canvas.itemconfig(
+                                path,
+                                width=1,
+                                fill=CNCCanvas.ENABLE_COLOR)
+            threading.Thread(target=prepareCanvas).start()
 
-            if fromSD:
-                self._runLines = 10000
-                self._gcount = 0
-            else:
-                # the buffer of the machine should be empty?
-                self._runLines = len(self._paths) + 1  # plus the wait
+            self.gcode.repeatEngine.countRepetition()
+
+            # the buffer of the machine should be empty?
+            self._runLines = len(self._paths) + 1  # plus the wait
+            self._compiledRunLines = self._runLines
         else:
             n = 1  # including one wait command
             for line in CNC.compile(lines):
                 if line is not None:
                     if isinstance(line, str):
-                        self.queue.put(line + "\n")
+                        self.deque.append(line + "\n")
                     else:
-                        self.queue.put(line)
+                        self.deque.append(line)
                     n += 1
             self._runLines = n  # set it at the end to be sure that all lines are queued
-        if not fromSD:
-            self.queue.put((WAIT,))  # wait at the end to become idle
+        self.deque.append((WAIT,))  # wait at the end to become idle
 
         self.setStatus(_("Running..."))
         self.statusbar.setLimits(0, self._runLines)
@@ -2707,29 +2611,28 @@ class Application(Toplevel, Sender):
         self.gstate.updateRpm()
         if self._gUpdate:
             self.gstate.updateG()
+            self.spindleState.updateG()
             self._gUpdate = False
 
         # Update probe and draw point
         if self._probeUpdate:
-            Page.frames["Probe:Probe"].updateProbe()
-            Page.frames["ProbeCommon"].updateTlo()
+            Page.lframes["Probe:Probe"].updateProbe()
+            Page.lframes["ProbeCommon"].updateTlo()
             self.canvas.drawProbe()
             self._probeUpdate = False
 
         # Update any possible variable?
         if self._update:
             if self._update == "toolheight":
-                Page.frames["Probe:Tool"].updateTool()
+                Page.lframes["Probe:Tool"].updateTool()
             elif self._update == "TLO":
-                Page.frames["ProbeCommon"].updateTlo()
+                Page.lframes["ProbeCommon"].updateTlo()
             self._update = None
 
-        Page.groups["Process"].update()
         self.panel.update()
-        self.jogController.update()
 
         if self.running:
-            self.statusbar.setProgress(self._runLines - self.queue.qsize(),
+            self.statusbar.setProgress(self._runLines - len(self.deque),
                                        self._gcount)
             CNC.vars["msg"] = self.statusbar.msg
             self.bufferbar.setProgress(Sender.getBufferFill(self))
@@ -2745,9 +2648,6 @@ class Application(Toplevel, Sender):
                                                    width=2,
                                                    fill=CNCCanvas.PROCESS_COLOR)
                     self._selectI += 1
-
-            if self._gcount >= self._runLines:
-                self.runEnded()
 
     # -----------------------------------------------------------------------
     # "thread" timed function looking for messages in the serial thread

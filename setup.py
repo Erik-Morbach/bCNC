@@ -29,10 +29,12 @@ setup(
 		"pyobjc-framework-Quartz; sys_platform == 'darwin'",
 
 		"pyserial ; sys_platform != 'win32'",	#Windows XP can't handle pyserial newer than 3.0.1 (it can be installed, but does not work)
-		"pyserial<=3.0.1 ; sys_platform == 'win32'",
-		'numpy>=1.12',
-		'Pillow>=4.0',
-		'opencv-python==%s ; ("arm" not in platform_machine) and ("aarch64" not in platform_machine)' % (opencv_version),	#Note there are no PyPI OpenCV packages for ARM (Raspberry PI, Orange PI, etc...)
+		"pyserial ; sys_platform == 'win32'",
+		'numpy',
+		'Pillow',
+		'wiringpi',
+		'matplotlib',
+		'opencv-python; ("arm" not in platform_machine) and ("aarch64" not in platform_machine)',	#Note there are no PyPI OpenCV packages for ARM (Raspberry PI, Orange PI, etc...)
 	],
 
 	entry_points = {

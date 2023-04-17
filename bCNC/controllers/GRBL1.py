@@ -3,32 +3,33 @@
 from __future__ import absolute_import
 from __future__ import print_function
 from _GenericGRBL import _GenericGRBL
-from _GenericController import SPLITPAT
+from _GenericController import SPLITPAT, TOOLSPLITPAT
 from CNC import CNC
 from CNCRibbon    import Page
 import time
 import Utils
 
-OV_FEED_100     = chr(0x90)        # Extended override commands
-OV_FEED_i10     = chr(0x91)
-OV_FEED_d10     = chr(0x92)
-OV_FEED_i1      = chr(0x93)
-OV_FEED_d1      = chr(0x94)
+OV_FEED_100     = b'\x90'       # Extended override commands
+OV_FEED_i10     = b'\x91'
+OV_FEED_d10     = b'\x92'
+OV_FEED_i1      = b'\x93'
+OV_FEED_d1      = b'\x94'
 
-OV_RAPID_100    = chr(0x95)
-OV_RAPID_50     = chr(0x96)
-OV_RAPID_25     = chr(0x97)
+OV_RAPID_100    = b'\x95'
+OV_RAPID_i10    = b'\x96'
+OV_RAPID_d10    = b'\x97'
+OV_RAPID_d1     = b'\x98'
 
-OV_SPINDLE_100  = chr(0x99)
-OV_SPINDLE_i10  = chr(0x9A)
-OV_SPINDLE_d10  = chr(0x9B)
-OV_SPINDLE_i1   = chr(0x9C)
-OV_SPINDLE_d1   = chr(0x9D)
+OV_SPINDLE_100  = b'\x99'
+OV_SPINDLE_i10  = b'\x9A'
+OV_SPINDLE_d10  = b'\x9B'
+OV_SPINDLE_i1   = b'\x9C'
+OV_SPINDLE_d1   = b'\x9D'
 
-OV_SPINDLE_STOP = chr(0x9E)
+OV_SPINDLE_STOP = b'\x9E'
 
-OV_FLOOD_TOGGLE = chr(0xA0)
-OV_MIST_TOGGLE  = chr(0xA1)
+OV_FLOOD_TOGGLE = b'\xA0'
+OV_MIST_TOGGLE  = b'\xA1'
 
 
 class Controller(_GenericGRBL):
@@ -36,12 +37,14 @@ class Controller(_GenericGRBL):
 		self.gcode_case = 0
 		self.has_override = True
 		self.master = master
-		self.lastSDStatus = -1 
+		self.reseted = False
+		self.expectingReset = False
 		self.hasSD = False
 		self.pidSP = 0
 		self.pidTS = 0
 		self.pidTarget = []
 		self.pidActual = []
+		self.runOnceOnResetFunctions = []
 		#print("grbl1 loaded")
 
 	def jog(self, dir):
@@ -64,18 +67,27 @@ class Controller(_GenericGRBL):
 				diff -= 1
 		CNC.vars["OvFeed"] = CNC.vars["_OvFeed"]
 		# Check rapid
-		target  = CNC.vars["_OvRapid"]
-		current = CNC.vars["OvRapid"]
-		if target == current:
-			pass
-		elif target == 100:
+		diff = CNC.vars["_OvRapid"] - CNC.vars["OvRapid"]
+		direction = diff>0
+		diff = abs(diff)
+		if CNC.vars["_OvRapid"] == 100 and diff>0:
 			self.master.serial_write(OV_RAPID_100)
-		elif target == 75:
-			self.master.serial_write(OV_RAPID_50)	# FIXME: GRBL protocol does not specify 75% override command at all
-		elif target == 50:
-			self.master.serial_write(OV_RAPID_50)
-		elif target == 25:
-			self.master.serial_write(OV_RAPID_25)
+			diff = 0
+		while diff > 0:
+			if diff >= 10:
+				if direction: self.master.serial_write(OV_RAPID_i10)
+				else: self.master.serial_write(OV_RAPID_d10)
+				diff -= 10
+				continue
+			if diff >= 1:
+				if direction:
+					self.master.serial_write(OV_RAPID_i10)
+					diff = 10 - diff
+					direction = not direction
+					continue
+				self.master.serial_write(OV_RAPID_d1)
+				diff -= 1
+		CNC.vars["OvRapid"] = CNC.vars["_OvRapid"]
 		# Check Spindle
 		diff = CNC.vars["_OvSpindle"] - CNC.vars["OvSpindle"]
 		direction = diff>0
@@ -95,6 +107,7 @@ class Controller(_GenericGRBL):
 
 	def parseBracketAngle(self, line, cline):
 		self.master.sio_status = False
+		self.master.sio_count = max(0, self.master.sio_count-1)
 		fields = line[1:-1].split("|")
 		CNC.vars["pins"] = ""
 		 
@@ -105,7 +118,6 @@ class Controller(_GenericGRBL):
 		self.master.runningPrev = self.master.running
 
 		self.displayState(fields[0])
-		currentStatus = -1
 
 		for field in fields[1:]:
 			word = SPLITPAT.split(field)
@@ -196,24 +208,15 @@ class Controller(_GenericGRBL):
 				except (ValueError,IndexError):
 					break
 			elif word[0] == "In":
+				print("Input = {}".format(word[1]))
 				pass
 			elif word[0] == "Inps":
 				try:
 					CNC.vars["inputs"] = int(word[1])
 				except (ValueError,IndexError):
 					break
-			elif word[0] == "SD":
-				try:
-					self.hasSD = True
-					currentStatus = int(max(float(word[1])-5,0)*100)
-				except (ValueError,IndexError):
-					break	
-		if self.hasSD and currentStatus != -1:
-			self.master._gcount = currentStatus	
-		self.lastSDStatus = currentStatus
-
 		# Machine is Idle buffer is empty stop waiting and go on
-		if self.master.sio_wait and not cline and fields[0] not in ("Run", "Jog", "Hold"):
+		if self.master.sio_wait and not cline and sum([1 if w in fields[0] else 0 for w in ("Run", "Jog", "Hold")])==0:
 			#if not self.master.running: self.master.jobDone() #This is not a good idea, it purges the controller while waiting for toolchange. see #1061
 			self.master.sio_wait = False
 			self.master._gcount += 1
@@ -232,6 +235,14 @@ class Controller(_GenericGRBL):
 				 CNC.vars["prbz"]-CNC.vars["wcoz"])
 			self.master._probeUpdate = True
 			CNC.vars[word[0]] = word[1:]
+		if word[0] in ["G54", "G55", "G56", "G57", "G58", "G59"]:
+			workId = int(word[0][1:])-53
+			CNC.vars["workTable"][workId] = [float(w) for w in word[1:]]
+			self.onRecieveWork(workId, CNC.vars["workTable"][workId])
+		if word[0] in ["G59.1", "G59.2", "G59.3"]:
+			workId = int(word[0][1:3]) + int(word[0][4:])-53
+			CNC.vars["workTable"][workId] = [float(w) for w in word[1:]]
+			self.onRecieveWork(workId, CNC.vars["workTable"][workId])
 		if word[0] == "G92":
 			CNC.vars["G92X"] = float(word[1])
 			CNC.vars["G92Y"] = float(word[2])
@@ -282,5 +293,15 @@ class Controller(_GenericGRBL):
 					self.pidActual += [float(wP)]
 			except:
 				pass
+		elif word[0] == "Pitch":
+			try:
+				CNC.vars["pitch"] = float(word[1])
+			except:
+				CNC.vars["pitch"] = -1
+		elif word[0] == "T":
+			toolWord = TOOLSPLITPAT.split(line[1:-1])
+			id = int(toolWord[1])
+			CNC.vars["toolTable"][id] = [float(w) for w in toolWord[2:]]
+			self.onRecieveTool(id, CNC.vars["toolTable"][id])
 		else:
 			CNC.vars[word[0]] = word[1:]

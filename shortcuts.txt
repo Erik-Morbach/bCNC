@@ -1,0 +1,11 @@
+<Tab>=Feedhold
+<KP_Divide>=OverMinus
+<KP_Multiply>=OverPlus
+<KeyPress-Shift_L>=JogRapid
+<KeyRelease-Shift_L>=JogOld
+<KeyPress-Shift_R>=JogRapid
+<KeyRelease-Shift_R>=JogOld
+<KeyPress-Control_L>=JogSlow
+<KeyRelease-Control_L>=JogOld
+<KeyPress-Control_R>=JogSlow
+<KeyRelease-Control_R>=JogOld

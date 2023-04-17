@@ -1,4 +1,4 @@
-# -*- coding: ascii -*-
+# -*- coding: utf-8 -*-
 # $Id: bCNC.py,v 1.6 2014/10/15 15:04:48 bnv Exp bnv $
 #
 # Author: Vasilis Vlachoudis
@@ -7,6 +7,7 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
 __author__  = "Vasilis Vlachoudis"
 __email__   = "vvlachoudis@gmail.com"
 
@@ -19,11 +20,19 @@ import rexx
 import time
 import threading
 import webbrowser
+import struct
+import MacroEngine
+import Command
+import ProcessEngine
+import ProgramEngine
+import lib.Deque
+import types
 
 from datetime import datetime
 
 try:
 	import serial
+	import Serial
 except ImportError:
 	serial = None
 try:
@@ -37,20 +46,24 @@ except ImportError:
 	from tkinter import *
 	import tkinter.messagebox as tkMessageBox
 
-from CNC import WAIT, MSG, UPDATE, WCS, CNC, GCode
+from CNC import END_RUN_MACRO, RUN_MACRO, WAIT, MSG, UPDATE, WCS, CNC, GCode, SLEEP, BEGIN_REPEAT_M30, END_REPEAT_M30, END_REPEAT
 import Utils
 import Pendant
 from _GenericGRBL import ERROR_CODES
 from RepeatEngine import RepeatEngine
+from Table import Table
+import ScriptEngine
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = 0.05	# s
+SERIAL_POLL    = 0.03	# s
 OVERRIDE_POLL  = 0.06
-SERIAL_TIMEOUT = 0.06	# s
+SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
+WRITE_THREAD_PERIOD = 0.050 #s
+WRITE_THREAD_RT_PERIOD = 0.016 #s
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")
@@ -110,14 +123,26 @@ class Sender:
 		self.gcode = GCode()
 		self.cnc   = self.gcode.cnc
 		self.gcode.repeatEngine.app = self
+		self.workTable = Table("WorkTable.csv")
+		self.toolTable = Table("ToolTable.csv")
+		self.compensationTable = Table("CompensationTable.csv")
 
 		self.log	 = Queue()	# Log queue returned from GRBL
-		self.queue	 = Queue()	# Command queue to be send to GRBL
+		self.deque	 = lib.Deque.Deque()	# Command queue to be send to GRBL
 		self.pendant	 = Queue()	# Command queue to be executed from Pendant
 		self.serial	 = None
-		self.thread	 = None
+		self.writeThread= None
+		self.readThread= None
+		self.writeRTThread = None
+		self.repeatLock = threading.Lock()
+		self.macrosRunning = 0
+		self.processEngine = ProcessEngine.ProcessEngine(self)
+		self.onStopComplete = None
 
+		self.programEngine = ProgramEngine.ProgramEngine(self)
+		self.scripts = ScriptEngine.ScriptEngine(self)
 
+		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
 		self._probeUpdate= False	# Update probe
 		self._gUpdate	 = False	# Update $G
@@ -138,7 +163,6 @@ class Sender:
 
 		self._onStart    = ""
 		self._onStop     = ""
-
 
 	#----------------------------------------------------------------------
 	def controllerLoad(self):
@@ -218,11 +242,17 @@ class Sender:
 	#	  False otherwise
 	#----------------------------------------------------------------------
 	def executeGcode(self, line):
-		if isinstance(line, tuple) or \
-		   line[0] in ("$","!","~","?","(","@") or GPAT.match(line):
-			self.sendGCode(line)
+		def send(line):
+			if isinstance(line, tuple) or \
+			   line[0] in ("$","!","~","?","(","@") or GPAT.match(line):
+				self.sendGCode(line)
+				return True
+			return False
+		if isinstance(line, list):
+			for w in line:
+				send(w)
 			return True
-		return False
+		return send(line)
 
 	#----------------------------------------------------------------------
 	# Execute a single command
@@ -319,6 +349,17 @@ class Sender:
 			except: z = None
 			self._wcsSet(x,y,z)
 
+		elif cmd == "SETP":
+			try: wcs = int(line[1])
+			except: wcs = None
+			try: x = float(line[2])
+			except: x = None
+			try: y = float(line[3])
+			except: y = None
+			try: z = float(line[4])
+			except: z = None
+			self._wcsSet(x,y,z, wcsIndex=wcs)
+
 		elif cmd == "SET0":
 			self._wcsSet(0.,0.,0.)
 
@@ -337,6 +378,14 @@ class Sender:
 			except: z = ""
 			self._wcsSet(None,None,z)
 
+		elif cmd == "ACTIVATE":
+			index = int(line[1])
+			self.sendGCode("M64 P{}".format(index))
+
+		elif cmd == "DEACTIVATE":
+			index = int(line[1])
+			self.sendGCode("M65 P{}".format(index))
+
 		# STOP: stop current run
 		elif cmd == "STOP":
 			self.stopRun()
@@ -345,8 +394,22 @@ class Sender:
 			try: 
 				z = float(line[1])
 				self.sendGCode("$132={}".format(z))
+				self.modifyConfiguration("$132", z)
 			except:
 				pass
+
+		elif cmd == "MODIFY":
+			try: 
+				index = int(line[1])
+				value = line[2]
+				self.sendGCode("${}={}".format(index, value))
+				self.modifyConfiguration("${}".format(index), value)
+			except:
+				pass
+		elif cmd == "OVERMINUS":
+			self.gstate.overrideMinus()
+		elif cmd == "OVERPLUS":
+			self.gstate.overridePlus()
 
 		# UNL*OCK: unlock grbl
 		elif rexx.abbrev("UNLOCK",cmd,3):
@@ -356,8 +419,27 @@ class Sender:
 		elif self.mcontrol.executeCommand(oline, line, cmd):
 			pass
 
+		elif self.scripts.find(cmd):
+			self.scripts.execute(cmd, locals(), globals())
 		else:
 			return _("unknown command"),_("Invalid command %s")%(oline)
+
+	def _getIndex(self, line):
+		index = line[1:line.find('=')]
+		return index.strip()
+
+	#----------------------------------------------------------------------
+	def modifyConfiguration(self, name, value): # should be done on Utils
+		settingsFile = open("Settings.txt",'r')
+		lines = settingsFile.readlines()
+		settingsFile.close()
+		name = self._getIndex(name + '=' + value)
+		for id,w in enumerate(lines):
+			if str(self._getIndex(w)) == str(name):
+				lines[id] = w[:w.find('=')] + "= {}\n".format(value)
+		settingsFile = open("Settings.txt",'w')
+		settingsFile.writelines(lines)
+		settingsFile.close()
 
 	#----------------------------------------------------------------------
 	def help(self, event=None):
@@ -500,22 +582,15 @@ class Sender:
 	#----------------------------------------------------------------------
 	def open(self, device, baudrate):
 		#self.serial = serial.Serial(
-		self.serial = serial.serial_for_url(
+		self.serial = Serial.Serial(
 						device.replace('\\', '\\\\'), #Escape for windows
 						baudrate,
 						bytesize=serial.EIGHTBITS,
 						parity=serial.PARITY_NONE,
-						stopbits=serial.STOPBITS_ONE,
-						timeout=SERIAL_TIMEOUT,
+						stopbits=serial.STOPBITS_TWO,
 						xonxoff=False,
 						rtscts=False)
-		# Toggle DTR to reset Arduino
-		try:
-			pass
-			#self.serial.setDTR(0)
-		except IOError:
-			pass
-		time.sleep(1)
+		time.sleep(0.2)
 		CNC.vars["state"] = CONNECTED
 		CNC.vars["color"] = STATECOLOR[CNC.vars["state"]]
 		#self.state.config(text=CNC.vars["state"],
@@ -523,17 +598,18 @@ class Sender:
 		# toss any data already received, see
 		# http://pyserial.sourceforge.net/pyserial_api.html#serial.Serial.flushInput
 		self.serial.flushInput()
-		try:
-			self.serial.setDTR(1)
-		except IOError:
-			pass
-		time.sleep(1)
-#		self.serial_write(b"\n\n") # serial_write should be handling this
 		self.serial_write("\n\n")
 		self._gcount = 0
 		self._alarm  = True
-		self.thread  = threading.Thread(target=self.serialIO)
-		self.thread.start()
+		self.writeThread  = threading.Thread(target=self.serialIOWrite)
+		self.writeRTThread  = threading.Thread(target=self.serialIOWriteRT)
+		self.readThread = threading.Thread(target=self.serialIORead)
+		self.writeThread.start()
+		self.writeRTThread.start()
+		self.readThread.start()
+		self.mcontrol.softReset()
+		self.serial_write("$$\n$#\n")
+		self.serial.flush()
 		return True
 
 	#----------------------------------------------------------------------
@@ -546,7 +622,9 @@ class Sender:
 		except:
 			pass
 		self._runLines = 0
-		self.thread = None
+		self.writeThread = None
+		self.writeRTThread = None
+		self.readThread = None
 		time.sleep(1)
 		try:
 			self.serial.close()
@@ -563,9 +641,9 @@ class Sender:
 	def sendGCode(self, cmd):
 		if self.serial and not self.running:
 			if isinstance(cmd,tuple):
-				self.queue.put(cmd)
-			else:
-				self.queue.put(cmd+"\n")
+				self.deque.append(cmd)
+			elif isinstance(cmd, str):
+				self.deque.append(cmd+"\n")
 			return True
 		return False
 
@@ -593,7 +671,7 @@ class Sender:
 	def grblRestoreWCS(self):		self.mcontrol.grblRestoreWCS()
 	def grblRestoreAll(self):		self.mcontrol.grblRestoreAll()
 	def goto(self, x=None, y=None, z=None):	self.mcontrol.goto(x,y,z)
-	def _wcsSet(self, x, y, z):		self.mcontrol._wcsSet(x,y,z) # FIXME Duplicate with ControlPage
+	def _wcsSet(self, x, y, z, a=None, b=None, c=None, wcsIndex=None):		self.mcontrol._wcsSet(x,y,z,wcsIndex=wcsIndex) # FIXME Duplicate with ControlPage
 	def feedHold(self, event=None):		self.mcontrol.feedHold(event)
 	def resume(self, event=None):		self.mcontrol.resume(event)
 	def pause(self, event=None):		self.mcontrol.pause(event)
@@ -602,12 +680,10 @@ class Sender:
 	def g30Command(self):			self.sendGCode("G30.1") #FIXME: ???
 
 	#----------------------------------------------------------------------
-	def emptyQueue(self):
-		while self.queue.qsize()>0:
-			try:
-				self.queue.get_nowait()
-			except Empty:
-				break
+	def emptyDeque(self):
+		self.deque.clear()
+		self.programEngine.reset()
+		self.compiledProgram = []
 
 	#----------------------------------------------------------------------
 	def stopProbe(self):
@@ -623,9 +699,11 @@ class Sender:
 		self._quit   = 0
 		self._pause  = False
 		self._paths  = None
+		self.programEngine.reset()
 		self.running = True
+		self.macrosRunning = 0
 		self.disable()
-		self.emptyQueue()
+		self.emptyDeque()
 		time.sleep(1)
 
 	#----------------------------------------------------------------------
@@ -636,10 +714,7 @@ class Sender:
 			self.log.put((Sender.MSG_RUNEND,_("Run ended")))
 			self.log.put((Sender.MSG_RUNEND, str(datetime.now())))
 			self.log.put((Sender.MSG_RUNEND, str(CNC.vars["msg"])))
-			if self.gcode.repeatEngine.isRepeatable():
-				nThread = threading.Thread(target=self.repeatProgram)
-				nThread._args = [nThread]
-				nThread.start()
+			self.after(500, self.purgeController)
 
 			if self._onStop:
 				try:
@@ -652,6 +727,7 @@ class Sender:
 		self._msg      = None
 		self._pause    = False
 		self.running   = False
+		self.macrosRunning = 0
 		CNC.vars["running"] = False
 		CNC.vars["pgmEnd"] = False
 
@@ -661,11 +737,14 @@ class Sender:
 	#----------------------------------------------------------------------
 	def stopRun(self, event=None):
 		self.feedHold()
-		self._stop = True
+		self.emptyDeque()
 		self.gcode.repeatEngine.cleanState()
-		# if we are in the process of submitting do not do anything
-		if self._runLines != sys.maxsize:
-			self.purgeController()
+		if self.repeatLock is not None:
+			if not self.repeatLock.locked():
+				self.repeatLock.acquire()
+		self.emptyDeque()
+		self._stop = True
+		self.purgeController()
 
 	#----------------------------------------------------------------------
 	# This should be called everytime that milling of g-code file is finished
@@ -675,21 +754,16 @@ class Sender:
 	def jobDone(self):
 		print("Job done. Purging the controller. (Running: %s)"%(self.running))
 		#self.purgeController()
-		
 
-	def repeatProgram(self,thread):
-		time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT)
-		if CNC.vars["state"].lower() not in ["idle","hold","hold:0", "hold:1", "run"]:
-			return
-		while CNC.vars["state"].lower() in ["hold","hold:0", "hold:1", "run"]:
-			time.sleep(0.1)
-		if CNC.vars["state"].lower() != "idle":
-			return
-		self.gcode.repeatEngine.countRepetition()
-		if self.gcode.repeatEngine.fromSD:
-			pass
-		else:
-			self.event_generate("<<Run>>",when="tail")
+	def repeatProgram(self):
+		def th():
+			self.sendGCode((WAIT,))
+			time.sleep(self.gcode.repeatEngine.TIMEOUT_TO_REPEAT/1000)
+			if self.repeatLock.locked():
+				self.repeatLock.release()
+				return
+			self.event_generate("<<Run>>", when="tail")
+		threading.Thread(target=th).start()
 
 	#----------------------------------------------------------------------
 	# This is called everytime that motion controller changes the state
@@ -699,29 +773,53 @@ class Sender:
 	def controllerStateChange(self, state):
 		print("Controller state changed to: %s (Running: %s)"%(state, self.running))
 		if state in ("Idle"):
-#			self.mcontrol.viewParameters()
-			self.mcontrol.viewState()
+			if time.time() - self._updateChangedState > 20:
+				self.mcontrol.viewParameters()
+				self.mcontrol.viewState()
+				self._updateChangedState = time.time()
 
 		if self.cleanAfter == True and self.running == False and state in ("Idle"):
 			self.cleanAfter = False
 			self.jobDone()
 
+	def serialIORead(self):
+		self._cline = []
+		self._sline = []
+		buff = ""
+		while self.readThread:
+			time.sleep(0.0001)
+			# Anything to receive?
+			try:
+				line = str(self.serial.read().decode())
+				buff += line
+			except:
+				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+			index = buff.find('\n')
+			if index != -1:
+				line = buff[:index+1].strip()
+				buff = buff[index+1:]
+			else:
+				continue
+			try:
+				if self.mcontrol.parseLine(line, self._cline, self._sline):
+					pass
+				else:
+					self.log.put((Sender.MSG_RECEIVE, line))
+			except:
+				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+
 	#----------------------------------------------------------------------
 	# thread performing I/O on serial line
 	#----------------------------------------------------------------------
-	def serialIO(self):
-		self.sio_wait   = False		# wait for commands to complete (status change to Idle)
-		self.sio_status = False		# waiting for status <...> report
-		cline  = []		# length of pipeline commands
-		sline  = []			# pipeline commands
-		tosend = None			# next string to send
+	def serialIOWriteRT(self):
+		self.sio_count = 0
 		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
-
-		while self.thread:
-			time.sleep(0.001)
+		while self.writeRTThread:
+			time.sleep(WRITE_THREAD_RT_PERIOD)
 			t = time.time()
 			# refresh machine position?
 			if t-tr > SERIAL_POLL:
+				self.sio_count += 1
 				self.mcontrol.viewStatusReport()
 				tr = t
 
@@ -730,145 +828,214 @@ class Sender:
 				to = t
 				self.mcontrol.overrideSet()
 
-			# Fetch new command to send if...
-			if tosend is None and not self.sio_wait and not self._pause and self.queue.qsize()>0:
-				try:
-					tosend = self.queue.get_nowait()
-					#print "+++",repr(tosend)
-					if isinstance(tosend, tuple):
-						#print "gcount tuple=",self._gcount
-						# wait to empty the grbl buffer and status is Idle
-						if tosend[0] == WAIT:
-							# Don't count WAIT until we are idle!
-							self.sio_wait = True
-							#print "+++ WAIT ON"
-							#print "gcount=",self._gcount, self._runLines
-						elif tosend[0] == MSG:
-							# Count executed commands as well
-							self._gcount += 1
-							if tosend[1] is not None:
-								# show our message on machine status
-								self._msg = tosend[1]
-						elif tosend[0] == UPDATE:
-							# Count executed commands as well
-							self._gcount += 1
-							self._update = tosend[1]
-						else:
-							# Count executed commands as well
-							self._gcount += 1
-						tosend = None
+	#----------------------------------------------------------------------
+	# Helper functions for serialIOWrite
+	#----------------------------------------------------------------------
+	def shouldSend(self):
+		return not self.sio_wait and not self._pause
 
-					elif not isinstance(tosend,str):
-						try:
-							tosend = self.gcode.evaluate(tosend, self)
-#							if isinstance(tosend, list):
-#								cline.append(len(tosend[0]))
-#								sline.append(tosend[0])
-							if isinstance(tosend,str):
-								tosend += "\n"
-							else:
-								# Count executed commands as well
-								self._gcount += 1
-								#print "gcount str=",self._gcount
-							#print "+++ eval=",repr(tosend),type(tosend)
+	def hasNewCommand(self):
+		return len(self.deque)!=0
 
-						except:
-							for s in str(sys.exc_info()[1]).splitlines():
-								self.log.put((Sender.MSG_ERROR,s))
-							self._gcount += 1
-							tosend = None
-				except Empty:
+	def shouldSkipCommand(self, cmd):
+		line = cmd.src
+		if not isinstance(line, str): return False
+		line = line.upper()
+		if CNC.vars["SafeDoor"]:
+			if "M3" in line or "M4" in line:
+				return True
+		return False
+
+	def getNextCommand(self):
+		if self.running and self._runLines != sys.maxsize:
+			return self.programEngine.getNextCommand()
+		return self.deque.popleft()
+
+	def isInternalStrCommand(self, code):
+		return False
+
+	def isInternalCommand(self, cmd):
+		code = cmd.src
+		if isinstance(code, tuple): return True
+		elif isinstance(code, str):
+			return self.isInternalStrCommand(code)
+		return False
+
+	def appendLeftOnCurrentDeque(self, cmd):
+		if self.running and self._runLines != sys.maxsize:
+			self.programEngine.appendLeft(cmd)
+		else:
+			self.deque.appendleft(cmd)
+
+	def executeTupleInternalCommand(self, code):
+		id = code[0]
+		if len(code)==2:
+			value = code[1]
+		else:
+			value = None
+		if id == WAIT:
+			self.sio_wait = True
+		elif id == BEGIN_REPEAT_M30:
+			self.sio_wait = True
+			self.programEngine.appendLeft((END_REPEAT_M30,))
+		elif id == END_REPEAT_M30:
+			if self.gcode.repeatEngine.isRepeatable():
+				self.gcode.repeatEngine.countRepetition()
+				self._gcount = 0
+				self._runLines = self._compiledRunLines
+				self.programEngine.reset()
+			else:
+				self.programEngine.appendLeft((END_REPEAT,))
+		elif id == END_REPEAT:
+			self._gcount = self._runLines
+			self.runEnded()
+		elif id == MSG:
+			self._gcount += 1
+			if value is not None:
+				self._msg = value
+		elif id == SLEEP:
+			if not value: return
+			value = int(value)
+			if value>1:
+				self.appendLeftOnCurrentDeque((SLEEP, value-1))
+			else: 
+				self.appendLeftOnCurrentDeque((SLEEP,))
+		elif id == UPDATE:
+			self._gcount += 1
+			self._update = value
+		elif id == RUN_MACRO:
+			self.macrosRunning += 1
+		elif id == END_RUN_MACRO:
+			self.macrosRunning -= 1
+		else:
+			self._gcount += 1
+
+	def executeStrInternalCommand(self, code):
+		pass
+
+	def isRunningMacro(self):
+		return self.macrosRunning > 0
+
+
+	def executeInternalCommand(self, cmd):
+		code = cmd.src
+		if isinstance(code, tuple): return self.executeTupleInternalCommand(code)
+		return self.executeStrInternalCommand(code)
+
+	def waitWhileRxBufferFull(self):
+		while sum(self._cline) >= RX_BUFFER_SIZE:
+			time.sleep(0.001)
+
+	def isRxBufferFull(self):
+		return sum(self._cline) >= RX_BUFFER_SIZE
+
+	def _checkAndEvaluateStop(self):
+		if self._stop:
+			self.emptyDeque()
+			self.macrosRunning = 0
+			self.log.put((Sender.MSG_CLEAR, ""))
+			# WARNING if runLines==maxint then it means we are
+			# still preparing/sending lines from from bCNC.run(),
+			# so don't stop
+			if self._runLines != sys.maxsize:
+				self._stop = False
+				if self.onStopComplete:
+					self.onStopComplete()
+					self.onStopComplete = None
+			return True
+		return False
+
+
+	def appendCodeToDeque(self, cmds):
+		"""
+			Apend code to the front of self.deque. Everything is a macro here.
+		Args:
+		    cmds (): list of commands to append
+		"""
+		if cmds is None: return
+		if not isinstance(cmds, list): 
+			cmds = [cmds]
+		if len(cmds) == 0:
+			self._runLines -= 1 # remove line from path
+			return
+		self._runLines += len(cmds) - 1 # consider that is already added to _runLines
+		self.appendLeftOnCurrentDeque((END_RUN_MACRO,))
+		while len(cmds):
+			self.appendLeftOnCurrentDeque(cmds[-1])
+			del cmds[-1]
+		self.appendLeftOnCurrentDeque((RUN_MACRO,))
+
+	def process(self, pNode):
+		cmds = pNode.process()
+		self.appendCodeToDeque(cmds)
+
+	#----------------------------------------------------------------------
+	# thread performing I/O on serial line
+	#----------------------------------------------------------------------
+	def serialIOWrite(self):
+		self.sio_wait   = False		# wait for commands to complete (status change to Idle)
+		self.sio_status = False		# waiting for status <...> report
+		self._cline  = []		# length of pipeline commands
+		self._sline  = []			# pipeline commands
+		self.macrosRunning = 0
+		toSend = None			# next string to send
+		processNode = None
+		while self.writeThread:
+			time.sleep(WRITE_THREAD_PERIOD)
+
+			if self._checkAndEvaluateStop():
+				continue
+
+			if not self.shouldSend():
+				continue
+
+			if processNode is not None:
+				self.process(processNode)
+				processNode = None
+				continue
+
+			toSend = None
+			if self.hasNewCommand():
+				toSend = Command.cmdFactory(self.getNextCommand())
+			else:
+				continue
+
+			if self.shouldSkipCommand(toSend): 
+				# TODO: This can be done inside Command class
+				# or in the Process class
+				continue
+
+			if self.isInternalCommand(toSend): # TODO: This should be an ProcessNode
+				self.executeInternalCommand(toSend)
+				continue
+
+			processNode = self.processEngine.getValidProcessNode(toSend)
+			if processNode is not None:
+				processNode.preprocessCommand(toSend)
+				if processNode.shouldWait:
+					self.executeInternalCommand(Command.Command((WAIT,)))
+					self._runLines += 1
+					continue
+				self.process(processNode)
+				processNode = None
+				continue
+
+			if self._checkAndEvaluateStop():
+				continue
+
+			self._sline.append(toSend.src)
+			self._cline.append(len(toSend.src))
+
+			hasStoped = False
+			while self.isRxBufferFull():
+				time.sleep(0.001)
+				if self._checkAndEvaluateStop():
+					hasStoped = True
 					break
+			if hasStoped:
+				continue
 
-				if tosend is not None:
-					# All modification in tosend should be
-					# done before adding it to cline
-
-					# Keep track of last feed
-					pat = FEEDPAT.match(tosend)
-					if pat is not None:
-						self._lastFeed = pat.group(2)
-
-					# Modify sent g-code to reflect overrided feed for controllers without override support
-					if not self.mcontrol.has_override:
-						if CNC.vars["_OvChanged"]:
-							CNC.vars["_OvChanged"] = False
-							self._newFeed = float(self._lastFeed)*CNC.vars["_OvFeed"]/100.0
-							if pat is None and self._newFeed!=0 \
-							   and not tosend.startswith("$"):
-								tosend = "f%g%s" % (self._newFeed, tosend)
-
-						# Apply override Feed
-						if CNC.vars["_OvFeed"] != 100 and self._newFeed != 0:
-							pat = FEEDPAT.match(tosend)
-							if pat is not None:
-								try:
-									tosend = "%sf%g%s\n" % \
-										(pat.group(1),
-										 self._newFeed,
-										 pat.group(3))
-								except:
-									pass
-
-					# Bookkeeping of the buffers
-					sline.append(tosend)
-					cline.append(len(tosend))
-
-			# Anything to receive?
-			if self.serial.inWaiting() or tosend is None:
-				try:
-					line = str(self.serial.readline().decode()).strip()
-				except:
-					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
-					self.emptyQueue()
-					self.close()
-					return
-
-				#print "<R<",repr(line)
-				#print "*-* stack=",sline,"sum=",sum(cline),"wait=",wait,"pause=",self._pause
-				if not line:
-					pass
-				elif self.mcontrol.parseLine(line, cline, sline):
-					pass
-				else:
-					self.log.put((Sender.MSG_RECEIVE, line))
-
-			# Received external message to stop
-			if self._stop:
-				self.emptyQueue()
-				tosend = None
-				self.log.put((Sender.MSG_CLEAR, ""))
-				# WARNING if runLines==maxint then it means we are
-				# still preparing/sending lines from from bCNC.run(),
-				# so don't stop
-				if self._runLines != sys.maxsize:
-					self._stop = False
-
-			if tosend is not None:
-				if CNC.vars["SafeDoor"]:
-					for w in ["M3", "M4"]:
-						if w in str(tosend).upper():
-							tosend = None
-							break
-			#print "tosend='%s'"%(repr(tosend)),"stack=",sline,
-			#	"sum=",sum(cline),"wait=",wait,"pause=",self._pause
-			if tosend is not None and sum(cline) < RX_BUFFER_SIZE:
-				self._sumcline = sum(cline)
-#				if isinstance(tosend, list):
-#					self.serial_write(str(tosend.pop(0)))
-#					if not tosend: tosend = None
-
-				#print ">S>",repr(tosend),"stack=",sline,"sum=",sum(cline)
-				if self.mcontrol.gcode_case > 0: tosend = tosend.upper()
-				if self.mcontrol.gcode_case < 0: tosend = tosend.lower()
-
-				self.serial_write(tosend)
-
-				self.log.put((Sender.MSG_BUFFER, tosend))
-
-				tosend = None
-				if not self.running and t-tg > G_POLL:
-					tosend = b'$G\n' #FIXME: move to controller specific class
-					sline.append(tosend)
-					cline.append(len(tosend))
-					tg = t
+			self._sumcline = sum(self._cline)
+			self.serial_write(toSend.src)
+			self.serial.flush()
+			self.log.put((Sender.MSG_SEND, toSend.src))
