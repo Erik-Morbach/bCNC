@@ -155,7 +155,8 @@ class IteceProcess:
         self.app.configWidgets("state", tkinter.DISABLED)
         CNC.vars["jogActive"] = False
         self.app.sendGCode("G54")
-        self.app.mcontrol._wcsSet("0",None,None,None,None,None)
+        self.app.sendGCode("G10L2P1X0")
+        #self.app.mcontrol._wcsSet("0",None,None,None,None,None)
         self.app.sendGCode("M3S{}".format(self.beginRpm))
         self._setHighSpeed()
         self._activateMotors()
