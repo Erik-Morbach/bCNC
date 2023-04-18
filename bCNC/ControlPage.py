@@ -1130,6 +1130,9 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 			steps.append(Utils.getFloat("Itece", "xJog{}".format(i), 0.5*i))
 
 		for j in range(0,buttons):
+			Label(frame, text=Unicode.MATH_PLUS_SIGN).grid(row=row, column=j, sticky=EW)
+		row += 1
+		for j in range(0,buttons):
 			b = Button(frame, text=Unicode.BLACK_UP_POINTING_TRIANGLE,
 						command=functools.partial(self.moveXupStep, steps[j]),
 						width=width, height=height,
@@ -1146,6 +1149,9 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 						width=width, height=height,
 						activebackground="LightYellow")
 			b.grid(row=row, column=j, sticky=EW)
+		row += 1
+		for j in range(0,buttons):
+			Label(frame, text=Unicode.MATH_MINUS_SIGN).grid(row=row, column=j, sticky=EW)
 
 		self.zstep = self.step
 		#self.grid_columnconfigure(6,weight=1)

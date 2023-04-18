@@ -181,7 +181,7 @@ class IteceProcess:
         self.app.sendGCode("%")
 
     def _isPositionValid(self) -> bool:
-        return CNC.vars["mx"] > self.processLimitPosition
+        return abs(CNC.vars["mx"]) < abs(self.processLimitPosition)
 
     def _activateMotors(self) -> None:
         self.app.sendGCode("M62P0") # activate Motor 0
