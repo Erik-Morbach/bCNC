@@ -226,7 +226,7 @@ class IteceProcess:
         return rpm * 2 * np.pi * radius
 
     def _getCurrentRadius(self) -> float:
-        return CNC.vars["mx"] - self.radiusZeroPosition
+        return abs(CNC.vars["mx"] - self.radiusZeroPosition)
 
     def sleep(self, t) -> None:
         while t > 0:
