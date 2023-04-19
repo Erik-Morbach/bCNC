@@ -126,7 +126,11 @@ class _GenericController:
 	#----------------------------------------------------------------------
 	def home(self, event=None):
 		self.master._alarm = False
-		self.master.sendGCode("$H")
+
+		if self.master.scripts.find("UserHome"):
+			self.master.executeCommand("UserHome")
+		else:
+			self.master.sendGCode("$H")
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
