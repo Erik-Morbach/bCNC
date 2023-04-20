@@ -18,7 +18,7 @@ def is_raspberrypi():
 if is_raspberrypi():
     print("Is a Pi")
     import wiringpi as wp
-    wp.wiringPiSetup()
+    wp.wiringPiSetupGpio()
 else:
     print("Not a Pi")
     class A:
