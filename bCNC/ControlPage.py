@@ -1209,6 +1209,14 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("Y-%s"%(self.step.get()))
 
+	def moveAup(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("A%s"%(self.step.get()))
+
+	def moveAdown(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("A-%s"%(self.step.get()))
+
 	def moveBup(self, event=None):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("B%s"%(self.step.get()))
@@ -1216,6 +1224,14 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 	def moveBdown(self, event=None):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("B-%s"%(self.step.get()))
+
+	def moveCup(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("C%s"%(self.step.get()))
+
+	def moveCdown(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("C-%s"%(self.step.get()))
 
 	def moveXdownYup(self, event=None):
 		if event is not None and not self.acceptKey(): return
