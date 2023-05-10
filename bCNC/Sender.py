@@ -58,7 +58,7 @@ from mttkinter import *
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = Utils.getInt("Connection", "poll", 3600 * 100) #3600 * 100	# s = 100Hrs
+SERIAL_POLL    = Utils.getInt("Connection", "poll", 3600 * 100) / 1000 #3600 * 100	# s = 100Hrs
 OVERRIDE_POLL  = 0.06
 SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
