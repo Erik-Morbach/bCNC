@@ -67,6 +67,9 @@ GCODE_POLL = 0.1
 WRITE_THREAD_PERIOD = 0.050 #s
 WRITE_THREAD_RT_PERIOD = 0.016 #s
 
+print(SERIAL_POLL)
+
+
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")
 
