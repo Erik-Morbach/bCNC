@@ -1056,72 +1056,11 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Control", _("Control"), app)
 		#CNCRibbon.PageExLabelFrame.__init__(self, master, "Control", _("Control"), app)
+		self.step = tkExtra.Combobox(self, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, font="Helvetica, 14")
 
 		frame = Frame(self)
 		frame.pack(side=TOP, fill=X)
 		row,col = 0,0
-		Label(frame, text=_("Jog Speed: ")).grid(row=row,column=col)
-		col+=1
-
-		self.jogSpeedEntry = tkExtra.FloatEntry(frame, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, disabledforeground="Black",width=5)
-		self.jogSpeedEntry.grid(row=row,column=col,sticky=EW)
-		self.jogSpeedEntry.bind('<Return>',self.setJogSpeed)
-		self.jogSpeedEntry.bind('<KP_Enter>',self.setJogSpeed)
-		tkExtra.Balloon.set(self.jogSpeedEntry,_("Jog Speed"))
-
-		speeds = ["3000"]
-		buttonSpeed = []
-		for speed in speeds:
-			col+=1
-			b = Button(frame, text=speed,
-						width=2, height=1,
-						activebackground="LightYellow")
-			b.grid(row=row, column=col, sticky=EW)
-			tkExtra.Balloon.set(b, _(speed))
-			self.addWidget(b)
-			buttonSpeed += [b]
-		def focu(event = None):
-			self.app.focus_set()
-		col += 2
-		b = Button(frame, text="Ativa teclado",
-				   command=focu,
-				   activebackground="LightYellow")
-		b.grid(row=row, column=col, columnspan=2, sticky=EW)
-		tkExtra.Balloon.set(b, _("Focus"))
-		row += 1
-		col = 0
-		b = Button(frame, text=_("+"),
-				command=self.incStep,
-				width=3,
-				padx=1, pady=1)
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _("Increase step by 1 unit"))
-		self.addWidget(b)
-		col += 1
-		self.step = tkExtra.Combobox(frame, False, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		self.step.grid(row=row, column=col, columnspan=2, sticky=EW)
-		self.step.set(Utils.config.get("Control","step"))
-		self.step.fill(map(float, Utils.config.get("Control","steplist").split()))
-		tkExtra.Balloon.set(self.step, _("Step for every move operation"))
-		self.addWidget(self.step)
-		col += 2
-		b = Button(frame, text=_("-"),
-					command=self.decStep,
-					width=3,
-					padx=1, pady=1)
-		b.grid(row=row, column=col, sticky=EW)
-		tkExtra.Balloon.set(b, _("Decrease step by 1 unit"))
-		self.addWidget(b)
-		row+=1
-		Separator(frame,orient=HORIZONTAL).grid(row=row, column=0, columnspan=10, pady=20, sticky=EW)
-
-		def selectSpeed(value):
-			self.jogSpeedEntry.set(value)
-			self.setJogSpeed()
-		buttonSpeed[0].config(command=lambda:selectSpeed(speeds[0]))
-
-		row+=1
-		col = 0
 		width=5
 		height=5
 		buttons = Utils.getInt("Itece", "xJogButtons", 1)
@@ -1937,22 +1876,14 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f3 = Frame(f2)
-		f4 = Frame(f3)
-		self.feedScale = makeScale(f4, "Feed", self.feedOverride, 1, 200, 1)
-		f4.pack(side=LEFT, fill=BOTH, expand=TRUE)
-		ttk.Separator(f3, orient=VERTICAL).pack(side=LEFT, fill=BOTH, padx=5)
-		f4 = Frame(f3)
-		self.rapidScale = makeScale(f4, "Rapid", self.rapidOverride, 1, 100, 1)
-		f4.pack(side=LEFT, fill=BOTH, expand=TRUE)
-		f3.pack(side=TOP, fill=X, expand=TRUE)
-		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
-		f3 = Frame(f2)
-		self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride, 1, 200, 1)
+		self.feedScale = makeScaleInline(f3, "Feed", self.feedOverride, 1, 200, 1)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f2.pack(side=TOP)
 		f.pack(side=TOP, fill=X)
+		#self.rapidScale = makeScale(f4, "Rapid", self.rapidOverride, 1, 100, 1)
+		#self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride, 1, 200, 1)
 
 
 	def setOverride(self, name, value):
