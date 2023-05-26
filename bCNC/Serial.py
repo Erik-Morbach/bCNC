@@ -35,10 +35,7 @@ class Serial:
 	def _readChar(self, c):
 		if not self.shouldRead:
 			dc = ecc.decodeOne((self.last<<8) + c)
-			if not self.have:
-				self.last = c
-				self.have = True
-				return bytes()
+			self.last = c
 			if dc != 0x01: return bytes()
 
 			self.have = False
