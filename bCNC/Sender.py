@@ -58,7 +58,7 @@ from mttkinter import *
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = 0.03	# s
+SERIAL_POLL    = Utils.getInt("Connection", "poll", 30) / 1000
 OVERRIDE_POLL  = 0.06
 SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
@@ -66,6 +66,9 @@ RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
 WRITE_THREAD_PERIOD = 0.050 #s
 WRITE_THREAD_RT_PERIOD = 0.016 #s
+
+print(SERIAL_POLL)
+
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")

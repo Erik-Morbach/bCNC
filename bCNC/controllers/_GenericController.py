@@ -126,7 +126,11 @@ class _GenericController:
 	#----------------------------------------------------------------------
 	def home(self, event=None):
 		self.master._alarm = False
-		self.master.sendGCode("$H")
+
+		if self.master.scripts.find("UserHome"):
+			self.master.executeCommand("UserHome")
+		else:
+			self.master.sendGCode("$H")
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
@@ -170,6 +174,8 @@ class _GenericController:
 			if not pat: continue
 			if int(pat.group(1)) != int(id): continue
 			value = float(pat.group(2))
+			if _GenericController.verifyEquality(value, int(value)):
+				value = int(value)
 			cmd = "${}={}\n".format(int(id), value)
 			self.master.sendGCode(cmd)
 			self.master.sendGCode((8,2))

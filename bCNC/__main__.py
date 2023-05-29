@@ -478,15 +478,12 @@ class Application(Toplevel, Sender):
                 'Y-': self.control.moveYdown,
                 'Z+': self.control.moveZup,
                 'Z-': self.control.moveZdown,
-                'A+': self.abccontrol.moveAup,
-                'A-': self.abccontrol.moveAdown,
-                'B+': self.abccontrol.moveBup,
-                'B-': self.abccontrol.moveBdown,
-                'C+': self.abccontrol.moveCup,
-                'C-': self.abccontrol.moveCdown}
-        if Utils.getBool("CNC", "lathe", False):
-            keys['B+'] = self.control.moveBup
-            keys['B-'] = self.control.moveBdown
+                'A+': self.control.moveAup,
+                'A-': self.control.moveAdown,
+                'B+': self.control.moveBup,
+                'B-': self.control.moveBdown,
+                'C+': self.control.moveCup,
+                'C-': self.control.moveCdown}
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
 

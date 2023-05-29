@@ -372,10 +372,7 @@ class SerialFrame(CNCRibbon.PageLabelFrame):
 	#-----------------------------------------------------------------------
 	def saveConfig(self):
 		# Connection
-		Utils.setStr("Connection", "controller",  self.app.controller)
-		Utils.setStr("Connection", "port",        self.portCombo.get().split("\t")[0])
-		Utils.setStr("Connection", "baud",        self.baudCombo.get())
-		Utils.setBool("Connection", "openserial", self.autostart.get())
+		pass
 
 
 #===============================================================================
