@@ -611,9 +611,15 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 	def m0HighPlus(self, *args):
 		CNC.vars["motor0High"]+=10
 		CNC.vars["motor0High"] = min(100, CNC.vars["motor0High"])
+		if not self.app.iteceProcess.isRunning():
+			self.app.iteceProcess._updateToHighSpeed()
+			self.app.iteceProcess.state.update("motor0")
 	def m0HighMinus(self, *args):
 		CNC.vars["motor0High"]-=10
 		CNC.vars["motor0High"] = max(0, CNC.vars["motor0High"])
+		if not self.app.iteceProcess.isRunning():
+			self.app.iteceProcess._updateToHighSpeed()
+			self.app.iteceProcess.state.update("motor0")
 	def m1LowPlus(self, *args):
 		CNC.vars["motor1Low"]+=10
 		CNC.vars["motor1Low"] = min(100, CNC.vars["motor1Low"])
@@ -623,9 +629,15 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 	def m1HighPlus(self, *args):
 		CNC.vars["motor1High"]+=10
 		CNC.vars["motor1High"] = min(100, CNC.vars["motor1High"])
+		if not self.app.iteceProcess.isRunning():
+			self.app.iteceProcess._updateToHighSpeed()
+			self.app.iteceProcess.state.update("motor1")
 	def m1HighMinus(self, *args):
 		CNC.vars["motor1High"]-=10
 		CNC.vars["motor1High"] = max(0, CNC.vars["motor1High"])
+		if not self.app.iteceProcess.isRunning():
+			self.app.iteceProcess._updateToHighSpeed()
+			self.app.iteceProcess.state.update("motor1")
 
 #===============================================================================
 # DRO Frame

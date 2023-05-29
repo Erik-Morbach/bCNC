@@ -119,6 +119,9 @@ class IteceProcess:
                                   CNC.vars["motor1High"]/100 * self.pwmResolution,
                                   functools.partial(sendVelocity, 1))
 
+    def isRunning(self) -> bool:
+        return self.mutex.locked()
+
     def start(self, *args) -> None:
         if self.mutex.locked():
             return
