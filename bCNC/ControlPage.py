@@ -1151,10 +1151,14 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 
 	def moveXupStep(self, step, event=None):
 		if event is not None and not self.acceptKey(): return
+		if not self.app.iteceProcess.isPositionValid(CNC.vars['mx']+step):
+			return
 		self.app.sendGCode("G91G1X%sF100"%(step))
 
 	def moveXdownStep(self, step, event=None):
 		if event is not None and not self.acceptKey(): return
+		if not self.app.iteceProcess.isPositionValid(CNC.vars['mx']-step):
+			return
 		self.app.sendGCode("G91G1X%sF100"%(-step))
 
 	def moveXup(self, event=None):

@@ -122,6 +122,9 @@ class IteceProcess:
     def isRunning(self) -> bool:
         return self.mutex.locked()
 
+    def isPositionValid(self, position) -> bool:
+        return 0 <= position and position < self.processLimitPosition
+
     def start(self, *args) -> None:
         if self.mutex.locked():
             return
@@ -176,6 +179,7 @@ class IteceProcess:
 
     def _endProcess(self) -> None:
         self.app.sendGCode("M5")
+        self.app.sendGCode("M63P2") # presser
         self._setState(states.Waiting)
         self._deactivateMotors()
         self.app.sendGCode("G90 G55 G0 X0")
