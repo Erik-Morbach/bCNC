@@ -110,6 +110,7 @@ class _GenericController:
 	def softReset(self, clearAlarm=True):
 		if not self.master.serial: return
 		self.expectingReset = True
+		self.master.focus_set()
 		self.master.serial_write(b"\x18")
 		self.master.serial.flush()
 
