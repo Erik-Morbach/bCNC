@@ -67,7 +67,7 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 		col,row=0,0
 		b = Ribbon.LabelButton(self.frame,
 				image=Utils.icons["home32"],
-				text=_("Home"),
+				text=_("Referencia"),
 				compound=TOP,
 				anchor=W,
 				command=app.home,
@@ -80,7 +80,7 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 		col,row=1,0
 		b = Ribbon.LabelButton(self.frame,
 				image=Utils.icons["unlock"],
-				text=_("Unlock/Startup"),
+				text=_("Desbloquear"),
 				compound=LEFT,
 				anchor=W,
 				command=app.softReset,
@@ -1790,7 +1790,6 @@ class SpindleFrame(CNCRibbon.PageLabelFrame):
 				to_=Utils.config.get("CNC","spindlemax"))
 		tkExtra.Balloon.set(b, _("Set spindle RPM"))
 		b.pack(side=LEFT, fill=X, expand=TRUE)
-		self.addWidget(b)
 		f3.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
@@ -1859,10 +1858,10 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		self.spindleOverride = IntVar()
 		self.spindleOverride.set(100)
 
-		def makeScale(frame, name:str, override, from_, to_, res):
+		def makeScale(frame, text:str, name:str, override, from_, to_, res):
 			f = Frame(frame)
 			f2 = Frame(f)
-			Label(f2, text=name+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
+			Label(f2, text=text+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
 			b = Button(f2, text=_("Reset"), pady=0, 
 					command=functools.partial(self.resetOverride, override,name))
 			b.pack(side=LEFT)
@@ -1881,10 +1880,10 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 			f.pack(side=TOP, fill=BOTH, expand=TRUE)
 			return scale
 
-		def makeScaleInline(frame, name, override, from_, to_, res):
+		def makeScaleInline(frame, text, name, override, from_, to_, res):
 			f = Frame(frame)
 			f2 = Frame(f)
-			Label(f2, text=name+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
+			Label(f2, text=text+" % ", font=DROFrame.dro_mpos).pack(side=LEFT)
 			b = Button(f2, text=_("Reset"), pady=0, 
 					command=functools.partial(self.resetOverride, override,name))
 			b.pack(side=LEFT)
@@ -1905,7 +1904,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f3 = Frame(f2)
-		self.feedScale = makeScaleInline(f3, "Feed", self.feedOverride, 1, 200, 1)
+		self.feedScale = makeScaleInline(f3,"Avanco", "Feed", self.feedOverride, 1, 200, 1)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
