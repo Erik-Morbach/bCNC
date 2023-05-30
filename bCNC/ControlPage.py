@@ -1069,6 +1069,7 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Control", _("Control"), app)
 		#CNCRibbon.PageExLabelFrame.__init__(self, master, "Control", _("Control"), app)
 		self.step = tkExtra.Combobox(self, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, font="Helvetica, 14")
+		self.step.set("1.00")
 
 		frame = Frame(self)
 		frame.pack(side=TOP, fill=X)

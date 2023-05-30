@@ -193,7 +193,6 @@ class IteceProcess:
     def _deactivateMotors(self) -> None:
         self.app.sendGCode("M63P0") # activate Motor 0
         self.app.sendGCode("M63P1") # activate Motor 1
-        self.app.sendGCode("M63P3") # activate Motor 1
         self.state.setValue("motor0", 0)
         self.state.setValue("motor1", 0)
 
@@ -215,12 +214,10 @@ class IteceProcess:
 
     def _setLowSpeed(self) -> None:
         self._updateToLowSpeed()
-        self.app.sendGCode("M62P3")
         self.updateVelocityMethod = self._updateToLowSpeed
 
     def _setHighSpeed(self) -> None:
         self._updateToHighSpeed()
-        self.app.sendGCode("M63P3")
         self.updateVelocityMethod = self._updateToHighSpeed
 
     def _getDesiredRpm(self, radius, angularVelocity) -> float:
