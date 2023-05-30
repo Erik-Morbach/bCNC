@@ -171,6 +171,7 @@ class IteceProcess:
                                                                self.beginRpm)
         self.app.sendGCode("M62P2") # presser
         self.app.sendGCode("G4P1") #  wait Presser
+        self.app.sendGCode("M8")
         self.sleep(1)
 
     def _endProcess(self) -> None:
@@ -181,6 +182,7 @@ class IteceProcess:
         self.app.sendGCode("G54")
         self.app.configWidgets("state", tkinter.NORMAL)
         CNC.vars["jogActive"] = True
+        self.app.sendGCode("M9")
         self.app.sendGCode("%")
 
     def _isPositionValid(self) -> bool:
