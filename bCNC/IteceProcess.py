@@ -123,7 +123,7 @@ class IteceProcess:
         return self.mutex.locked()
 
     def isPositionValid(self, position) -> bool:
-        return 0 <= position and position < self.processLimitPosition
+        return 0 <= position and position <= self.processLimitPosition
 
     def start(self, *args) -> None:
         if self.mutex.locked():
@@ -149,9 +149,13 @@ class IteceProcess:
             self.updateVelocityMethod()
             self.state.executeUpdateMethods()
 
-            if not self._isPositionValid():
-                self.mutex.release()
-                break
+            if CNC.vars['mx']==self.getMaxPosition():
+                if CNC.vars['endType']==1: # wait till end current cycle
+                    if self.currentState == states.Waiting:
+                        self.mutex.release()
+                        break
+                continue # don't continue iterations
+
             if CNC.vars["state"] == "Idle":
                 self._iteration()
         self._endProcess()
@@ -164,17 +168,19 @@ class IteceProcess:
         self.app.sendGCode("G10L2P1X0")
         #self.app.mcontrol._wcsSet("0",None,None,None,None,None)
         self.app.sendGCode("M3S{}".format(self.beginRpm))
-        self._setHighSpeed()
-        self._activateMotors()
-        self.state.executeUpdateMethods()
         self.app.sendGCode("G4P{}".format(int(self.beginWaitTime))) # wait mainSpindle
         self.sleep(self.beginWaitTime)
 
-        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), 
+        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(),
                                                                self.beginRpm)
         self.app.sendGCode("M62P2") # presser
-        self.app.sendGCode("G4P1") #  wait Presser
+        self.app.sendGCode("G4P0.5") #  wait Presser
+        self._setHighSpeed()
+        self._activateMotors()
+        self.app.sendGCode("G4P0.5")
+        self.state.executeUpdateMethods()
         self.app.sendGCode("M8")
+        self.app.sendGCode("G4P0.5")
         self.sleep(1)
 
     def _endProcess(self) -> None:
@@ -188,6 +194,9 @@ class IteceProcess:
         CNC.vars["jogActive"] = True
         self.app.sendGCode("M9")
         self.app.sendGCode("%")
+
+    def getMaxPosition(self) -> float:
+        return abs(self.processLimitPosition)
 
     def _isPositionValid(self) -> bool:
         return abs(CNC.vars["mx"]) < abs(self.processLimitPosition)
@@ -254,9 +263,12 @@ class IteceProcess:
         self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), rpm)
 
     def _iteration(self) -> None:
-        if self.currentState == states.Waiting:
-            return
-        self.app.sendGCode("G91G1X{}F{}".format(self.iterationDistance, self.iterationFeed))
+        if self.currentState == states.Waiting: return
+        wantedPosition = CNC.vars['mx']+self.iterationDistance
+        wantedPosition = min(wantedPosition, self.getMaxPosition())
+        if not self.isPositionValid(wantedPosition): return
+        self.app.sendGCode("G90G1X{}F{}".format(wantedPosition, self.iterationFeed))
+
 
     def _setState(self, state):
         self.currentState = state

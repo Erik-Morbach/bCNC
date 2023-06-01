@@ -40,6 +40,8 @@ import GCodeViewer
 import PidLog
 import CNCCanvas
 
+from IteceProcess import states
+
 from mttkinter import *
 
 _LOWSTEP   = 0.0001
@@ -530,11 +532,32 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 	def __init__(self, master, app):
 		CNCRibbon.ButtonGroup.__init__(self, master, "Process", app)
 		self.app = app
+		self.motorStep = 10
 		frame = Frame(self)
-		f0 = Frame(frame)
-		Label(f0, text="Tempo de espera: ").pack(side=TOP)
 		self.timeSt = StringVar(value="0")
-		Label(f0, textvariable=self.timeSt).pack(side=TOP)
+		self.stateVar = StringVar()
+		self.endTypeVar = IntVar(value=1)
+		f0 = Frame(frame)
+		f1 = Frame(f0)
+		Label(f1, text="Tempo de espera:").pack(side=LEFT)
+		Label(f1, textvariable=self.timeSt).pack(side=LEFT)
+		f1.pack(side=TOP)
+		Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
+		f1 = Frame(f0)
+		Label(f1, text="Sabre:").pack(side=LEFT)
+		Label(f1, textvariable=self.stateVar).pack(side=TOP)
+		f1.pack(side=TOP)
+		Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
+		f1 = Frame(f0)
+		Label(f1, text="Finalizacao:").pack(side=LEFT)
+		Checkbutton(f1,variable=self.endTypeVar, onvalue=1, offvalue=0, command=self.setEndType, width=2,height=2).pack(side=LEFT)
+		f1.pack(side=TOP)
+		Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
+		f1 = Frame(f0)
+		Label(f1, text="Passo:").pack(side=LEFT)
+		Button(f1,text="1",command=functools.partial(self.setMotorStep,1)).pack(side=LEFT)
+		Button(f1,text="10",command=functools.partial(self.setMotorStep,10)).pack(side=LEFT)
+		f1.pack(side=TOP)
 		f0.pack(side=LEFT)
 		
 		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=10)
@@ -582,58 +605,69 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		f1High.pack(side=LEFT)
 		f1.pack(side=TOP)
 		motor1.pack(side=LEFT)
-
-		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
-
-		state = Frame(frame)
-		self.stateVar = StringVar()
-		Label(state, textvariable= self.stateVar).pack(side=TOP)
-		state.pack(side=LEFT)
-
 		frame.pack()
 
 		self.update()
+	
+	def setEndType(self, *args):
+		CNC.vars['endType'] = self.endTypeVar.get()
+	def setMotorStep(self, step, *args):
+		self.motorStep = step
 
 	def update(self, *args):
 		self.timeSt.set("%0.2f" % CNC.vars["wait"])
-		self.stateVar.set(str(CNC.vars["processState"]))
+		stateName = ""
+		match (int(CNC.vars['processState'])):
+			case states.Waiting:
+				stateName = "Aguardando"
+			case states.Entering:
+				stateName = "Entrando"
+			case states.Middle:
+				stateName = "Meio"
+			case states.Rotating:
+				stateName = "Rotacionando"
+			case states.ReEntering:
+				stateName = "ReEntrando"
+			case states.Exiting:
+				stateName = "Saindo"
+		self.stateVar.set(stateName)
 		self.motor0VelocityLow.config(text=CNC.vars["motor0Low"])
 		self.motor0VelocityHigh.config(text=CNC.vars["motor0High"])
 		self.motor1VelocityLow.config(text=CNC.vars["motor1Low"])
 		self.motor1VelocityHigh.config(text=CNC.vars["motor1High"])
 
 	def m0LowPlus(self, *args):
-		CNC.vars["motor0Low"]+=10
+		CNC.vars["motor0Low"]+=self.motorStep
 		CNC.vars["motor0Low"] = min(100, CNC.vars["motor0Low"])
 	def m0LowMinus(self, *args):
-		CNC.vars["motor0Low"]-=10
+		CNC.vars["motor0Low"]-=self.motorStep
 		CNC.vars["motor0Low"] = max(0, CNC.vars["motor0Low"])
 	def m0HighPlus(self, *args):
-		CNC.vars["motor0High"]+=10
+		CNC.vars["motor0High"]+=self.motorStep
 		CNC.vars["motor0High"] = min(100, CNC.vars["motor0High"])
 		if not self.app.iteceProcess.isRunning():
 			self.app.iteceProcess._updateToHighSpeed()
 			self.app.iteceProcess.state.update("motor0")
 	def m0HighMinus(self, *args):
-		CNC.vars["motor0High"]-=10
+		CNC.vars["motor0High"]-=self.motorStep
 		CNC.vars["motor0High"] = max(0, CNC.vars["motor0High"])
 		if not self.app.iteceProcess.isRunning():
 			self.app.iteceProcess._updateToHighSpeed()
 			self.app.iteceProcess.state.update("motor0")
 	def m1LowPlus(self, *args):
-		CNC.vars["motor1Low"]+=10
+		CNC.vars["motor1Low"]+=self.motorStep
 		CNC.vars["motor1Low"] = min(100, CNC.vars["motor1Low"])
 	def m1LowMinus(self, *args):
-		CNC.vars["motor1Low"]-=10
+		CNC.vars["motor1Low"]-=self.motorStep
 		CNC.vars["motor1Low"] = max(0, CNC.vars["motor1Low"])
 	def m1HighPlus(self, *args):
-		CNC.vars["motor1High"]+=10
+		CNC.vars["motor1High"]+=self.motorStep
 		CNC.vars["motor1High"] = min(100, CNC.vars["motor1High"])
 		if not self.app.iteceProcess.isRunning():
 			self.app.iteceProcess._updateToHighSpeed()
 			self.app.iteceProcess.state.update("motor1")
 	def m1HighMinus(self, *args):
-		CNC.vars["motor1High"]-=10
+		CNC.vars["motor1High"]-=self.motorStep
 		CNC.vars["motor1High"] = max(0, CNC.vars["motor1High"])
 		if not self.app.iteceProcess.isRunning():
 			self.app.iteceProcess._updateToHighSpeed()
@@ -1151,15 +1185,15 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 
 	def moveXupStep(self, step, event=None):
 		if event is not None and not self.acceptKey(): return
-		if not self.app.iteceProcess.isPositionValid(CNC.vars['mx']+step):
-			return
-		self.app.sendGCode("G91G1X%sF100"%(step))
+		wantedPosition = CNC.vars['mx']+float(step)
+		wantedPosition = min(wantedPosition, self.app.iteceProcess.getMaxPosition())
+		self.app.sendGCode("G90G1X%.3fF100"%(wantedPosition))
 
 	def moveXdownStep(self, step, event=None):
 		if event is not None and not self.acceptKey(): return
-		if not self.app.iteceProcess.isPositionValid(CNC.vars['mx']-step):
-			return
-		self.app.sendGCode("G91G1X%sF100"%(-step))
+		wantedPosition = CNC.vars['mx']-float(step)
+		wantedPosition = max(wantedPosition, 0)
+		self.app.sendGCode("G90G1X%.3fF100"%(wantedPosition))
 
 	def moveXup(self, event=None):
 		if event is not None and not self.acceptKey(): return

@@ -790,6 +790,7 @@ class CNC:
 			"motor1Low"  : 50,
 			"motor0High"  : 90,
 			"motor1High"  : 80,
+			"endType"     : 1,
 
 			"Sending"	 : False,
 			"version"    : "",
