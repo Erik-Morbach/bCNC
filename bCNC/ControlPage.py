@@ -617,19 +617,19 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 	def update(self, *args):
 		self.timeSt.set("%0.2f" % CNC.vars["wait"])
 		stateName = ""
-		match (int(CNC.vars['processState'])):
-			case states.Waiting:
-				stateName = "Aguardando"
-			case states.Entering:
-				stateName = "Entrando"
-			case states.Middle:
-				stateName = "Meio"
-			case states.Rotating:
-				stateName = "Rotacionando"
-			case states.ReEntering:
-				stateName = "ReEntrando"
-			case states.Exiting:
-				stateName = "Saindo"
+		curState = int(CNC.vars['processState'])
+		if curState == states.Waiting:
+			stateName = "Aguardando"
+		if curState == states.Entering:
+			stateName = "Entrando"
+		if curState == states.Middle:
+			stateName = "Meio"
+		if curState == states.Rotating:
+			stateName = "Rotacionando"
+		if curState == states.ReEntering:
+			stateName = "ReEntrando"
+		if curState == states.Exiting:
+			stateName = "Saindo"
 		self.stateVar.set(stateName)
 		self.motor0VelocityLow.config(text=CNC.vars["motor0Low"])
 		self.motor0VelocityHigh.config(text=CNC.vars["motor0High"])
