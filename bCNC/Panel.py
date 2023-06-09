@@ -364,7 +364,8 @@ class StartButton(ButtonPanel):
     def __init__(self, app, index) -> None:
          super().__init__(app, index)
     def on(self):
-        if "idle" in CNC.vars["state"].lower() and not self.app.running:
+        if CNC.vars["state"] == "Idle" and not self.app.running and CNC.vars["execution"]:
+            self.app.focus_set()
             self.app.event_generate("<<Run>>", when="tail")
         elif "hold" in CNC.vars["state"].lower():
             self.app.resume()
