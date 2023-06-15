@@ -31,6 +31,8 @@ import tkExtra
 
 import CNCRibbon
 
+from mttkinter import *
+
 PROBE_CMD = [	_("G38.2 stop on contact else error"),
 		_("G38.3 stop on contact"),
 		_("G38.4 stop on loss contact else error"),

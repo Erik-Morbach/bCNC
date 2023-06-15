@@ -52,10 +52,13 @@ import Pendant
 from _GenericGRBL import ERROR_CODES
 from RepeatEngine import RepeatEngine
 from Table import Table
+import ScriptEngine
+
+from mttkinter import *
 
 WIKI = "https://github.com/vlachoudis/bCNC/wiki"
 
-SERIAL_POLL    = 0.03	# s
+SERIAL_POLL    = Utils.getInt("Connection", "poll", 30) / 1000
 OVERRIDE_POLL  = 0.06
 SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
@@ -63,6 +66,9 @@ RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
 WRITE_THREAD_PERIOD = 0.050 #s
 WRITE_THREAD_RT_PERIOD = 0.016 #s
+
+print(SERIAL_POLL)
+
 
 GPAT	  = re.compile(r"[A-Za-z]\s*[-+]?\d+.*")
 FEEDPAT   = re.compile(r"^(.*)[fF](\d+\.?\d+)(.*)$")
@@ -139,6 +145,7 @@ class Sender:
 		self.onStopComplete = None
 
 		self.programEngine = ProgramEngine.ProgramEngine(self)
+		self.scripts = ScriptEngine.ScriptEngine(self)
 
 		self._updateChangedState = time.time()
 		self._posUpdate  = False	# Update position
@@ -404,6 +411,10 @@ class Sender:
 				self.modifyConfiguration("${}".format(index), value)
 			except:
 				pass
+		elif cmd == "OVERMINUS":
+			self.gstate.overrideMinus()
+		elif cmd == "OVERPLUS":
+			self.gstate.overridePlus()
 
 		# UNL*OCK: unlock grbl
 		elif rexx.abbrev("UNLOCK",cmd,3):
@@ -413,6 +424,8 @@ class Sender:
 		elif self.mcontrol.executeCommand(oline, line, cmd):
 			pass
 
+		elif self.scripts.find(cmd):
+			self.scripts.execute(cmd, locals(), globals())
 		else:
 			return _("unknown command"),_("Invalid command %s")%(oline)
 
@@ -593,6 +606,8 @@ class Sender:
 		self.serial_write("\n\n")
 		self._gcount = 0
 		self._alarm  = True
+		with open("myLog.txt", 'a') as logFile:
+			logFile.write("THREADS INITIALIZED "+time.ctime()+"\n")
 		self.writeThread  = threading.Thread(target=self.serialIOWrite)
 		self.writeRTThread  = threading.Thread(target=self.serialIOWriteRT)
 		self.readThread = threading.Thread(target=self.serialIORead)
@@ -614,6 +629,8 @@ class Sender:
 		except:
 			pass
 		self._runLines = 0
+		with open("myLog.txt", 'a') as logFile:
+			logFile.write("THREADS STOPED "+time.ctime() + "\n")
 		self.writeThread = None
 		self.writeRTThread = None
 		self.readThread = None
@@ -778,24 +795,32 @@ class Sender:
 		self._cline = []
 		self._sline = []
 		buff = ""
-		while self.readThread:
-			time.sleep(0.0001)
-			# Anything to receive?
-			try:
-				line = str(self.serial.read().decode())
-				buff += line
-			except:
-				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
-			index = buff.find('\n')
-			if index != -1:
-				line = buff[:index+1].strip()
-				buff = buff[index+1:]
-			else:
-				continue
-			if self.mcontrol.parseLine(line, self._cline, self._sline):
-				pass
-			else:
-				self.log.put((Sender.MSG_RECEIVE, line))
+		try:
+			while self.readThread:
+				time.sleep(0.0001)
+				# Anything to receive?
+				try:
+					line = str(self.serial.read().decode())
+					buff += line
+				except:
+					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+				index = buff.find('\n')
+				if index != -1:
+					line = buff[:index+1].strip()
+					buff = buff[index+1:]
+				else:
+					continue
+				try:
+					if self.mcontrol.parseLine(line, self._cline, self._sline):
+						pass
+					else:
+						self.log.put((Sender.MSG_RECEIVE, line))
+				except:
+					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+		except:
+			with open("myLog.txt",'a') as logfile:
+				logfile.write("EXCEPTION {} {} : {}".format(time.ctime(), "Read" ,str(traceback.format_exc())))
+			traceback.print_exc()
 
 	#----------------------------------------------------------------------
 	# thread performing I/O on serial line
@@ -803,19 +828,24 @@ class Sender:
 	def serialIOWriteRT(self):
 		self.sio_count = 0
 		tr = tg = to = time.time()		# last time a ? or $G was send to grbl
-		while self.writeRTThread:
-			time.sleep(WRITE_THREAD_RT_PERIOD)
-			t = time.time()
-			# refresh machine position?
-			if t-tr > SERIAL_POLL:
-				self.sio_count += 1
-				self.mcontrol.viewStatusReport()
-				tr = t
+		try:
+			while self.writeRTThread:
+				time.sleep(WRITE_THREAD_RT_PERIOD)
+				t = time.time()
+				# refresh machine position?
+				if t-tr > SERIAL_POLL:
+					self.sio_count += 1
+					self.mcontrol.viewStatusReport()
+					tr = t
 
-				#If Override change, attach feed
-			if t-to > OVERRIDE_POLL:
-				to = t
-				self.mcontrol.overrideSet()
+					#If Override change, attach feed
+				if t-to > OVERRIDE_POLL:
+					to = t
+					self.mcontrol.overrideSet()
+		except:
+			with open("myLog.txt",'a') as logfile:
+				logfile.write("EXCEPTION {} {} :\n{}".format(time.ctime(), "WriteRt" ,traceback.format_exc()))
+			traceback.print_exc()
 
 	#----------------------------------------------------------------------
 	# Helper functions for serialIOWrite
@@ -850,6 +880,12 @@ class Sender:
 			return self.isInternalStrCommand(code)
 		return False
 
+	def appendLeftOnCurrentDeque(self, cmd):
+		if self.running and self._runLines != sys.maxsize:
+			self.programEngine.appendLeft(cmd)
+		else:
+			self.deque.appendleft(cmd)
+
 	def executeTupleInternalCommand(self, code):
 		id = code[0]
 		if len(code)==2:
@@ -860,7 +896,7 @@ class Sender:
 			self.sio_wait = True
 		elif id == BEGIN_REPEAT_M30:
 			self.sio_wait = True
-			self.programEngine.sendNext((END_REPEAT_M30,))
+			self.programEngine.appendLeft((END_REPEAT_M30,))
 		elif id == END_REPEAT_M30:
 			if self.gcode.repeatEngine.isRepeatable():
 				self.gcode.repeatEngine.countRepetition()
@@ -868,7 +904,7 @@ class Sender:
 				self._runLines = self._compiledRunLines
 				self.programEngine.reset()
 			else:
-				self.programEngine.sendNext((END_REPEAT,))
+				self.programEngine.appendLeft((END_REPEAT,))
 		elif id == END_REPEAT:
 			self._gcount = self._runLines
 			self.runEnded()
@@ -880,9 +916,9 @@ class Sender:
 			if not value: return
 			value = int(value)
 			if value>1:
-				self.deque.appendleft((SLEEP, value-1))
+				self.appendLeftOnCurrentDeque((SLEEP, value-1))
 			else: 
-				self.deque.appendleft((SLEEP,))
+				self.appendLeftOnCurrentDeque((SLEEP,))
 		elif id == UPDATE:
 			self._gcount += 1
 			self._update = value
@@ -942,11 +978,11 @@ class Sender:
 			self._runLines -= 1 # remove line from path
 			return
 		self._runLines += len(cmds) - 1 # consider that is already added to _runLines
-		self.deque.appendleft((END_RUN_MACRO,))
+		self.appendLeftOnCurrentDeque((END_RUN_MACRO,))
 		while len(cmds):
-			self.deque.appendleft(cmds[-1])
+			self.appendLeftOnCurrentDeque(cmds[-1])
 			del cmds[-1]
-		self.deque.appendleft((RUN_MACRO,))
+		self.appendLeftOnCurrentDeque((RUN_MACRO,))
 
 	def process(self, pNode):
 		cmds = pNode.process()
@@ -963,62 +999,67 @@ class Sender:
 		self.macrosRunning = 0
 		toSend = None			# next string to send
 		processNode = None
-		while self.writeThread:
-			time.sleep(WRITE_THREAD_PERIOD)
+		try:
+			while self.writeThread:
+				time.sleep(WRITE_THREAD_PERIOD)
 
-			if self._checkAndEvaluateStop():
-				continue
-
-			if not self.shouldSend():
-				continue
-
-			if processNode is not None:
-				self.process(processNode)
-				processNode = None
-				continue
-
-			toSend = None
-			if self.hasNewCommand():
-				toSend = Command.cmdFactory(self.getNextCommand())
-			else:
-				continue
-
-			if self.shouldSkipCommand(toSend): 
-				# TODO: This can be done inside Command class
-				# or in the Process class
-				continue
-
-			if self.isInternalCommand(toSend): # TODO: This should be an ProcessNode
-				self.executeInternalCommand(toSend)
-				continue
-
-			processNode = self.processEngine.getValidProcessNode(toSend)
-			if processNode is not None:
-				processNode.preprocessCommand(toSend)
-				if processNode.shouldWait:
-					self.executeInternalCommand(Command.Command((WAIT,)))
-					self._runLines += 1
-					continue
-				self.process(processNode)
-				processNode = None
-				continue
-
-			if self._checkAndEvaluateStop():
-				continue
-
-			self._sline.append(toSend.src)
-			self._cline.append(len(toSend.src))
-
-			hasStoped = False
-			while self.isRxBufferFull():
-				time.sleep(0.001)
 				if self._checkAndEvaluateStop():
-					hasStoped = True
-					break
-			if hasStoped:
-				continue
+					continue
 
-			self._sumcline = sum(self._cline)
-			self.serial_write(toSend.src)
-			self.serial.flush()
-			self.log.put((Sender.MSG_SEND, toSend.src))
+				if not self.shouldSend():
+					continue
+
+				if processNode is not None:
+					self.process(processNode)
+					processNode = None
+					continue
+
+				toSend = None
+				if self.hasNewCommand():
+					toSend = Command.cmdFactory(self.getNextCommand())
+				else:
+					continue
+
+				if self.shouldSkipCommand(toSend): 
+					# TODO: This can be done inside Command class
+					# or in the Process class
+					continue
+
+				if self.isInternalCommand(toSend): # TODO: This should be an ProcessNode
+					self.executeInternalCommand(toSend)
+					continue
+
+				processNode = self.processEngine.getValidProcessNode(toSend)
+				if processNode is not None:
+					processNode.preprocessCommand(toSend)
+					if processNode.shouldWait:
+						self.executeInternalCommand(Command.Command((WAIT,)))
+						self._runLines += 1
+						continue
+					self.process(processNode)
+					processNode = None
+					continue
+
+				if self._checkAndEvaluateStop():
+					continue
+
+				self._sline.append(toSend.src)
+				self._cline.append(len(toSend.src))
+
+				hasStoped = False
+				while self.isRxBufferFull():
+					time.sleep(0.001)
+					if self._checkAndEvaluateStop():
+						hasStoped = True
+						break
+				if hasStoped:
+					continue
+
+				self._sumcline = sum(self._cline)
+				self.serial_write(toSend.src)
+				self.serial.flush()
+				self.log.put((Sender.MSG_SEND, toSend.src))
+		except:
+			with open("myLog.txt",'a') as logfile:
+				logfile.write("EXCEPTION {} {} : {}".format(time.ctime(), "Write" ,str(traceback.format_exc())))
+			traceback.print_exc()

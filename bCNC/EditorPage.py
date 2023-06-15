@@ -22,6 +22,7 @@ import CNCRibbon
 
 from CNCCanvas import ACTION_MOVE, ACTION_ORIGIN
 
+from mttkinter import *
 
 #===============================================================================
 # Clipboard Group

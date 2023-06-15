@@ -47,6 +47,7 @@ class Executor:
         loca["wait"] = self.wait
         loca["get"] = self.get
         loca["set"] = self.set
+        loca["send"] = self.send
         exec(self.macro.compiled, loca, globa)
 
     def code(self, gcode):
@@ -57,6 +58,9 @@ class Executor:
         else: nex = '\n'
         self.queue.put(gcode)
         if nex is not None: self.queue.put('\n')
+
+    def send(self, code):
+        self.queue.put(code)
 
     def set(self, name, value):
         self.CNC.vars[name] = value

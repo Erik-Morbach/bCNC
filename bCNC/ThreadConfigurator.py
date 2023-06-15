@@ -7,6 +7,7 @@ from tkinter.simpledialog import Dialog
 from tkinter.messagebox import askokcancel
 from ControlPage import DROFrame
 import Utils
+from mttkinter import *
 
 from CNC import WAIT, WCS, CNC
 
@@ -47,7 +48,7 @@ class ThreadInfo:
 		if self.exitTaper.get():
 			l += 2
 		e = self.taperDistance.get()
-		gcode += "G76 Z%.4f I%.4f P%.4f K%.4f J%.4f R%.2f Q%.2f H%d E%d L%.4f\n" % (z, i, p, k, j, r, q, h, e, l)
+		gcode += "G76 Z%.4f I%.4f P%.4f K%.4f J%.4f R%.2f Q%.2f H%d E%.4f L%d\n" % (z, i, p, k, j, r, q, h, e, l)
 		gcode += "G0 Z%.4f X%.4f\n" % (self.startZ.get(), self.startX.get())
 		gcode += "M48\n"
 		gcode += "M53\n"

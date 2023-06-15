@@ -39,6 +39,8 @@ import GCodeViewer
 import PidLog
 import CNCCanvas
 
+from mttkinter import *
+
 _LOWSTEP   = 0.0001
 _HIGHSTEP  = 1000.0
 _HIGHZSTEP = 10.0
@@ -1207,6 +1209,14 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("Y-%s"%(self.step.get()))
 
+	def moveAup(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("A%s"%(self.step.get()))
+
+	def moveAdown(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("A-%s"%(self.step.get()))
+
 	def moveBup(self, event=None):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("B%s"%(self.step.get()))
@@ -1214,6 +1224,14 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 	def moveBdown(self, event=None):
 		if event is not None and not self.acceptKey(): return
 		self.app.mcontrol.jog("B-%s"%(self.step.get()))
+
+	def moveCup(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("C%s"%(self.step.get()))
+
+	def moveCdown(self, event=None):
+		if event is not None and not self.acceptKey(): return
+		self.app.mcontrol.jog("C-%s"%(self.step.get()))
 
 	def moveXdownYup(self, event=None):
 		if event is not None and not self.acceptKey(): return
@@ -2007,7 +2025,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		f4.pack(side=LEFT, fill=BOTH, expand=TRUE)
 		ttk.Separator(f3, orient=VERTICAL).pack(side=LEFT, fill=BOTH, padx=5)
 		f4 = Frame(f3)
-		self.rapidScale = makeScale(f4, "Rapid", self.rapidOverride, 0, 100, 25)
+		self.rapidScale = makeScale(f4, "Rapid", self.rapidOverride, 1, 100, 1)
 		f4.pack(side=LEFT, fill=BOTH, expand=TRUE)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
@@ -2038,6 +2056,19 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 	def resetOverride(self, override, name, event=None):
 		override.set(100)
 		self.overrideChange(override, name)
+
+	#----------------------------------------------------------------------
+	def overridePlus(self, event=None):
+		feedValue = self.feedOverride.get() + 5
+		feedValue = min(feedValue, 200)
+		self.setOverride("feed", feedValue)
+		self.setOverride("rapid", min(feedValue, 100))
+
+	def overrideMinus(self, event=None):
+		feedValue = self.feedOverride.get() - 5
+		feedValue = max(feedValue, 1)
+		self.setOverride("feed", feedValue)
+		self.setOverride("rapid", min(feedValue, 100))
 
 	#----------------------------------------------------------------------
 	def _gChange(self, value, dictionary):

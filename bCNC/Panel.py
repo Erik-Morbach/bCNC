@@ -18,7 +18,7 @@ def is_raspberrypi():
 if is_raspberrypi():
     print("Is a Pi")
     import wiringpi as wp
-    wp.wiringPiSetup()
+    wp.wiringPiSetupGpio()
 else:
     print("Not a Pi")
     class A:
@@ -57,8 +57,9 @@ class Member:
         return wp.digitalRead(pin)
 
     def waitDebounce(self):
+        haveErro = False
         debounceQnt = 100
-        pinValues = [self.read(pin) for pin in self.pins]
+        pinValues = [0]*len(self.pins)
         for _ in range(debounceQnt):
             time.sleep(self.debounce/debounceQnt)
             pinValuesDebounced = [self.read(pin) for pin in self.pins]
@@ -66,10 +67,14 @@ class Member:
                 pinValues[i] += pinValuesDebounced[i]
 
         for i in range(len(pinValues)):
-            pinValues[i] = 1 if pinValues[i]>=debounceQnt else 0
+            if pinValues[i] > 0 and pinValues[i] < debounceQnt:
+                haveErro = True
+                break
+            pinValues[i] = 1 if pinValues[i]==debounceQnt else 0
             if self.inversion & (2**i):
                 pinValues[i] = not pinValues[i]
-        self.callback(pinValues)
+        if not haveErro:
+            self.callback(pinValues)
         self.mutex.release()
 
     def check(self):
@@ -202,7 +207,7 @@ class Jog(MemberImpl):
         shouldStop = False
         if len(self.lastPinValues) == len(pinValues):
             for (a,b) in zip(self.lastPinValues, pinValues):
-                if a==1 and b==0:
+                if a!=b:
                     shouldStop = True
         self.lastPinValues = pinValues
         if shouldStop and self.jogLastAction != self.JOGSTOP:
@@ -323,11 +328,14 @@ class RapidSelector(Selector):
 class ButtonPanel(MemberImpl):
     def __init__(self, app, index) -> None:
         self.panelName = "Button{}".format(index)
+        self.description = Utils.getStr(self.panelName, "name", self.panelName)
         self.active = Utils.getBool(self.panelName, "panel", False)
         debounce = Utils.getFloat(self.panelName, "debounce", 0.5)
         pins, inversion = self.load_pins()
         print("Button{}".format(index), end=' ')
         self.lastState = [0]
+        self.onOnExecute = Utils.getStr(self.panelName, "on", "")
+        self.onOffExecute = Utils.getStr(self.panelName, "off", "")
         super().__init__(app,pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
@@ -347,16 +355,17 @@ class ButtonPanel(MemberImpl):
             return
         self.on()
     def on(self):
-        pass
+        self.app.execute(self.onOnExecute)
     def off(self):
-        pass
+        self.app.execute(self.onOffExecute)
 
 
 class StartButton(ButtonPanel):
     def __init__(self, app, index) -> None:
          super().__init__(app, index)
     def on(self):
-        if "idle" in CNC.vars["state"].lower() and not self.app.running:
+        if CNC.vars["state"] == "Idle" and not self.app.running and CNC.vars["execution"]:
+            self.app.focus_set()
             self.app.event_generate("<<Run>>", when="tail")
         elif "hold" in CNC.vars["state"].lower():
             self.app.resume()
@@ -383,7 +392,7 @@ class ClampButton(ButtonPanel):
     def __init__(self, app, index) -> None:
          super().__init__(app, index)
     def on(self):
-        self.app.event_generate("<<ClampToggle>>", when="tail")
+        self.app.executeCommand("ClampToggle")
 
 class SafetyDoorButton(ButtonPanel):
     def __init__(self, app, index) -> None:
@@ -421,7 +430,8 @@ class Panel:
                 "feedselector":FeedSelector, "startbutton":StartButton,
                 "pausebutton":PauseButton, "startpausebutton":StartPauseButton,
                 "clampbutton":ClampButton, "safetydoorbutton":SafetyDoorButton,
-                "barendbutton":BarEndButton, "resetbutton": ResetButton}
+                "barendbutton":BarEndButton, "resetbutton": ResetButton,
+                "button":ButtonPanel}
         self.members = []
         self.members += [Jog(app)]
         index = 0

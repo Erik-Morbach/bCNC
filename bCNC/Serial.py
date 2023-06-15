@@ -9,9 +9,8 @@ class Serial:
 		self.activeEcc = Utils.getBool("CNC", "ecc", True)
 		self.inside = 0
 		self.last = 0
-		self.have = 0
-		self.serial.write(b'\x01')
-		self.serial.flush()
+		self.have = False
+		self.shouldRead = False
 		pass
 
 	def flushInput(self):
@@ -26,12 +25,36 @@ class Serial:
 			return
 		outData = bytes()
 		for w in data:
-			value = ecc.encodeOne(w)
-			outData += value.to_bytes(2, byteorder='big')
+			outData += ecc.encodeOne(1).to_bytes(2, 'big')
+			outData += ecc.encodeOne(w).to_bytes(2, 'big')
 		self.serial.write(outData)
 	
 	def in_waiting(self):
 		return self.serial.in_waiting
+
+	def _readChar(self, c):
+		if not self.shouldRead:
+			dc = ecc.decodeOne((self.last<<8) + c)
+			self.last = c
+			if dc != 0x01: return bytes()
+
+			self.have = False
+			self.last = 0
+			self.shouldRead = True
+			return bytes()
+
+		if not self.have:
+			self.last = c
+			self.have = True
+			return bytes()
+
+		value = (self.last<<8) + c
+		data = ecc.decodeOne(value).to_bytes(1,'big')
+		self.have = False
+		self.shouldRead = False
+		self.last = 0
+		return data
+
 
 	def read(self):
 		n = max(self.serial.in_waiting,1)
@@ -40,15 +63,5 @@ class Serial:
 		data = bytes()
 		recieved = self.serial.read(n)
 		for w in recieved:
-			if w == 0x01:
-				self.have = 0
-				self.last = 0
-				continue
-			if not self.have:
-				self.have = 1
-				self.last = w
-				continue
-			value = (self.last<<8) + w
-			data += ecc.decodeOne(value).to_bytes(1,'big')
-			self.have = 0
+			data += self._readChar(w)
 		return data

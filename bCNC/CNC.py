@@ -56,7 +56,7 @@ YZ   = 2
 CW   = 2
 CCW  = 3
 
-WCS  = ["G54", "G55", "G56", "G57", "G58", "G59"]
+WCS  = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
 
 DISTANCE_MODE = { "G90" : "Absolute",
 		  "G91" : "Incremental" }
@@ -89,6 +89,9 @@ MODAL_MODES = {
 	"G57"   : "WCS",
 	"G58"   : "WCS",
 	"G59"   : "WCS",
+	"G59.1"   : "WCS",
+	"G59.2"   : "WCS",
+	"G59.3"   : "WCS",
 
 	"G17"   : "plane",
 	"G18"   : "plane",
@@ -750,6 +753,7 @@ class CNC:
 			"rpm"        : 0.0,
 			"realRpm"    : 0.0,
 			"JogSpeed"   : 3000.0,
+			"jogOldStep" : -1,
 			"JogActive"  : False,
 			"execution"  : False,
 			"debug"      : False,
