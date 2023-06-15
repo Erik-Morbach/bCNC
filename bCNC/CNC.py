@@ -781,6 +781,13 @@ class CNC:
 			"thickness"  : 5.,
 			"stepover"   : 40.,
 
+			"boardThickness"    : 0,
+			"zGangedDifference" : 0,
+			"a1Position"        : 0,
+			"a2Position"        : 0,
+			"cavityDistance"    : 0,
+			"punctureDistance"  : 0,
+
 			"PRB"        : None,
 			"TLO"        : 0.,
 

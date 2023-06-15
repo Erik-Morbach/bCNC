@@ -93,6 +93,17 @@ class _GenericController:
 	def overrideSet(self):
 		pass
 
+	def setConnection(self, id, value):
+		self.master.sendGCode("$%d=%d"%(id, value))
+		self.master.sendGCode((8,2))
+
+	def xConnection(self, connection):
+		self.setConnection(500, connection)
+	def zConnection(self, connection):
+		self.setConnection(502, connection)
+	def aConnection(self, connection):
+		self.setConnection(503, connection)
+
 	def hardReset(self):
 		self.master.busy()
 		if self.master.serial is not None:
@@ -123,14 +134,59 @@ class _GenericController:
 		self.clearError()
 		self.viewParameters()
 
+	def send(self, gcode):
+		self.master.sendGCode(gcode)
+	def wait(self):
+		self.master.sendGCode((4,))
+
 	#----------------------------------------------------------------------
 	def home(self, event=None):
-		self.master._alarm = False
+		self.zConnection(1)
+		self.master.sendGCode("$HZ")
+		self.master.sendGCode((4,))
+		self.zConnection(2)
+		self.master.sendGCode("$HZ")
+		self.master.sendGCode((4,))
+		distance = CNC.vars["zGangedDifference"]
+		self.master.sendGCode("G91G0Z%.3f" % distance)
+		self.master.sendGCode((4,))
+		self.zConnection(3)
+		self.master.sendGCode("$HZ")
+		self.master.sendGCode((4,))
 
-		if self.master.scripts.find("UserHome"):
-			self.master.executeCommand("UserHome")
-		else:
-			self.master.sendGCode("$H")
+		self.xConnection(1)
+		self.master.sendGCode("$HX")
+		self.master.sendGCode((4,))
+		self.xConnection(2)
+		self.master.sendGCode("$HX")
+		self.master.sendGCode((4,))
+		distance = CNC.vars["cavityDistance"] - CNC.vars["punctureDistance"]
+		self.master.sendGCode("G91G0X%.3f" % distance)
+		self.master.sendGCode((4,))
+		self.xConnection(3)
+		self.master.sendGCode("$HX")
+		self.master.sendGCode((4,))
+
+		self.master.sendGCode("$HY")
+		self.master.sendGCode((4,))
+
+		self.aConnection(1)
+		self.master.sendGCode("$HA")
+		self.master.sendGCode((4,))
+		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a1Position"])
+		self.master.sendGCode((4,))
+		self.aConnection(2)
+		self.master.sendGCode("$HA")
+		self.master.sendGCode((4,))
+		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a2Position"])
+		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a2Position"])
+		self.master.sendGCode((4,))
+
+		workTable = self.master.workTable.getTable()
+		work, index = self.master.workTable.getRow(1)
+		workTable[index]['a'] = float(CNC.vars["a2Position"])
+		self.master.workTable.save(workTable)
+		self.sendWork(1)
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
@@ -375,7 +431,6 @@ class _GenericController:
 		cmd += pos
 		self.master.workTable.save(workTable)
 		self.sendWork(p+1)
-
 
 		self.viewParameters()
 		self.master.event_generate("<<Status>>",
