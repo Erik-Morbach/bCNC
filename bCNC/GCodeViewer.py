@@ -24,7 +24,7 @@ class GCodeViewer:
         self.lb.pack(*args, **kwargs)
 
     def update(self):
-        if self.app.running:
+        if self.app.running.value:
             lineNumber = max(0, CNC.vars["line"]-1)
             lastFocus = None
             try:

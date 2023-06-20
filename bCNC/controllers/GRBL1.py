@@ -105,9 +105,8 @@ class Controller(_GenericGRBL):
 		CNC.vars["OvSpindle"] = CNC.vars["_OvSpindle"]
 		self.master.serial.flush()
 
-	def parseBracketAngle(self, line, cline):
-		self.master.sio_status = False
-		self.master.sio_count = max(0, self.master.sio_count-1)
+	def parseBracketAngle(self, line, ioData):
+		ioData.decrementSioCount()
 		fields = line[1:-1].split("|")
 		CNC.vars["pins"] = ""
 		 
@@ -216,10 +215,10 @@ class Controller(_GenericGRBL):
 				except (ValueError,IndexError):
 					break
 		# Machine is Idle buffer is empty stop waiting and go on
-		if self.master.sio_wait and not cline and sum([1 if w in fields[0] else 0 for w in ("Run", "Jog", "Hold")])==0:
+		if ioData.sio_wait and ioData.sumCline==0 and sum([1 if w in fields[0] else 0 for w in ("Run", "Jog", "Hold")])==0:
 			#if not self.master.running: self.master.jobDone() #This is not a good idea, it purges the controller while waiting for toolchange. see #1061
-			self.master.sio_wait = False
-			self.master._gcount += 1
+			ioData.sio_wait = False
+			self.master._gcount.assign(lambda x: x + 1)
 
 	def parseBracketSquare(self, line):
 		word = SPLITPAT.split(line[1:-1])

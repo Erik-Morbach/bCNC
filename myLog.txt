@@ -1,1 +1,927 @@
 
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Apr 12 17:36:34 2023
+EXCEPTION Wed Apr 12 17:36:35 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/.local/lib/python3.10/site-packages/serial/serialposix.py", line 621, in write
+    n = os.write(self.fd, d)
+OSError: [Errno 5] Input/output error
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 833, in serialIOWriteRT
+    self.mcontrol.viewStatusReport()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 132, in viewStatusReport
+    self.master.serial_write(b'\x80')
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 575, in serial_write
+    ret = self.serial.write(data)
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 30, in write
+    self.serial.write(outData)
+  File "/home/erikcm/.local/lib/python3.10/site-packages/serial/serialposix.py", line 655, in write
+    raise SerialException('write failed: {}'.format(e))
+serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
+THREADS STOPED Wed Apr 12 17:36:37 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 09:51:06 2023
+THREADS STOPED Mon Apr 17 09:52:26 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 09:52:29 2023
+THREADS STOPED Mon Apr 17 09:53:05 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 09:53:49 2023
+THREADS STOPED Mon Apr 17 09:54:16 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 09:54:19 2023
+THREADS STOPED Mon Apr 17 09:54:33 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 09:55:15 2023
+THREADS STOPED Mon Apr 17 09:55:22 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 09:55:43 2023
+THREADS STOPED Mon Apr 17 09:56:16 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 09:58:28 2023
+THREADS STOPED Mon Apr 17 10:01:09 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:01:13 2023
+THREADS STOPED Mon Apr 17 10:01:29 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:02:23 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:03:27 2023
+THREADS STOPED Mon Apr 17 10:03:43 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:04:15 2023
+THREADS STOPED Mon Apr 17 10:04:31 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:04:33 2023
+THREADS STOPED Mon Apr 17 10:04:45 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:04:55 2023
+THREADS STOPED Mon Apr 17 10:05:28 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:05:31 2023
+THREADS STOPED Mon Apr 17 10:06:44 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:06:47 2023
+THREADS STOPED Mon Apr 17 10:09:39 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:09:45 2023
+THREADS STOPED Mon Apr 17 10:09:52 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:11:15 2023
+THREADS STOPED Mon Apr 17 10:11:22 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:11:50 2023
+THREADS STOPED Mon Apr 17 10:11:57 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:45:31 2023
+THREADS STOPED Mon Apr 17 10:45:51 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:46:52 2023
+THREADS STOPED Mon Apr 17 10:46:54 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Apr 17 10:48:41 2023
+THREADS STOPED Mon Apr 17 10:48:49 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Apr 19 15:31:46 2023
+THREADS STOPED Wed Apr 19 15:33:55 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Apr 19 15:33:59 2023
+THREADS STOPED Wed Apr 19 15:34:21 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Apr 19 15:34:25 2023
+THREADS STOPED Wed Apr 19 15:38:33 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Apr 19 15:40:34 2023
+THREADS STOPED Wed Apr 19 15:40:53 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Apr 19 15:41:03 2023
+THREADS STOPED Wed Apr 19 15:41:16 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Apr 19 16:52:38 2023
+THREADS STOPED Wed Apr 19 16:52:41 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:15:52 2023
+THREADS STOPED Thu Apr 20 10:17:59 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:18:15 2023
+THREADS STOPED Thu Apr 20 10:20:06 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:20:11 2023
+THREADS STOPED Thu Apr 20 10:20:58 2023
+THREADS INITIALIZED Thu Apr 20 10:20:59 2023
+THREADS STOPED Thu Apr 20 10:24:35 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:25:06 2023
+THREADS STOPED Thu Apr 20 10:25:08 2023
+THREADS INITIALIZED Thu Apr 20 10:25:09 2023
+THREADS STOPED Thu Apr 20 10:25:17 2023
+THREADS INITIALIZED Thu Apr 20 10:25:20 2023
+THREADS STOPED Thu Apr 20 10:26:36 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:26:40 2023
+THREADS STOPED Thu Apr 20 10:26:45 2023
+THREADS INITIALIZED Thu Apr 20 10:26:47 2023
+THREADS STOPED Thu Apr 20 10:26:49 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:26:54 2023
+THREADS STOPED Thu Apr 20 10:28:36 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:29:01 2023
+THREADS STOPED Thu Apr 20 10:30:48 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:30:52 2023
+THREADS STOPED Thu Apr 20 10:30:58 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:31:20 2023
+THREADS STOPED Thu Apr 20 10:31:22 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:31:28 2023
+THREADS STOPED Thu Apr 20 10:31:34 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 10:31:49 2023
+THREADS STOPED Thu Apr 20 10:31:58 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 15:12:40 2023
+EXCEPTION Thu Apr 20 15:14:27 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 841, in serialIOWriteRT
+    self.mcontrol.overrideSet()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/GRBL1.py", line 106, in overrideSet
+    self.master.serial.flush()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 20, in flush
+    self.serial.flush()
+  File "/home/erikcm/.local/lib/python3.10/site-packages/serial/serialposix.py", line 673, in flush
+    termios.tcdrain(self.fd)
+termios.error: (5, 'Input/output error')
+THREADS STOPED Thu Apr 20 15:14:30 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu Apr 20 15:16:18 2023
+THREADS STOPED Thu Apr 20 15:16:22 2023
+THREADS INITIALIZED Thu Apr 20 15:16:24 2023
+THREADS STOPED Thu Apr 20 15:18:19 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu May  4 10:07:18 2023
+THREADS STOPED Thu May  4 10:07:24 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed May 10 15:35:51 2023
+THREADS STOPED Wed May 10 15:36:09 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue May 16 14:27:18 2023
+THREADS STOPED Tue May 16 14:27:29 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue May 16 14:30:04 2023
+THREADS STOPED Tue May 16 14:30:23 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue May 16 14:30:27 2023
+THREADS STOPED Tue May 16 14:30:33 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue May 16 14:44:04 2023
+EXCEPTION Tue May 16 14:44:30 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 621, in write
+    n = os.write(self.fd, d)
+        ^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 5] Input/output error
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 838, in serialIOWriteRT
+    self.mcontrol.viewStatusReport()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 136, in viewStatusReport
+    self.master.serial_write(b'\x80')
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 580, in serial_write
+    ret = self.serial.write(data)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 30, in write
+    self.serial.write(outData)
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 655, in write
+    raise SerialException('write failed: {}'.format(e))
+serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
+THREADS STOPED Tue May 16 14:44:39 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue May 16 15:01:10 2023
+EXCEPTION Tue May 16 15:01:22 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 621, in write
+    n = os.write(self.fd, d)
+        ^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 5] Input/output error
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 838, in serialIOWriteRT
+    self.mcontrol.viewStatusReport()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 136, in viewStatusReport
+    self.master.serial_write(b'\x80')
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 580, in serial_write
+    ret = self.serial.write(data)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 30, in write
+    self.serial.write(outData)
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 655, in write
+    raise SerialException('write failed: {}'.format(e))
+serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
+THREADS STOPED Tue May 16 15:01:27 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue May 16 15:03:36 2023
+THREADS STOPED Tue May 16 15:03:47 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue May 16 15:04:10 2023
+THREADS STOPED Tue May 16 15:04:20 2023
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu May 18 11:01:16 2023
+THREADS STOPED Thu May 18 11:01:36 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu May 18 11:01:50 2023
+EXCEPTION Thu May 18 11:36:04 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 844, in serialIOWriteRT
+    self.mcontrol.overrideSet()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/GRBL1.py", line 106, in overrideSet
+    self.master.serial.flush()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 20, in flush
+    self.serial.flush()
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 673, in flush
+    termios.tcdrain(self.fd)
+termios.error: (5, 'Input/output error')
+THREADS STOPED Thu May 18 11:36:10 2023
+THREADS INITIALIZED Thu May 18 13:54:37 2023
+THREADS STOPED Thu May 18 13:54:38 2023
+THREADS INITIALIZED Thu May 18 13:54:42 2023
+THREADS STOPED Thu May 18 13:54:43 2023
+THREADS INITIALIZED Thu May 18 13:54:47 2023
+THREADS STOPED Thu May 18 14:57:40 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu May 18 14:58:46 2023
+THREADS STOPED Thu May 18 14:58:48 2023
+THREADS INITIALIZED Thu May 18 14:58:53 2023
+THREADS STOPED Thu May 18 15:03:49 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Thu May 18 15:04:17 2023
+THREADS STOPED Thu May 18 15:04:22 2023
+THREADS INITIALIZED Thu May 18 15:04:24 2023
+EXCEPTION Thu May 18 17:14:59 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 621, in write
+    n = os.write(self.fd, d)
+        ^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 5] Input/output error
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 838, in serialIOWriteRT
+    self.mcontrol.viewStatusReport()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 136, in viewStatusReport
+    self.master.serial_write(b'\x80')
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 580, in serial_write
+    ret = self.serial.write(data)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 30, in write
+    self.serial.write(outData)
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 655, in write
+    raise SerialException('write failed: {}'.format(e))
+serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
+THREADS STOPED Fri May 19 08:21:58 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Fri May 19 11:23:38 2023
+THREADS STOPED Fri May 19 11:24:07 2023
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun  6 10:36:57 2023
+THREADS STOPED Tue Jun  6 10:37:06 2023
+THREADS INITIALIZED Tue Jun  6 10:37:12 2023
+THREADS STOPED Tue Jun  6 10:38:40 2023
+THREADS INITIALIZED Tue Jun  6 10:38:46 2023
+THREADS STOPED Tue Jun  6 10:38:49 2023
+THREADS INITIALIZED Tue Jun  6 10:38:54 2023
+THREADS STOPED Tue Jun  6 10:39:01 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun  6 10:39:41 2023
+THREADS STOPED Tue Jun  6 10:39:43 2023
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 13 10:33:29 2023
+THREADS STOPED Tue Jun 13 10:48:07 2023
+THREADS INITIALIZED Tue Jun 13 10:48:39 2023
+THREADS STOPED Tue Jun 13 10:48:50 2023
+THREADS INITIALIZED Tue Jun 13 10:48:53 2023
+THREADS STOPED Tue Jun 13 10:50:13 2023
+THREADS INITIALIZED Tue Jun 13 10:51:16 2023
+THREADS STOPED Tue Jun 13 10:51:22 2023
+THREADS INITIALIZED Tue Jun 13 10:52:29 2023
+THREADS STOPED Tue Jun 13 10:52:35 2023
+THREADS INITIALIZED Tue Jun 13 10:53:48 2023
+THREADS STOPED Tue Jun 13 10:54:16 2023
+THREADS INITIALIZED Tue Jun 13 10:55:16 2023
+THREADS STOPED Tue Jun 13 10:55:55 2023
+THREADS INITIALIZED Tue Jun 13 10:56:17 2023
+THREADS STOPED Tue Jun 13 11:07:57 2023
+THREADS INITIALIZED Tue Jun 13 11:08:27 2023
+THREADS STOPED Tue Jun 13 11:12:08 2023
+THREADS INITIALIZED Tue Jun 13 11:12:27 2023
+THREADS STOPED Tue Jun 13 11:13:12 2023
+THREADS INITIALIZED Tue Jun 13 11:13:34 2023
+THREADS STOPED Tue Jun 13 11:13:38 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 13 11:26:50 2023
+THREADS STOPED Tue Jun 13 11:26:52 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 13 11:28:34 2023
+THREADS STOPED Tue Jun 13 11:31:39 2023
+THREADS INITIALIZED Tue Jun 13 11:32:06 2023
+THREADS STOPED Tue Jun 13 11:32:21 2023
+THREADS INITIALIZED Tue Jun 13 11:32:39 2023
+THREADS STOPED Tue Jun 13 11:33:36 2023
+THREADS INITIALIZED Tue Jun 13 11:34:06 2023
+THREADS STOPED Tue Jun 13 11:34:20 2023
+THREADS INITIALIZED Tue Jun 13 11:34:22 2023
+THREADS STOPED Tue Jun 13 11:34:30 2023
+THREADS INITIALIZED Tue Jun 13 11:40:05 2023
+THREADS STOPED Tue Jun 13 11:40:32 2023
+THREADS INITIALIZED Tue Jun 13 11:40:52 2023
+THREADS STOPED Tue Jun 13 11:41:01 2023
+THREADS INITIALIZED Tue Jun 13 11:41:25 2023
+THREADS STOPED Tue Jun 13 11:41:30 2023
+THREADS INITIALIZED Tue Jun 13 11:42:42 2023
+THREADS STOPED Tue Jun 13 11:44:09 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 13 11:45:30 2023
+EXCEPTION Tue Jun 13 11:45:42 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 621, in write
+    n = os.write(self.fd, d)
+        ^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 5] Input/output error
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 838, in serialIOWriteRT
+    self.mcontrol.viewStatusReport()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 136, in viewStatusReport
+    self.master.serial_write(b'\x80')
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 580, in serial_write
+    ret = self.serial.write(data)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 30, in write
+    self.serial.write(outData)
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 655, in write
+    raise SerialException('write failed: {}'.format(e))
+serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
+THREADS STOPED Tue Jun 13 11:45:47 2023
+THREADS INITIALIZED Tue Jun 13 11:45:58 2023
+THREADS STOPED Tue Jun 13 11:49:09 2023
+THREADS INITIALIZED Tue Jun 13 11:49:30 2023
+THREADS STOPED Tue Jun 13 11:52:31 2023
+THREADS INITIALIZED Tue Jun 13 11:56:27 2023
+THREADS STOPED Tue Jun 13 11:57:31 2023
+THREADS INITIALIZED Tue Jun 13 11:57:52 2023
+THREADS STOPED Tue Jun 13 11:58:32 2023
+THREADS INITIALIZED Tue Jun 13 11:58:54 2023
+THREADS STOPED Tue Jun 13 12:05:10 2023
+THREADS INITIALIZED Tue Jun 13 12:05:28 2023
+THREADS STOPED Tue Jun 13 12:05:42 2023
+THREADS INITIALIZED Tue Jun 13 12:06:00 2023
+THREADS STOPED Tue Jun 13 12:06:05 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 13 12:06:35 2023
+THREADS STOPED Tue Jun 13 12:06:40 2023
+THREADS INITIALIZED Tue Jun 13 12:07:05 2023
+THREADS STOPED Tue Jun 13 12:07:57 2023
+THREADS INITIALIZED Tue Jun 13 12:08:19 2023
+EXCEPTION Tue Jun 13 12:09:59 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 621, in write
+    n = os.write(self.fd, d)
+        ^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 5] Input/output error
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 838, in serialIOWriteRT
+    self.mcontrol.viewStatusReport()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 136, in viewStatusReport
+    self.master.serial_write(b'\x80')
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 580, in serial_write
+    ret = self.serial.write(data)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 30, in write
+    self.serial.write(outData)
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 655, in write
+    raise SerialException('write failed: {}'.format(e))
+serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
+THREADS STOPED Tue Jun 13 13:10:15 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 13 13:23:50 2023
+EXCEPTION Tue Jun 13 13:24:25 2023 WriteRt :
+Traceback (most recent call last):
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 621, in write
+    n = os.write(self.fd, d)
+        ^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 5] Input/output error
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 838, in serialIOWriteRT
+    self.mcontrol.viewStatusReport()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 136, in viewStatusReport
+    self.master.serial_write(b'\x80')
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 580, in serial_write
+    ret = self.serial.write(data)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Serial.py", line 30, in write
+    self.serial.write(outData)
+  File "/home/erikcm/.local/lib/python3.11/site-packages/serial/serialposix.py", line 655, in write
+    raise SerialException('write failed: {}'.format(e))
+serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
+THREADS STOPED Tue Jun 13 13:24:31 2023
+THREADS INITIALIZED Tue Jun 13 13:24:35 2023
+THREADS STOPED Tue Jun 13 13:25:06 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Jun 14 10:36:12 2023
+THREADS STOPED Wed Jun 14 10:36:22 2023
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+THREADS INITIALIZED Fri Jun 16 16:05:11 2023
+THREADS STOPED Fri Jun 16 17:05:13 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Fri Jun 16 17:05:21 2023
+THREADS STOPED Fri Jun 16 17:17:12 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:22:57 2023
+EXCEPTION Mon Jun 19 11:22:57 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 988, in serialIOWrite
+    if self._checkAndEvaluateStop():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 942, in _checkAndEvaluateStop
+    self.clearSendBuffer()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 695, in clearSendBuffer
+    self.writeData.clear()
+    ^^^^^^^^^^^^^^
+AttributeError: 'Application' object has no attribute 'writeData'
+THREADS STOPED Mon Jun 19 11:23:28 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:23:34 2023
+THREADS STOPED Mon Jun 19 11:23:50 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:24:15 2023
+THREADS STOPED Mon Jun 19 11:26:00 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:26:05 2023
+THREADS STOPED Mon Jun 19 11:26:11 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:27:01 2023
+THREADS STOPED Mon Jun 19 11:27:09 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:27:49 2023
+THREADS STOPED Mon Jun 19 11:29:34 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:29:39 2023
+THREADS INITIALIZED Mon Jun 19 11:29:43 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:29:56 2023
+THREADS STOPED Mon Jun 19 11:30:04 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:30:46 2023
+THREADS STOPED Mon Jun 19 11:32:31 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:32:36 2023
+THREADS STOPED Mon Jun 19 11:33:23 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:34:40 2023
+THREADS STOPED Mon Jun 19 11:34:46 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:35:37 2023
+THREADS STOPED Mon Jun 19 11:35:44 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:39:12 2023
+THREADS STOPED Mon Jun 19 11:39:17 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:39:51 2023
+THREADS STOPED Mon Jun 19 11:44:02 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:44:07 2023
+THREADS STOPED Mon Jun 19 11:44:19 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:44:24 2023
+THREADS STOPED Mon Jun 19 11:44:43 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:44:48 2023
+THREADS STOPED Mon Jun 19 11:44:57 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:46:16 2023
+THREADS STOPED Mon Jun 19 11:46:42 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:47:34 2023
+THREADS STOPED Mon Jun 19 11:53:12 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:53:18 2023
+THREADS STOPED Mon Jun 19 11:54:06 2023
+EXCEPTION Mon Jun 19 11:54:06 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 990, in serialIOWrite
+    if self._checkAndEvaluateStop():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 952, in _checkAndEvaluateStop
+    self.onStopComplete()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 58, in onReset
+    self.runOnceOnResetFunctions[0]()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 416, in function
+    self.master.runEnded()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 727, in runEnded
+    self.updateStatusBar()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/__main__.py", line 2635, in updateStatusBar
+    def updateStatusBar(self):
+        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 650, in setProgress
+    self.draw()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 694, in draw
+    wn = int(width * (self.now  - self.low) / self.length)
+             ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:54:21 2023
+THREADS STOPED Mon Jun 19 11:55:24 2023
+EXCEPTION Mon Jun 19 11:55:24 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 990, in serialIOWrite
+    if self._checkAndEvaluateStop():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 952, in _checkAndEvaluateStop
+    self.onStopComplete()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 58, in onReset
+    self.runOnceOnResetFunctions[0]()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 416, in function
+    self.master.runEnded()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 727, in runEnded
+    self.updateStatusBar()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/__main__.py", line 2636, in updateStatusBar
+    self._selectI += 1
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 650, in setProgress
+    self.draw()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 694, in draw
+    wn = int(width * (self.now  - self.low) / self.length)
+             ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:55:31 2023
+THREADS STOPED Mon Jun 19 11:57:27 2023
+EXCEPTION Mon Jun 19 11:57:27 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 990, in serialIOWrite
+    continue
+      ^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 952, in _checkAndEvaluateStop
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 58, in onReset
+    self.runOnceOnResetFunctions[0]()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 416, in function
+    self.master.runEnded()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 727, in runEnded
+    if self.running:
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/__main__.py", line 2639, in updateStatusBar
+    # "thread" timed function looking for messages in the serial thread
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 650, in setProgress
+    self.draw()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 694, in draw
+    wn = int(width * (self.now  - self.low) / self.length)
+             ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'
+PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:58:24 2023
+THREADS STOPED Mon Jun 19 11:58:41 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:58:54 2023
+THREADS STOPED Mon Jun 19 11:59:44 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 11:59:51 2023
+THREADS STOPED Mon Jun 19 12:00:51 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Mon Jun 19 13:27:11 2023
+THREADS STOPED Mon Jun 19 14:06:28 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:13:50 2023
+THREADS STOPED Tue Jun 20 09:14:30 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:14:37 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:17:18 2023
+THREADS STOPED Tue Jun 20 09:18:37 2023
+EXCEPTION Tue Jun 20 09:18:37 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 985, in serialIOWrite
+    if self._checkAndEvaluateStop():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 947, in _checkAndEvaluateStop
+    self.onStopComplete.execute(lambda osc: osc() if osc else None)
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/ThreadVar.py", line 40, in execute
+    value = func(self.val)
+            ^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 947, in <lambda>
+    self.onStopComplete.execute(lambda osc: osc() if osc else None)
+                                            ^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 58, in onReset
+    self.runOnceOnResetFunctions[0]()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 416, in function
+    self.master.runEnded()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 726, in runEnded
+    self.updateStatusBar()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/__main__.py", line 2609, in updateStatusBar
+    if not self.running.value: return
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 650, in setProgress
+    self.draw()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 694, in draw
+    wn = int(width * (self.now  - self.low) / self.length)
+             ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:18:44 2023
+EXCEPTION Tue Jun 20 09:18:50 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 999, in serialIOWrite
+    toSend = Command.cmdFactory(self.getNextCommand())
+                                ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 857, in getNextCommand
+    return self.programEngine.getNextCommand()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/ProgramEngine.py", line 26, in getNextCommand
+    if self.lineIndex >= len(self.app.compiledProgram):
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: object of type 'ThreadVar' has no len()
+THREADS STOPED Tue Jun 20 09:20:03 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:21:02 2023
+EXCEPTION Tue Jun 20 09:21:18 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 1009, in serialIOWrite
+    self.executeInternalCommand(toSend)
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 928, in executeInternalCommand
+    if isinstance(code, tuple): return self.executeTupleInternalCommand(code)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 885, in executeTupleInternalCommand
+    self.ioData.sio_wait.value = True
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'bool' object has no attribute 'value'
+THREADS STOPED Tue Jun 20 09:22:33 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:22:41 2023
+THREADS STOPED Tue Jun 20 09:23:27 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:23:35 2023
+THREADS STOPED Tue Jun 20 09:23:47 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:25:48 2023
+THREADS STOPED Tue Jun 20 09:27:06 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:27:42 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:29:56 2023
+THREADS STOPED Tue Jun 20 09:30:53 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:30:59 2023
+THREADS STOPED Tue Jun 20 09:32:51 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:34:48 2023
+THREADS STOPED Tue Jun 20 09:35:07 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:35:36 2023
+EXCEPTION Tue Jun 20 09:35:48 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 991, in serialIOWrite
+    if self.ioData.processNode is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/IoData.py", line 74, in processNode
+    return copy.deepcopy(self._processNode.value)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 161, in deepcopy
+    rv = reductor(4)
+         ^^^^^^^^^^^
+TypeError: cannot pickle '_tkinter.tkapp' object
+THREADS STOPED Tue Jun 20 09:39:51 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:39:58 2023
+EXCEPTION Tue Jun 20 09:39:58 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 990, in serialIOWrite
+    if self.ioData.processNode.val:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'val'
+THREADS STOPED Tue Jun 20 09:40:29 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:40:35 2023
+THREADS STOPED Tue Jun 20 09:40:37 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:40:43 2023
+EXCEPTION Tue Jun 20 09:40:53 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 992, in serialIOWrite
+    if self.ioData.processNode is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/IoData.py", line 74, in processNode
+    return copy.deepcopy(self._processNode.value)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 172, in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 271, in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 146, in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 231, in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/copy.py", line 161, in deepcopy
+    rv = reductor(4)
+         ^^^^^^^^^^^
+TypeError: cannot pickle '_tkinter.tkapp' object
+THREADS STOPED Tue Jun 20 09:41:32 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:41:43 2023
+EXCEPTION Tue Jun 20 09:41:53 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 1008, in serialIOWrite
+    self.executeInternalCommand(toSend)
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 928, in executeInternalCommand
+    if isinstance(code, tuple): return self.executeTupleInternalCommand(code)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 913, in executeTupleInternalCommand
+    self.ioData.macrosRunning.assign(lambda x: x + 1)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'int' object has no attribute 'assign'
+THREADS STOPED Tue Jun 20 09:42:31 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:42:41 2023
+THREADS STOPED Tue Jun 20 09:43:33 2023
+EXCEPTION Tue Jun 20 09:43:33 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 985, in serialIOWrite
+    if self._checkAndEvaluateStop():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 947, in _checkAndEvaluateStop
+    self.onStopComplete.execute(lambda osc: osc() if osc else None)
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/ThreadVar.py", line 37, in execute
+    value = func(self.val)
+            ^^^^^^^^^^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 947, in <lambda>
+    self.onStopComplete.execute(lambda osc: osc() if osc else None)
+                                            ^^^^^
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 58, in onReset
+    self.runOnceOnResetFunctions[0]()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/controllers/_GenericController.py", line 416, in function
+    self.master.runEnded()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 726, in runEnded
+    self.updateStatusBar()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/__main__.py", line 2612, in updateStatusBar
+    self.statusbar.setProgress(self._runLines.value - len(self.deque),
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 650, in setProgress
+    self.draw()
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/lib/tkExtra.py", line 694, in draw
+    wn = int(width * (self.now  - self.low) / self.length)
+             ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:46:02 2023
+EXCEPTION Tue Jun 20 09:46:11 2023 Write : Traceback (most recent call last):
+  File "/home/erikcm/BJM/bCNC.git/master/bCNC/Sender.py", line 991, in serialIOWrite
+    if self.ioData.processNode.value is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MacroNode' object has no attribute 'value'
+THREADS STOPED Tue Jun 20 09:46:31 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:46:37 2023
+THREADS STOPED Tue Jun 20 09:48:44 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 09:59:25 2023
+THREADS STOPED Tue Jun 20 10:02:59 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 10:03:07 2023
+THREADS STOPED Tue Jun 20 10:04:45 2023
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Jun 20 10:04:53 2023
+THREADS STOPED Tue Jun 20 10:07:17 2023
+PROGRAM INITIALIZED

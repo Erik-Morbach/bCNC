@@ -12,12 +12,17 @@ class RepeatEngine:
 	repeatType: int
 	m30CounterLimit: tkinter.IntVar
 	m30Counter: tkinter.IntVar
+	totalM30: tkinter.IntVar
+	validM30: tkinter.IntVar
+	validRepetitions: int
 	app: any
 	fromSD: bool
 	def __init__(self, CNCRef):
 		self.CNCRef = CNCRef
 		self.m30Counter = tkinter.IntVar(value=0)
 		self.m30CounterLimit = tkinter.IntVar(value=0)
+		self.totalM30 = tkinter.IntVar(value=0)
+		self.validM30 = tkinter.IntVar(value=0)
 		self.cleanState()
 
 	def isRepeatable(self):
@@ -30,11 +35,21 @@ class RepeatEngine:
 			return True
 		return False
 
+	def initCountValidRepetitions(self):
+		self.validRepetitions = self.m30Counter.get()
+	def endCountValidRepetitions(self):
+		self.validM30.set(self.validM30.get() + self.m30Counter.get() - self.validRepetitions)
+
 	def countRepetition(self):
 		self.m30Counter.set(self.m30Counter.get() + 1)
+		self.totalM30.set(self.totalM30.get() + 1)
 
 	def cleanState(self):
 		self.repeatType = self.TYPE_NONE
+	
+	def resetM30Counter(self):
+		self.m30Counter.set(0)
+		self.validRepetitions = 0
 
 	def updateEngine(self, line:str):
 		lin = line[:]

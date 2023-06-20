@@ -47,7 +47,7 @@ class JogController:
         self.mtx.release()
 
     def update(self):
-        if self.app.running:
+        if self.app.running.value:
             return
         t = time.time()
         if t - self.lastTime >= self.period:
@@ -58,7 +58,7 @@ class JogController:
                     self.mutex.acquire()
 
     def jogEvent(self, data):
-        if self.app.running or \
+        if self.app.running.value or \
            CNC.vars["state"] == "Run" or \
            data is None or \
            time.time() - self.lastStop < self.releasePeriod or \

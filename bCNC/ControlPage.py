@@ -483,8 +483,10 @@ class RepeatEngineConfigureDialog(Dialog):
 			e.bind("<Return>", lambda x, s=self: s.focus_set())
 			f.pack(*args, **kwargs) #side=TOP, fill=X, expand=TRUE)
 
-		makeLabelEntry(frame, "Numero atual de execucoes: ", self.engine.m30Counter, side=TOP, fill=BOTH, expand=TRUE)
-		makeLabelEntry(frame, "Numero final de execucoes: ", self.engine.m30CounterLimit, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Peca do bloco de repeticoes:", self.engine.m30Counter, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Tamanho do bloco de repeticoes: ", self.engine.m30CounterLimit, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Numero total de execucoes: ", self.engine.totalM30, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Numero total de execucoes validas: ", self.engine.validM30, side=TOP, fill=BOTH, expand=TRUE)
 
 	def onExit(self):
 		self.destroy()
@@ -558,9 +560,16 @@ class RunGroup(CNCRibbon.ButtonGroup):
 				background=Ribbon._BACKGROUND)
 		b.pack(side=TOP, fill=BOTH)
 		f2 = Frame(f)
-		Label(f2, textvariable=self.app.gcode.repeatEngine.m30Counter, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
-		Label(f2, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
-		Label(f2, textvariable=self.app.gcode.repeatEngine.m30CounterLimit, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f3 = Frame(f2)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.m30Counter, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.m30CounterLimit, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f3.pack(side=TOP, expand=TRUE)
+		f3 = Frame(f2)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.totalM30, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.validM30, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f3.pack(side=TOP, expand=TRUE)
 		f2.pack(side=TOP,expand=TRUE)
 		f.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Repeticoes"))
@@ -654,7 +663,7 @@ class DROFrame(CNCRibbon.PageFrame):
 
 	#----------------------------------------------------------------------
 	def updateState(self):
-		msg = self.app._msg or CNC.vars["state"]
+		msg = self.app._msg.value or CNC.vars["state"]
 		if CNC.vars["pins"] is not None and CNC.vars["pins"] != "":
 			msg += " ["+CNC.vars["pins"]+"]"
 		self.state.config(text=msg, background=CNC.vars["color"])
@@ -682,7 +691,7 @@ class DROFrame(CNCRibbon.PageFrame):
 	# Do not give the focus while we are running
 	#----------------------------------------------------------------------
 	def workFocus(self, event=None):
-		if self.app.running:
+		if self.app.running.value:
 			self.app.focus_set()
 
 	#----------------------------------------------------------------------
@@ -862,7 +871,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 	# Do not give the focus while we are running
 	#----------------------------------------------------------------------
 	def workFocus(self, event=None):
-		if self.app.running:
+		if self.app.running.value:
 			self.app.focus_set()
 
 	#----------------------------------------------------------------------
@@ -887,7 +896,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 
 	#----------------------------------------------------------------------
 	def setA(self, event=None):
-		if self.app.running: return
+		if self.app.running.value: return
 		try:
 			value = round(eval(self.awork.get(), None, CNC.vars), 3)
 			self.app.mcontrol._wcsSet(None,None,None,value,None,None)
@@ -896,7 +905,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 
 	#----------------------------------------------------------------------
 	def setB(self, event=None):
-		if self.app.running: return
+		if self.app.running.value: return
 		try:
 			value = round(eval(self.bwork.get(), None, CNC.vars), 3)
 			self.app.mcontrol._wcsSet(None,None,None,None,value,None)
@@ -905,7 +914,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 
 	#----------------------------------------------------------------------
 	def setC(self, event=None):
-		if self.app.running: return
+		if self.app.running.value: return
 		try:
 			value = round(eval(self.cwork.get(), None, CNC.vars), 3)
 			self.app.mcontrol._wcsSet(None,None,None,None,None,value)
