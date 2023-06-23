@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 from _GenericGRBL import _GenericGRBL
 from _GenericController import SPLITPAT, TOOLSPLITPAT
-from CNC import CNC
+from CNC import CNC, WCS
 from CNCRibbon    import Page
 import time
 import Utils
@@ -234,8 +234,8 @@ class Controller(_GenericGRBL):
 				 CNC.vars["prbz"]-CNC.vars["wcoz"])
 			self.master._probeUpdate = True
 			CNC.vars[word[0]] = word[1:]
-		if word[0] in ["G54", "G55", "G56", "G57", "G58", "G59"]:
-			workId = int(word[0][1:])-53
+		if word[0] in WCS:
+			workId = WCS.index(word[0])+1
 			CNC.vars["workTable"][workId] = [float(w) for w in word[1:]]
 			self.onRecieveWork(workId, CNC.vars["workTable"][workId])
 		if word[0] in ["G59.1", "G59.2", "G59.3"]:
