@@ -7,8 +7,7 @@ class ThreadVar:
         self.mtx = threading.Lock()
 
     def lock(self):
-        if not self.mtx.acquire(blocking=True, timeout=5):
-            a = 15/0
+        self.mtx.acquire(blocking=True)
 
     def unlock(self):
         self.mtx.release()

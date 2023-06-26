@@ -266,7 +266,7 @@ class _GenericController:
 			return
 
 	def viewState(self): #Maybe rename to viewParserState() ???
-		self.master.serial_write(b'?')
+		self.master.sendGCode("$G")
 
 	#----------------------------------------------------------------------
 	def jog(self, dir):
@@ -464,7 +464,7 @@ class _GenericController:
 			if not self.master._alarm.value: self.master._posUpdate = True
 			self.master._alarm.value = True
 			self.displayState(line)
-			if self.master.running:
+			if self.master.running.value:
 				self.feedHold()
 				self.master._stop.value = True
 
