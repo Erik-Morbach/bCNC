@@ -294,7 +294,7 @@ class IteceProcess:
         wantedPosition = CNC.vars['mx']+self.iterationDistance
         wantedPosition = min(wantedPosition, self.getMaxPosition())
         if not self.isPositionValid(wantedPosition): return
-        self.app.sendGCode("G90G1X{}F{}".format(wantedPosition, self.iterationFeed))
+        self.app.sendGCode("G90G53G1X{}F{}".format(wantedPosition, self.iterationFeed))
 
 
     def _setState(self, state):

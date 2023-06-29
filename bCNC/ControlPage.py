@@ -1187,13 +1187,13 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		if event is not None and not self.acceptKey(): return
 		wantedPosition = CNC.vars['mx']+float(step)
 		wantedPosition = min(wantedPosition, self.app.iteceProcess.getMaxPosition())
-		self.app.sendGCode("G90G1X%.3fF100"%(wantedPosition))
+		self.app.sendGCode("G90G53G1X%.3fF100"%(wantedPosition))
 
 	def moveXdownStep(self, step, event=None):
 		if event is not None and not self.acceptKey(): return
 		wantedPosition = CNC.vars['mx']-float(step)
 		wantedPosition = max(wantedPosition, 0)
-		self.app.sendGCode("G90G1X%.3fF100"%(wantedPosition))
+		self.app.sendGCode("G90G53G1X%.3fF100"%(wantedPosition))
 
 	def moveXup(self, event=None):
 		if event is not None and not self.acceptKey(): return
