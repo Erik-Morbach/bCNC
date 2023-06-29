@@ -307,8 +307,9 @@ class IteceProcess:
 
     def _stateChange(self) -> None:
         buffIo = self.getBufferedIo()
-        s1 = (buffIo & 1) > 0
-        s2 = (buffIo & 2) > 0
+        inps = CNC.vars['inputs']
+        s1 = (inps & 1) > 0
+        s2 = (inps & 2) > 0
 
         if self.currentState == states.Waiting:
             if s1 == 1: self._setState(states.Entering)
