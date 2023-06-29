@@ -102,6 +102,13 @@ class IteceProcess:
         self.angularVelocity = Utils.getFloat("Itece", "defaultAngularVelocity", 125.66) # rad/s
         self.iterationDistance = Utils.getFloat("Itece", "iterationDistance", 0.2) # mm
         self.iterationFeed = Utils.getFloat("Itece", "iterationFeed", 20) # mm/min
+        
+        self.bufferedIoMaxBlock = Utils.getFloat("Itece", "ioBufferMaxBlock", 0.1)
+        self.bufferedIoDelay = Utils.getFloat("Itece", "ioBufferDelay", 0.03)
+        self.bufferedIoSize = Utils.getInt("Itece", "ioBufferSize", 10)
+        self.bufferedIoSum = [0,0]
+        self.bufferedIoIndex = 0
+        self.bufferedIo = [(0,0)]*self.bufferedIoSize
 
         self.updateVelocityMethod = self._updateToHighSpeed
 
@@ -140,10 +147,30 @@ class IteceProcess:
     def setNewRpm(self, rpm) -> None:
         self._updateAngular(rpm)
 
+    def bufferedIoUpdate(self) -> None:
+        inps = CNC.vars['inputs']
+        value = []
+        for i in range(0,1):
+            value += [1 if inps&i else 0]
+            self.bufferedIoSum[i] += value[i]
+            self.bufferedIoSum[i] -= self.bufferedIo[self.bufferedIoIndex][i]
+        self.bufferedIo[self.bufferedIoIndex] = tuple(value)
+        self.bufferedIoIndex += 1
+        self.bufferedIoIndex %= self.bufferedIoSize
+
+    def getBufferedIo(self) -> int:
+        value = 0
+        for i in range(0,1):
+            value += (1<<i)*(1 if self.bufferedIoSum[i] >= self.bufferedIoSize else 0)
+        return 0;
+
     def _process(self) -> None:
         self._startupProcess()
         while self.mutex.locked():
-            time.sleep(0.1)
+            to = time.time()
+            while time.time() - to <= self.bufferedIoMaxBlock:
+                self.bufferedIoUpdate()
+                time.sleep(self.bufferedIoDelay)
             self._rpmCompensation()
             self._stateChange()
             self.updateVelocityMethod()
@@ -279,18 +306,18 @@ class IteceProcess:
             self.updateVelocityMethod = self._setHighSpeed
 
     def _stateChange(self) -> None:
-        s1 = (CNC.vars["inputs"] & 1) > 0
-        s2 = (CNC.vars["inputs"] & 2) > 0
+        buffIo = self.getBufferedIo()
+        s1 = (buffIo & 1) > 0
+        s2 = (buffIo & 2) > 0
 
         if self.currentState == states.Waiting:
             if s1 == 1: self._setState(states.Entering)
             return
         if self.currentState == states.Entering:
-            if (s1 == 1 and s2 == 1) or (s1==0 and s2==0): self._setState(states.Middle)
-            elif s1 == 0 and s2 == 1: self._setState(states.Rotating)
+            if s2 == 1: self._setState(states.Middle)
             return
         if self.currentState == states.Middle:
-            if s1 == 0 and s2 == 1: self._setState(states.Rotating)
+            if s2 == 0: self._setState(states.Rotating)
             return
         if self.currentState == states.Rotating:
             if s1 == 1: self._setState(states.ReEntering)
@@ -300,5 +327,5 @@ class IteceProcess:
             return
         if self.currentState == states.Exiting:
             if s2 == 0: self._setState(states.Waiting)
-
+            return
 
