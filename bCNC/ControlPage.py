@@ -1825,7 +1825,8 @@ class SpindleFrame(CNCRibbon.PageLabelFrame):
 				showvalue=True,
 				orient=HORIZONTAL,
 				from_=Utils.config.get("CNC","spindlemin"),
-				to_=Utils.config.get("CNC","spindlemax"))
+				to_=Utils.config.get("CNC","spindlemax"),
+				width=50)
 		tkExtra.Balloon.set(b, _("Set spindle RPM"))
 		b.pack(side=LEFT, fill=X, expand=TRUE)
 		f3.pack(side=TOP, fill=BOTH, expand=TRUE)
@@ -1913,7 +1914,8 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 					orient=HORIZONTAL,
 					from_=from_,
 					to_=to_,
-					resolution=res)
+					resolution=res,
+					width=30)
 			scale.pack(side=TOP, fill=BOTH, expand=TRUE)
 			f.pack(side=TOP, fill=BOTH, expand=TRUE)
 			return scale
@@ -1935,7 +1937,8 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 					orient=HORIZONTAL,
 					from_=from_,
 					to_=to_,
-					resolution=res)
+					resolution=res,
+					width=30)
 			scale.pack(side=LEFT, fill=BOTH, expand=TRUE)
 			f.pack(side=TOP, fill=BOTH, expand=TRUE)
 			return scale

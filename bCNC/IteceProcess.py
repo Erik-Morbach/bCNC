@@ -300,7 +300,7 @@ class IteceProcess:
     def _setState(self, state):
         self.currentState = state
         CNC.vars["processState"] = state
-        if state == states.Rotating:
+        if state in [states.Rotating, states.Middle]:
             self.updateVelocityMethod = self._setLowSpeed
         else:
             self.updateVelocityMethod = self._setHighSpeed
