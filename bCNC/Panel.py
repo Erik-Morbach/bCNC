@@ -202,7 +202,7 @@ class Jog(MemberImpl):
         self.app.jogMutex = None
 
     def callback(self, pinValues):
-        if self.app.running.running or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
+        if self.app.running.value or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
             return
         shouldStop = False
         if len(self.lastPinValues) == len(pinValues):
