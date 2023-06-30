@@ -1,0 +1,6 @@
+wait()
+code("G53 G0 Z-5")
+wait()
+code("$501 = 2")
+code("$502 = 2")
+code("$503 = 2")

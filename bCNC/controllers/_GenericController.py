@@ -12,6 +12,8 @@ import time
 import re
 import threading
 
+from bCNC.Sender import WRITE_THREAD_PERIOD
+
 #GRBLv1
 SPLITPAT  = re.compile(r"[:,]")
 TOOLSPLITPAT  = re.compile(r"[:|,]")
@@ -95,7 +97,7 @@ class _GenericController:
 
 	def setConnection(self, id, value):
 		self.master.sendGCode("$%d=%d"%(id, value))
-		self.master.sendGCode((8,2))
+		self.master.sendGCode((8,0.5//WRITE_THREAD_PERIOD)) #Pause for 0.5 seconds
 
 	def xConnection(self, connection):
 		self.setConnection(500, connection)
@@ -142,52 +144,11 @@ class _GenericController:
 	#----------------------------------------------------------------------
 	def home(self, event=None):
 		self.master._alarm.value = False
-		self.zConnection(1)
-		self.master.sendGCode("$HZ")
-		self.master.sendGCode((4,))
-		self.zConnection(2)
-		self.master.sendGCode("$HZ")
-		self.master.sendGCode((4,))
-		distance = CNC.vars["zGangedDifference"]
-		self.master.sendGCode("G91G0Z%.3f" % distance)
-		self.master.sendGCode((4,))
-		self.zConnection(3)
-		self.master.sendGCode("$HZ")
-		self.master.sendGCode((4,))
 
-		self.xConnection(1)
-		self.master.sendGCode("$HX")
-		self.master.sendGCode((4,))
-		self.xConnection(2)
-		self.master.sendGCode("$HX")
-		self.master.sendGCode((4,))
-		distance = CNC.vars["cavityDistance"] - CNC.vars["punctureDistance"]
-		self.master.sendGCode("G91G0X%.3f" % distance)
-		self.master.sendGCode((4,))
-		self.xConnection(3)
-		self.master.sendGCode("$HX")
-		self.master.sendGCode((4,))
-
-		self.master.sendGCode("$HY")
-		self.master.sendGCode((4,))
-
-		self.aConnection(1)
-		self.master.sendGCode("$HA")
-		self.master.sendGCode((4,))
-		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a1Position"])
-		self.master.sendGCode((4,))
-		self.aConnection(2)
-		self.master.sendGCode("$HA")
-		self.master.sendGCode((4,))
-		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a2Position"])
-		self.master.sendGCode("G53 G0 A%.3f" % CNC.vars["a2Position"])
-		self.master.sendGCode((4,))
-
-		workTable = self.master.workTable.getTable()
-		work, index = self.master.workTable.getRow(1)
-		workTable[index]['a'] = float(CNC.vars["a2Position"])
-		self.master.workTable.save(workTable)
-		self.sendWork(1)
+		if self.master.scripts.find("UserHome"):
+			self.master.executeCommand("UserHome")
+		else:
+			self.master.sendGCode("$H")
 
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
