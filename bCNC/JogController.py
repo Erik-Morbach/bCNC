@@ -4,6 +4,7 @@ import functools
 import time
 from CNC import CNC
 import Utils
+import ThreadVar
 
 class JogController:
     def __init__(self, app, keys):
@@ -25,8 +26,8 @@ class JogController:
         self.plannerLimit = Utils.getInt("Jog","planner", 90)
         self.period = Utils.getFloat("Jog", "debounce", 0.05)
         self.releasePeriod = Utils.getFloat("Jog", "beginPeriod", 0.05)
-        self.lastTime = 0
-        self.lastStop = 0
+        self.lastTime = ThreadVar.ThreadVar(0.0)
+        self.lastStop = ThreadVar.ThreadVar(0.0)
         self.mutex = threading.Lock()
         self.mutex.acquire()
         self.active = Utils.getBool("Jog", "keyboard", False)
@@ -47,24 +48,24 @@ class JogController:
         self.mtx.release()
 
     def update(self):
-        if self.app.running.value:
+        if self.app.running.val:
             return
         t = time.time()
-        if t - self.lastTime >= self.period:
+        if t - self.lastTime.value >= self.period:
             if not self.mutex.locked() or CNC.vars["state"] == "Jog":
                 self.app.event_generate("<<JogStop>>", when="tail")
-                self.lastStop = time.time()
+                self.lastStop.value = time.time()
                 if CNC.vars["state"] != "Jog":
                     self.mutex.acquire()
 
     def jogEvent(self, data):
-        if self.app.running.value or \
+        if self.app.running.val or \
            CNC.vars["state"] == "Run" or \
            data is None or \
-           time.time() - self.lastStop < self.releasePeriod or \
+           time.time() - self.lastStop.value < self.releasePeriod or \
            not CNC.vars["JogActive"]:
             return
-        self.lastTime = time.time()
+        self.lastTime.value = time.time()
         if self.mutex.locked():
             self.mutex.release()
         if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:

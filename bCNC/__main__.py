@@ -426,7 +426,6 @@ class Application(Toplevel, Sender):
         self.bind('<<JOG>>', jog)
         def stopJog(*args):
             if self.serial is None: return
-            self.serial_write(chr(0x85))
             self.clearSendBuffer()
             for _ in range(20):
                 self.serial_write(chr(0x85))
@@ -526,7 +525,7 @@ class Application(Toplevel, Sender):
     # Accept the user key if not editing any text
     # ----------------------------------------------------------------------
     def acceptKey(self, skipRun=False):
-        if not skipRun and self.running.value: return False
+        if not skipRun and self.running.val: return False
         focus = self.focus_get()
         if isinstance(focus, Entry) or \
                 isinstance(focus, Spinbox) or \

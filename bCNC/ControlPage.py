@@ -564,12 +564,13 @@ class RunGroup(CNCRibbon.ButtonGroup):
 		Label(f3, textvariable=self.app.gcode.repeatEngine.m30Counter, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
 		Label(f3, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
 		Label(f3, textvariable=self.app.gcode.repeatEngine.m30CounterLimit, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
-		f3.pack(side=TOP, expand=TRUE)
+		f3.pack(side=LEFT, expand=TRUE)
+		ttk.Separator(f2, orient=VERTICAL).pack(side=LEFT, fill=BOTH, expand=TRUE, padx=5)
 		f3 = Frame(f2)
 		Label(f3, textvariable=self.app.gcode.repeatEngine.totalM30, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
 		Label(f3, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
 		Label(f3, textvariable=self.app.gcode.repeatEngine.validM30, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
-		f3.pack(side=TOP, expand=TRUE)
+		f3.pack(side=LEFT, expand=TRUE)
 		f2.pack(side=TOP,expand=TRUE)
 		f.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Repeticoes"))
@@ -1873,28 +1874,21 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 
 		# State
 		f = Frame(self)
-		# ===
-		f2 = Frame(f)
-		for p,w in enumerate(WCS):
-			b = Radiobutton(f2, text=w,
-					foreground="DarkRed",
-					font = "Helvetica,14",
-					padx=1, pady=1,
-					variable=wcsvar,
-					value=p,
-					indicatoron=FALSE,
-					activebackground="LightYellow",
-					command=self.wcsChange)
-			b.pack(side=LEFT, fill=X, expand=YES)
-			tkExtra.Balloon.set(b, _("Switch to workspace %s")%(w))
-			self.addWidget(b)
-		f2.pack(side=TOP, fill=X, expand=TRUE)
 		f2 = Frame(f)
 		lef = Frame(f2) # side = left
 		rig = Frame(f2) # side = Right
 		# populate gstate dictionary
 		self.gstate = {}	# $G state results widget dictionary
-	
+
+		# WCS
+		f3 = Frame(lef)
+		Label(f3, text=_("WCS:"), width=15).pack(side=LEFT)
+		self.wcs = Label(f3,
+				background=tkExtra.GLOBAL_CONTROL_BACKGROUND, 
+				width=7, relief=RAISED)
+		self.wcs.pack(side=LEFT)
+		tkExtra.Balloon.set(self.wcs, _("WCS"))
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 		# Tool
 		f3 = Frame(lef)
 		Label(f3, text=_("Tool:"), width=15).pack(side=LEFT)
@@ -2041,7 +2035,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		f3 = Frame(f2)
 		self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride, 1, 200, 1)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
-		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
@@ -2170,6 +2163,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 			focus = None
 
 		try:
+			self.wcs['text'] = str(CNC.vars["WCS"])
 			wcsvar.set(WCS.index(CNC.vars["WCS"]))
 			self.feedRate['text'] = str(CNC.vars["feed"])
 			self.tool['text'] = str(CNC.vars["tool"])

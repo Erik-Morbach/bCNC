@@ -67,9 +67,9 @@ SERIAL_TIMEOUT = 0.04	# s
 G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
-WRITE_THREAD_PERIOD = 0.050 #s
-WRITE_THREAD_RT_PERIOD = 0.016 #s
-
+WRITE_THREAD_PERIOD = 0.0005 #s
+WRITE_THREAD_RT_PERIOD = 0.0001 #s
+READ_THREAD_PERIOD = 0.0001
 print(SERIAL_POLL)
 
 
@@ -138,6 +138,7 @@ class Sender:
 		self.log	 = Queue()	# Log queue returned from GRBL
 		self.deque	 = lib.Deque.Deque()	# Command queue to be send to GRBL
 		self.pendant	 = Queue()	# Command queue to be executed from Pendant
+		self.readQueue = Queue()
 		self.ioData = IoData.IoData()
 		self.ioData.clear()
 		self.serial	 = None
@@ -613,8 +614,10 @@ class Sender:
 		self.writeThread  = threading.Thread(target=self.serialIOWrite)
 		self.writeRTThread  = threading.Thread(target=self.serialIOWriteRT)
 		self.readThread = threading.Thread(target=self.serialIORead)
+		self.readExecutorThread = threading.Thread(target=self.readExecutor)
 		self.writeThread.start()
 		self.writeRTThread.start()
+		self.readExecutorThread.start()
 		self.readThread.start()
 		self.mcontrol.softReset()
 		self.serial_write("$$\n$#\n")
@@ -636,6 +639,7 @@ class Sender:
 		self.writeThread = None
 		self.writeRTThread = None
 		self.readThread = None
+		self.readExecutorThread = None
 		time.sleep(1)
 		try:
 			self.serial.close()
@@ -782,16 +786,34 @@ class Sender:
 			self.cleanAfter = False
 			self.jobDone()
 
+	def readExecutor(self):
+		while self.readExecutorThread:
+			if self.readQueue.empty():
+				time.sleep(READ_THREAD_PERIOD*20)
+				continue
+			line = self.readQueue.get(block=True, timeout=1)
+			try:
+				if self.mcontrol.parseLine(line, self.ioData):
+					pass
+				else:
+					self.log.put((Sender.MSG_RECEIVE, line))
+			except:
+				print(line)
+				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+
 	def serialIORead(self):
 		buff = ""
 		try:
 			while self.readThread:
-				time.sleep(0.0001)
+				time.sleep(READ_THREAD_PERIOD)
 				# Anything to receive?
+				rawLine = ""
 				try:
-					line = str(self.serial.read().decode())
+					rawLine = self.serial.read()
+					line = str(rawLine.decode('utf-8','ignore'))
 					buff += line
 				except:
+					print(rawLine)
 					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
 				index = buff.find('\n')
 				if index != -1:
@@ -799,13 +821,7 @@ class Sender:
 					buff = buff[index+1:]
 				else:
 					continue
-				try:
-					if self.mcontrol.parseLine(line, self.ioData):
-						pass
-					else:
-						self.log.put((Sender.MSG_RECEIVE, line))
-				except:
-					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+				self.readQueue.put(line)
 		except:
 			with open("myLog.txt",'a') as logfile:
 				logfile.write("EXCEPTION {} {} : {}".format(time.ctime(), "Read" ,str(traceback.format_exc())))
@@ -1035,10 +1051,12 @@ class Sender:
 				if self.isRxBufferFull():
 					continue
 
-				toSend = self.ioData.toSend
-				self.serial_write(toSend.src)
+				toSend = self.ioData.toSend.src[:]
+				if toSend is None:
+					continue
+				self.serial_write(toSend)
 				self.serial.flush()
-				self.log.put((Sender.MSG_SEND, toSend.src))
+				self.log.put((Sender.MSG_SEND, toSend))
 				self.ioData.toSend = None
 		except:
 			with open("myLog.txt",'a') as logfile:
