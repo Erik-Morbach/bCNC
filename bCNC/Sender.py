@@ -892,7 +892,7 @@ class Sender:
 
 	def executeTupleInternalCommand(self, code):
 		id = code[0]
-		if len(code)==2:
+		if len(code)>=2:
 			value = code[1]
 		else:
 			value = None
