@@ -34,6 +34,7 @@ setup(
 		'Pillow',
 		'wiringpi',
 		'matplotlib',
+		'mttkinter',
 		'opencv-python; ("arm" not in platform_machine) and ("aarch64" not in platform_machine)',	#Note there are no PyPI OpenCV packages for ARM (Raspberry PI, Orange PI, etc...)
 	],
 

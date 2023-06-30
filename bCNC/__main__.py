@@ -23,6 +23,7 @@ import getopt
 import socket
 import traceback
 import threading
+import copy
 
 from datetime import datetime
 
@@ -81,6 +82,7 @@ from ProbePage import ProbePage
 from EditorPage import EditorPage
 from ThreadConfigurator import ThreadConfigurator
 import CNCCanvas
+import ThreadVar
 
 
 from mttkinter import *
@@ -406,36 +408,12 @@ class Application(Toplevel, Sender):
         self.bind('<<ToolRename>>', tools.rename)
 
         self.jogMutex = None
-
+        self.jogData = ""
         def releaseJogMutex():
             if self.jogMutex is None:
                 return
             if self.jogMutex.locked():
                 self.jogMutex.release()
-        def xUp(*args):
-            self.control.moveXup()
-            releaseJogMutex()
-        def xDown(*args):
-            self.control.moveXdown()
-            releaseJogMutex()
-        def yUp(*args):
-            self.control.moveYup()
-            releaseJogMutex()
-        def yDown(*args):
-            self.control.moveYdown()
-            releaseJogMutex()
-        def zUp(*args):
-            self.control.moveZup()
-            releaseJogMutex()
-        def zDown(*args):
-            self.control.moveZdown()
-            releaseJogMutex()
-        def bUp(*args):
-            self.control.moveBup()
-            releaseJogMutex()
-        def bDown(*args):
-            self.control.moveBdown()
-            releaseJogMutex()
         def jog(*args):
             data = self.jogData
             axis = ""
@@ -445,21 +423,10 @@ class Application(Toplevel, Sender):
                 directions += data[i+1]
             self.control.move(axis, directions, 1)
             releaseJogMutex()
-
         self.bind('<<JOG>>', jog)
-
-        self.bind('<<XUp>>', xUp)
-        self.bind('<<XDown>>', xDown)
-        self.bind('<<YUp>>', yUp)
-        self.bind('<<YDown>>', yDown)
-        self.bind('<<ZUp>>', zUp)
-        self.bind('<<ZDown>>', zDown)
-        self.bind('<<BUp>>', bUp)
-        self.bind('<<BDown>>', bDown)
-
         def stopJog(*args):
             if self.serial is None: return
-            self.emptyDeque()
+            self.clearSendBuffer()
             for _ in range(20):
                 self.serial_write(chr(0x85))
             self.serial.flush()
@@ -498,7 +465,10 @@ class Application(Toplevel, Sender):
         self._drawAfter = None  # after handle for modification
         self._inFocus = False
         self._insertCount = 0  # END - insertCount lines where ok was applied to for $xxx commands
-        self._selectI = 0
+        self._selectI = ThreadVar.ThreadVar(0)
+        self._gcount = ThreadVar.ThreadVar(0)
+        self._paths = ThreadVar.ThreadVar(None)
+        self._compiledRunLines = ThreadVar.ThreadVar(None)
         self.monitorSerial()
         self.canvasFrame.toggleDrawFlag()
 
@@ -555,7 +525,7 @@ class Application(Toplevel, Sender):
     # Accept the user key if not editing any text
     # ----------------------------------------------------------------------
     def acceptKey(self, skipRun=False):
-        if not skipRun and self.running: return False
+        if not skipRun and self.running.val: return False
         focus = self.focus_get()
         if isinstance(focus, Entry) or \
                 isinstance(focus, Spinbox) or \
@@ -565,11 +535,11 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def quit(self, event=None):
-        if self.running and self._quit < 1:
+        if self.running.value and self._quit.value < 1:
             tkMessageBox.showinfo(_("Running"),
                                   _("CNC is currently running, please stop it before."),
                                   parent=self)
-            self._quit += 1
+            self._quit.assign(lambda x: x + 1)
             return
         del self.widgets[:]
 
@@ -752,7 +722,7 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def undo(self, event=None):
-        if not self.running and self.gcode.canUndo():
+        if not self.running.value and self.gcode.canUndo():
             self.gcode.undo();
             self.editor.fill()
             self.drawAfter()
@@ -760,7 +730,7 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def redo(self, event=None):
-        if not self.running and self.gcode.canRedo():
+        if not self.running.value and self.gcode.canRedo():
             self.gcode.redo();
             self.editor.fill()
             self.drawAfter()
@@ -952,7 +922,7 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def alarmClear(self, event=None):
-        self._alarm = False
+        self._alarm.value = False
 
     # -----------------------------------------------------------------------
     # Display information on selected blocks
@@ -1153,8 +1123,8 @@ class Application(Toplevel, Sender):
 
     # -----------------------------------------------------------------------
     def viewChange(self, event=None):
-        if self.running:
-            self._selectI = 0  # last selection pointer in items
+        if self.running.value:
+            self._selectI.value = 0  # last selection pointer in items
         self.draw()
 
     # ----------------------------------------------------------------------
@@ -2097,7 +2067,7 @@ class Application(Toplevel, Sender):
     # Create a new file
     # -----------------------------------------------------------------------
     def newFile(self, event=None):
-        if self.running: return
+        if self.running.value: return
         if self.fileModified(): return
         self.gcode.init()
         self.gcode.headerFooter()
@@ -2109,7 +2079,7 @@ class Application(Toplevel, Sender):
     # load dialog
     # -----------------------------------------------------------------------
     def loadDialog(self, event=None):
-        if self.running: return
+        if self.running.value: return
         filename = bFileDialog.askopenfilename(master=self,
                                                title=_("Open file"),
                                                initialfile=os.path.join(
@@ -2123,7 +2093,7 @@ class Application(Toplevel, Sender):
     # save dialog
     # -----------------------------------------------------------------------
     def saveDialog(self, event=None):
-        if self.running: return
+        if self.running.value: return
         fn, ext = os.path.splitext(Utils.getUtf("File", "file"))
         if ext in (".dxf", ".DXF"): ext = ".ngc"
         filename = bFileDialog.asksaveasfilename(master=self,
@@ -2326,22 +2296,19 @@ class Application(Toplevel, Sender):
             self.update()  # very tricky function of Tk
         except TclError:
             pass
-        return self._stop
+        return self._stop.value
 
     # -----------------------------------------------------------------------
     # Send enabled gcode file to the CNC machine
     # -----------------------------------------------------------------------
 
     def run(self, lines=None, cleanRepeat=False):
-        if CNC.vars["SafeDoor"]:
-            return
-        if self.checkStop():
-            return
+        if CNC.vars["SafeDoor"]: return
+        if self.checkStop(): return
+
         if cleanRepeat:
             self.gcode.repeatEngine.cleanState()
-        if self.repeatLock is not None and self.repeatLock.locked():
-            self.repeatLock.release()
-            return
+
         self.cleanAfter = True  # Clean when this operation stops
         print("Will clean after this operation")
 
@@ -2350,8 +2317,8 @@ class Application(Toplevel, Sender):
                                    _("Serial is not connected"),
                                    parent=self)
             return
-        if self.running:
-            if self._pause:
+        if self.running.value:
+            if self._pause.value:
                 self.resume()
                 return
             tkMessageBox.showerror(_("Already running"),
@@ -2366,12 +2333,12 @@ class Application(Toplevel, Sender):
         # the buffer of the machine should be empty?
         self.initRun()
         self.canvas.clearSelection()
-        self._runLines = sys.maxsize  # temporary WARNING this value is used
+        self._runLines.value = sys.maxsize  # temporary WARNING this value is used
         # by Sender._serialIO to check if we
         # are still sending or we finished
-        self._gcount = 0  # count executed lines
-        self._selectI = 0  # last selection pointer in items
-        self._paths = None  # temporary
+        self._gcount.value = 0 # count executed lines
+        self._selectI.value = 0  # last selection pointer in items
+        self._paths = ThreadVar.ThreadVar(None)  # temporary
         CNC.vars["running"] = True  # enable running status
         CNC.vars["_OvChanged"] = True  # force a feed change if any
         if self._onStart:
@@ -2394,14 +2361,15 @@ class Application(Toplevel, Sender):
             #		print ">>>",line
             # self._paths = self.gcode.compile(MyQueue(), self.checkStop)
             # return
-            self.compiledProgram = []
-            self._paths = self.gcode.compile(self.compiledProgram, self.checkStop)
+            rawCompiledProgram = []
+            self._paths.value = self.gcode.compile(rawCompiledProgram, self.checkStop)
+            self.compiledProgram = ThreadVar.ThreadVar(rawCompiledProgram)
 
-            if self._paths is None:
-                self.emptyDeque()
+            if self._paths.value is None:
+                self.clearSendBuffer()
                 self.purgeController()
                 return
-            elif not self._paths:
+            elif not self._paths.value:
                 self.runEnded()
                 tkMessageBox.showerror(_("Empty gcode"),
                                        _("Not gcode file was loaded"),
@@ -2411,7 +2379,10 @@ class Application(Toplevel, Sender):
             # reset colors
             def prepareCanvas():
                 before = time.time()
-                for ij in self._paths:  # Slow loop
+                self._paths.lock()
+                pathCp = copy.deepcopy(self._paths.val)
+                self._paths.unlock()
+                for ij in pathCp:  # Slow loop
                     if not ij: continue
                     path = self.gcode[ij[0]].path(ij[1])
                     if path:
@@ -2426,8 +2397,8 @@ class Application(Toplevel, Sender):
             self.gcode.repeatEngine.countRepetition()
 
             # the buffer of the machine should be empty?
-            self._runLines = len(self._paths) + 1  # plus the wait
-            self._compiledRunLines = self._runLines
+            self._runLines.value = len(self._paths.value) + 1  # plus the wait
+            self._compiledRunLines.value = self._runLines.value
         else:
             n = 1  # including one wait command
             for line in CNC.compile(lines):
@@ -2437,11 +2408,12 @@ class Application(Toplevel, Sender):
                     else:
                         self.deque.append(line)
                     n += 1
-            self._runLines = n  # set it at the end to be sure that all lines are queued
+            self._runLines.value = n  # set it at the end to be sure that all lines are queued
+            self._compiledRunLines.value = self._runLines.value
         self.deque.append((WAIT,))  # wait at the end to become idle
 
         self.setStatus(_("Running..."))
-        self.statusbar.setLimits(0, self._runLines)
+        self.statusbar.setLimits(0, self._runLines.value)
         self.statusbar.configText(fill="White")
         self.statusbar.config(background="DarkGray")
 
@@ -2574,11 +2546,11 @@ class Application(Toplevel, Sender):
             try:
                 CNC.vars["color"] = STATECOLOR[state]
             except KeyError:
-                if self._alarm:
+                if self._alarm.value:
                     CNC.vars["color"] = STATECOLOR["Alarm"]
                 else:
                     CNC.vars["color"] = STATECOLORDEF
-            self._pause = ("Hold" in state)
+            self._pause.value = ("Hold" in state)
             self.dro.updateState()
             self.dro.updateCoords()
             self.gcodeViewFrame.update()
@@ -2617,23 +2589,30 @@ class Application(Toplevel, Sender):
 
         self.panel.update()
 
-        if self.running:
-            self.statusbar.setProgress(self._runLines - len(self.deque),
-                                       self._gcount)
-            CNC.vars["msg"] = self.statusbar.msg
-            self.bufferbar.setProgress(Sender.getBufferFill(self))
-            self.bufferbar.setText("%i%%" % Sender.getBufferFill(self))
-
-            if self._selectI >= 0 and self._paths:
-                while self._selectI <= self._gcount and self._selectI < len(self._paths):
-                    if self._paths[self._selectI]:
-                        i, j = self._paths[self._selectI]
+        if self.running.value:
+            self.updateStatusBar()
+            self._selectI.lock()
+            self._paths.lock()
+            if self._selectI.val >= 0 and self._paths.val:
+                while self._selectI.val <= self._gcount.value and self._selectI.val < len(self._paths.val):
+                    if self._paths.val[self._selectI.val]:
+                        i, j = self._paths.val[self._selectI.val]
                         path = self.gcode[i].path(j)
                         if path:
                             self.canvas.itemconfig(path,
                                                    width=2,
                                                    fill=CNCCanvas.PROCESS_COLOR)
-                    self._selectI += 1
+                    self._selectI.val += 1
+            self._selectI.unlock()
+            self._paths.unlock()
+
+    def updateStatusBar(self):
+        if not self.running.value: return
+        self.statusbar.setProgress(self._runLines.value - len(self.deque),
+                                   self._gcount.value)
+        CNC.vars["msg"] = self.statusbar.msg
+        self.bufferbar.setProgress(Sender.getBufferFill(self))
+        self.bufferbar.setText("%i%%" % Sender.getBufferFill(self))
 
     # -----------------------------------------------------------------------
     # "thread" timed function looking for messages in the serial thread

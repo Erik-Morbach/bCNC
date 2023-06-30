@@ -1,3 +1,4 @@
+import threading
 import Utils
 import serial
 import ecc
@@ -11,7 +12,14 @@ class Serial:
 		self.last = 0
 		self.have = False
 		self.shouldRead = False
+		self.mtx = threading.Lock()
 		pass
+
+	def lock(self, msg):
+		self.mtx.acquire(blocking=True)
+
+	def unlock(self, msg):
+		self.mtx.release()
 
 	def flushInput(self):
 		self.serial.flushInput()
@@ -20,14 +28,15 @@ class Serial:
 		self.serial.flush()
 
 	def write(self, data):
-		if not self.activeEcc:
-			self.serial.write(data)
-			return
-		outData = bytes()
-		for w in data:
-			outData += ecc.encodeOne(1).to_bytes(2, 'big')
-			outData += ecc.encodeOne(w).to_bytes(2, 'big')
+		outData = data
+		if self.activeEcc:
+			outData = bytes()
+			for w in data:
+				outData += ecc.encodeOne(1).to_bytes(2, 'big')
+				outData += ecc.encodeOne(w).to_bytes(2, 'big')
+		self.lock("write")
 		self.serial.write(outData)
+		self.unlock("write")
 	
 	def in_waiting(self):
 		return self.serial.in_waiting
@@ -58,10 +67,13 @@ class Serial:
 
 	def read(self):
 		n = max(self.serial.in_waiting,1)
-		if not self.activeEcc:
-			return self.serial.read(n)
-		data = bytes()
 		recieved = self.serial.read(n)
+
+		if not self.activeEcc:
+			return recieved
+
+		data = bytes()
 		for w in recieved:
 			data += self._readChar(w)
+
 		return data

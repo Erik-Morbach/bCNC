@@ -112,7 +112,7 @@ class _GenericController:
 			self.hardResetAfter()
 		self.master.openClose()
 		self.master.stopProbe()
-		self.master._alarm = False
+		self.master._alarm.value = False
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.master.notBusy()
 		self.viewParameters()
@@ -130,7 +130,7 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def unlock(self, clearAlarm=True):
-		if clearAlarm: self.master._alarm = False
+		if clearAlarm: self.master._alarm.value = False
 		self.clearError()
 		self.viewParameters()
 
@@ -141,6 +141,7 @@ class _GenericController:
 
 	#----------------------------------------------------------------------
 	def home(self, event=None):
+		self.master._alarm.value = False
 		self.zConnection(1)
 		self.master.sendGCode("$HZ")
 		self.master.sendGCode((4,))
@@ -191,7 +192,6 @@ class _GenericController:
 	def viewStatusReport(self):
 		self.master.serial_write(b'\x80')
 		self.master.serial.flush()
-		self.master.sio_status = True
 
 	def viewConfiguration(self):
 		self.master.sendGCode("$$")
@@ -323,7 +323,7 @@ class _GenericController:
 			return
 
 	def viewState(self): #Maybe rename to viewParserState() ???
-		self.master.serial_write(b'?')
+		self.master.sendGCode("$G")
 
 	#----------------------------------------------------------------------
 	def jog(self, dir):
@@ -443,7 +443,7 @@ class _GenericController:
 		if self.master.serial is None: return
 		self.master.serial_write(b'!')
 		self.master.serial.flush()
-		self.master._pause = True
+		self.master._pause.value = True
 
 	#----------------------------------------------------------------------
 	def resume(self, event=None):
@@ -451,14 +451,14 @@ class _GenericController:
 		if self.master.serial is None: return
 		self.master.serial_write(b'~')
 		self.master.serial.flush()
-		self.master._msg   = None
-		self.master._alarm = False
-		self.master._pause = False
+		self.master._msg.value   = None
+		self.master._alarm.value = False
+		self.master._pause.value = False
 
 	#----------------------------------------------------------------------
 	def pause(self, event=None):
 		if self.master.serial is None: return
-		if self.master._pause:
+		if self.master._pause.value:
 			self.master.resume()
 		else:
 			self.master.feedHold()
@@ -476,7 +476,7 @@ class _GenericController:
 			self.master.sendGCode("?")
 			self.viewState()
 		self.registerRunOnceOnReset(function)
-		self.softReset(False)			# reset controller
+		self.softReset(False)			# reset controllerGeneric
 
 
 	#----------------------------------------------------------------------
@@ -496,14 +496,14 @@ class _GenericController:
 
 
 	#----------------------------------------------------------------------
-	def parseLine(self, line, cline, sline):
+	def parseLine(self, line, ioData):
 		if not line:
 			return True
 
 		elif line[0]=="<":
 			if CNC.vars["debug"]:
 				self.master.log.put((self.master.MSG_RECEIVE, line))
-			self.parseBracketAngle(line, cline)
+			self.parseBracketAngle(line, ioData)
 
 		elif "pgm end" in line.lower():
 			CNC.vars["pgmEnd"] = True
@@ -514,22 +514,20 @@ class _GenericController:
 
 		elif "error:" in line or "ALARM:" in line:
 			self.master.log.put((self.master.MSG_ERROR, line))
-			self.master._gcount += 1
+			self.master._gcount.assign(lambda x: x + 1)
 			#print "gcount ERROR=",self._gcount
-			if cline: del cline[0]
-			if sline: CNC.vars["errline"] = sline.pop(0)
-			if not self.master._alarm: self.master._posUpdate = True
-			self.master._alarm = True
+			CNC.vars["errline"] = ioData.deleteFirstLine()
+			if not self.master._alarm.value: self.master._posUpdate = True
+			self.master._alarm.value = True
 			self.displayState(line)
-			if self.master.running:
+			if self.master.running.value:
 				self.feedHold()
-				self.master._stop = True
+				self.master._stop.value = True
 
 		elif line.find("ok")>=0:
 			self.master.log.put((self.master.MSG_OK, line))
-			self.master._gcount += 1
-			if cline: del cline[0]
-			if sline: del sline[0]
+			self.master._gcount.assign(lambda x: x + 1)
+			ioData.deleteFirstLine()
 			#print "SLINE:",sline
 #			if  self._alarm and not self.running:
 #				# turn off alarm for connected status once
@@ -546,15 +544,14 @@ class _GenericController:
 		elif line[:4]=="Grbl" or line[:13]=="CarbideMotion": # and self.running:
 			#tg = time.time()
 			self.master.log.put((self.master.MSG_RECEIVE, line))
-			self.master._stop = True
-			self.master.sio_count = 0 # Buffers cleaned, then this is needed
-			del cline[:]	# After reset clear the buffer counters
-			del sline[:]
+			self.master._stop.value = True
+			ioData.sio_count = 0
+			ioData.clear()
 			CNC.vars["version"] = line.split()[1]
 			# Detect controller
 			if self.master.controller in ("GRBL0", "GRBL1"):
 				self.master.controllerSet("GRBL%d"%(int(CNC.vars["version"][0])))
-			self.master.onStopComplete = self.onReset
+			self.master.onStopComplete.value = self.onReset
 		else:
 			#We return false in order to tell that we can't parse this line
 			#Sender will log the line in such case

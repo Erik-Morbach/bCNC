@@ -56,7 +56,10 @@ YZ   = 2
 CW   = 2
 CCW  = 3
 
-WCS  = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
+WCS  = ["G54", "G55", "G56", "G57", "G58", "G59"]
+for i in range(1, 50):
+	name = "G59.%02d" % i
+	WCS += [name]
 
 DISTANCE_MODE = { "G90" : "Absolute",
 		  "G91" : "Incremental" }
@@ -89,9 +92,7 @@ MODAL_MODES = {
 	"G57"   : "WCS",
 	"G58"   : "WCS",
 	"G59"   : "WCS",
-	"G59.1"   : "WCS",
-	"G59.2"   : "WCS",
-	"G59.3"   : "WCS",
+	# others G59.x are added later
 
 	"G17"   : "plane",
 	"G18"   : "plane",
@@ -129,6 +130,9 @@ MODAL_MODES = {
 	"M8"    : "coolant",
 	"M9"    : "coolant",
 }
+for i in range(1,36):
+    ke = "G59.%02d" % i
+    MODAL_MODES[ke] = "WCS"
 
 ERROR_HANDLING = {}
 TOLERANCE = 1e-7

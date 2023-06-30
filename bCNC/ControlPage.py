@@ -483,8 +483,10 @@ class RepeatEngineConfigureDialog(Dialog):
 			e.bind("<Return>", lambda x, s=self: s.focus_set())
 			f.pack(*args, **kwargs) #side=TOP, fill=X, expand=TRUE)
 
-		makeLabelEntry(frame, "Numero atual de execucoes: ", self.engine.m30Counter, side=TOP, fill=BOTH, expand=TRUE)
-		makeLabelEntry(frame, "Numero final de execucoes: ", self.engine.m30CounterLimit, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Peca do bloco de repeticoes:", self.engine.m30Counter, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Tamanho do bloco de repeticoes: ", self.engine.m30CounterLimit, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Numero total de execucoes: ", self.engine.totalM30, side=TOP, fill=BOTH, expand=TRUE)
+		makeLabelEntry(frame, "Numero total de execucoes validas: ", self.engine.validM30, side=TOP, fill=BOTH, expand=TRUE)
 
 	def onExit(self):
 		self.destroy()
@@ -558,9 +560,17 @@ class RunGroup(CNCRibbon.ButtonGroup):
 				background=Ribbon._BACKGROUND)
 		b.pack(side=TOP, fill=BOTH)
 		f2 = Frame(f)
-		Label(f2, textvariable=self.app.gcode.repeatEngine.m30Counter, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
-		Label(f2, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
-		Label(f2, textvariable=self.app.gcode.repeatEngine.m30CounterLimit, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f3 = Frame(f2)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.m30Counter, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.m30CounterLimit, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f3.pack(side=LEFT, expand=TRUE)
+		ttk.Separator(f2, orient=VERTICAL).pack(side=LEFT, fill=BOTH, expand=TRUE, padx=5)
+		f3 = Frame(f2)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.totalM30, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, text="/", font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		Label(f3, textvariable=self.app.gcode.repeatEngine.validM30, font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
+		f3.pack(side=LEFT, expand=TRUE)
 		f2.pack(side=TOP,expand=TRUE)
 		f.pack(side=LEFT, fill=BOTH)
 		tkExtra.Balloon.set(b, _("Repeticoes"))
@@ -654,7 +664,7 @@ class DROFrame(CNCRibbon.PageFrame):
 
 	#----------------------------------------------------------------------
 	def updateState(self):
-		msg = self.app._msg or CNC.vars["state"]
+		msg = self.app._msg.value or CNC.vars["state"]
 		if CNC.vars["pins"] is not None and CNC.vars["pins"] != "":
 			msg += " ["+CNC.vars["pins"]+"]"
 		self.state.config(text=msg, background=CNC.vars["color"])
@@ -682,7 +692,7 @@ class DROFrame(CNCRibbon.PageFrame):
 	# Do not give the focus while we are running
 	#----------------------------------------------------------------------
 	def workFocus(self, event=None):
-		if self.app.running:
+		if self.app.running.value:
 			self.app.focus_set()
 
 	#----------------------------------------------------------------------
@@ -862,7 +872,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 	# Do not give the focus while we are running
 	#----------------------------------------------------------------------
 	def workFocus(self, event=None):
-		if self.app.running:
+		if self.app.running.value:
 			self.app.focus_set()
 
 	#----------------------------------------------------------------------
@@ -887,7 +897,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 
 	#----------------------------------------------------------------------
 	def setA(self, event=None):
-		if self.app.running: return
+		if self.app.running.value: return
 		try:
 			value = round(eval(self.awork.get(), None, CNC.vars), 3)
 			self.app.mcontrol._wcsSet(None,None,None,value,None,None)
@@ -896,7 +906,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 
 	#----------------------------------------------------------------------
 	def setB(self, event=None):
-		if self.app.running: return
+		if self.app.running.value: return
 		try:
 			value = round(eval(self.bwork.get(), None, CNC.vars), 3)
 			self.app.mcontrol._wcsSet(None,None,None,None,value,None)
@@ -905,7 +915,7 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 
 	#----------------------------------------------------------------------
 	def setC(self, event=None):
-		if self.app.running: return
+		if self.app.running.value: return
 		try:
 			value = round(eval(self.cwork.get(), None, CNC.vars), 3)
 			self.app.mcontrol._wcsSet(None,None,None,None,None,value)
@@ -1864,28 +1874,21 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 
 		# State
 		f = Frame(self)
-		# ===
-		f2 = Frame(f)
-		for p,w in enumerate(WCS):
-			b = Radiobutton(f2, text=w,
-					foreground="DarkRed",
-					font = "Helvetica,14",
-					padx=1, pady=1,
-					variable=wcsvar,
-					value=p,
-					indicatoron=FALSE,
-					activebackground="LightYellow",
-					command=self.wcsChange)
-			b.pack(side=LEFT, fill=X, expand=YES)
-			tkExtra.Balloon.set(b, _("Switch to workspace %s")%(w))
-			self.addWidget(b)
-		f2.pack(side=TOP, fill=X, expand=TRUE)
 		f2 = Frame(f)
 		lef = Frame(f2) # side = left
 		rig = Frame(f2) # side = Right
 		# populate gstate dictionary
 		self.gstate = {}	# $G state results widget dictionary
-	
+
+		# WCS
+		f3 = Frame(lef)
+		Label(f3, text=_("WCS:"), width=15).pack(side=LEFT)
+		self.wcs = Label(f3,
+				background=tkExtra.GLOBAL_CONTROL_BACKGROUND, 
+				width=7, relief=RAISED)
+		self.wcs.pack(side=LEFT)
+		tkExtra.Balloon.set(self.wcs, _("WCS"))
+		f3.pack(side=TOP, fill=X, expand=TRUE)
 		# Tool
 		f3 = Frame(lef)
 		Label(f3, text=_("Tool:"), width=15).pack(side=LEFT)
@@ -2032,7 +2035,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		f3 = Frame(f2)
 		self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride, 1, 200, 1)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
-		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 
 		f.pack(side=TOP, fill=BOTH, expand=TRUE)
@@ -2161,6 +2163,7 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 			focus = None
 
 		try:
+			self.wcs['text'] = str(CNC.vars["WCS"])
 			wcsvar.set(WCS.index(CNC.vars["WCS"]))
 			self.feedRate['text'] = str(CNC.vars["feed"])
 			self.tool['text'] = str(CNC.vars["tool"])

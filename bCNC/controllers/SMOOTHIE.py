@@ -71,7 +71,7 @@ class Controller(_GenericController):
 		# stop waiting and go on
 		if self.master.sio_wait and not cline and l[0] not in ("Run","Jog", "Hold"):
 		        self.master.sio_wait = False
-		        self.master._gcount += 1
+		        self.master._gcount.assign(lambda x: x + 1)
 
 	def parseBracketSquare(self, line):
 		pat = POSPAT.match(line)

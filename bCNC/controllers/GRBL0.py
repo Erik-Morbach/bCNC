@@ -20,7 +20,7 @@ class Controller(_GenericGRBL):
 		self.master.sio_count -= 1
 		pat = STATUSPAT.match(line)
 		if pat:
-			if not self.master._alarm:
+			if not self.master._alarm.value:
 				CNC.vars["state"] = pat.group(1)
 			CNC.vars["mx"] = float(pat.group(2))
 			CNC.vars["my"] = float(pat.group(3))
@@ -32,8 +32,8 @@ class Controller(_GenericGRBL):
 			CNC.vars["wcoy"] = CNC.vars["my"] - CNC.vars["wy"]
 			CNC.vars["wcoz"] = CNC.vars["mz"] - CNC.vars["wz"]
 			self.master._posUpdate = True
-			if pat.group(1)[:4] != "Hold" and self.master._msg:
-				self.master._msg = None
+			if pat.group(1)[:4] != "Hold" and self.master._msg.value:
+				self.master._msg.value = None
 
 			# Machine is Idle buffer is empty
 			# stop waiting and go on
@@ -43,7 +43,7 @@ class Controller(_GenericGRBL):
 				#print ">>>",line
 				self.master.sio_wait = False
 				#print "<<< NO MORE WAIT"
-				self.master._gcount += 1
+				self.master._gcount.assign(lambda x: x + 1)
 			else:
 				self.master.log.put((self.master.MSG_RECEIVE, line))
 

@@ -1,6 +1,6 @@
-X+ 114 Right
-X- 113 Left
-Y+ 111 Up
-Y- 116 Down
-Z+ 60 period
-Z- 59 comma
+X+ 116 Down
+X- 111 Up
+Z+ 114 Right
+Z- 113 Left
+B+ 60 period
+B- 59 comma
