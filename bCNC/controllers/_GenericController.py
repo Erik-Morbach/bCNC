@@ -12,8 +12,6 @@ import time
 import re
 import threading
 
-from bCNC.Sender import WRITE_THREAD_PERIOD
-
 #GRBLv1
 SPLITPAT  = re.compile(r"[:,]")
 TOOLSPLITPAT  = re.compile(r"[:|,]")
@@ -94,17 +92,6 @@ class _GenericController:
 
 	def overrideSet(self):
 		pass
-
-	def setConnection(self, id, value):
-		self.master.sendGCode("$%d=%d"%(id, value))
-		self.master.sendGCode((8,0.5//WRITE_THREAD_PERIOD)) #Pause for 0.5 seconds
-
-	def xConnection(self, connection):
-		self.setConnection(500, connection)
-	def zConnection(self, connection):
-		self.setConnection(502, connection)
-	def aConnection(self, connection):
-		self.setConnection(503, connection)
 
 	def hardReset(self):
 		self.master.busy()
@@ -195,7 +182,7 @@ class _GenericController:
 				value = int(value)
 			cmd = "${}={}\n".format(int(id), value)
 			self.master.sendGCode(cmd)
-			self.master.sendGCode((8,2))
+			self.master.sendGCode((8,20))
 			return
 
 	def sendSettings(self):
@@ -250,7 +237,7 @@ class _GenericController:
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "%c%.3f" % (axe.upper(), float(val))
 			self.master.sendGCode(cmd)
-			self.master.sendGCode((8,2))
+			self.master.sendGCode((8,20))
 			self.master.sendGCode("G43")
 			return
 
@@ -280,7 +267,7 @@ class _GenericController:
 				if axe in work.keys():
 					cmd += "%c%.3f" % (axe.upper(), float(work[axe]))
 			self.master.sendGCode(cmd)
-			self.master.sendGCode((8,2))
+			self.master.sendGCode((8,20))
 			return
 
 	def viewState(self): #Maybe rename to viewParserState() ???
