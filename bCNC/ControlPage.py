@@ -998,6 +998,7 @@ class MdiFrame(CNCRibbon.PageLabelFrame):
 	def onEnter(self, *args):
 		if len(self.mdiVar.get())==0:
 			self.app.focus_set()
+			return
 		self.app.execute(self.mdiVar.get())
 		self.values += [self.mdiVar.get()]
 		self.mdiVar.set("")
@@ -2030,10 +2031,6 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 		f4 = Frame(f3)
 		self.rapidScale = makeScale(f4, "Rapid", self.rapidOverride, 1, 100, 1)
 		f4.pack(side=LEFT, fill=BOTH, expand=TRUE)
-		f3.pack(side=TOP, fill=X, expand=TRUE)
-		ttk.Separator(f2, orient=HORIZONTAL).pack(side=TOP, fill=BOTH, expand=TRUE, pady=5)
-		f3 = Frame(f2)
-		self.spindleScale = makeScaleInline(f3, "Spindle", self.spindleOverride, 1, 200, 1)
 		f3.pack(side=TOP, fill=X, expand=TRUE)
 		f2.pack(side=TOP, fill=BOTH, expand=TRUE)
 
