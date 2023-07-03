@@ -418,41 +418,49 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 		self.cavityDistanceVar = DoubleVar(value=0)
 		self.a1PositionVar = DoubleVar(value=0)
 		self.a2PositionVar = DoubleVar(value=0)
-		self.loadValues()
 		f = Frame(self)
 		makeEntry(f, "Espessura da placa", self.boardThicknessVar, "boardThickness").pack(side=TOP)
-
 		makeEntry(f, "Diferença Z1 e Z2", self.zGangedDifferenceVar, "zGangedDifference").pack(side=TOP)
-
 		makeEntry(f, "Posição A1", self.a1PositionVar, "a1Position").pack(side=TOP)
 		makeEntry(f, "Posição A2", self.a2PositionVar, "a2Position").pack(side=TOP)
-
-		makeEntry(f, "Medida entre Punções", self.punctureDistanceVar, "punctureDistance" ).pack(side=TOP)
-
+#		makeEntry(f, "Medida entre Punções", self.punctureDistanceVar, "punctureDistance" ).pack(side=TOP)
 		makeEntry(f, "Medida entre Cavidades", self.cavityDistanceVar, "cavityDistance").pack(side=TOP)
-
 		f.pack(side=TOP)
+		self.varPairs = [("boardThickness", self.boardThicknessVar),
+			  ("zGangedDifference", self.zGangedDifferenceVar),
+			  ("punctureDistance", self.punctureDistanceVar),
+			  ("cavityDistance", self.cavityDistanceVar),
+			  ("a1Position", self.a1PositionVar),
+			  ("a2Position", self.a2PositionVar)]
+		self.loadValues(self.varPairs)
+		self.saveValues(self.varPairs)
 
-	def loadValues(self):
-		self.boardThicknessVar.set(Utils.getFloat("Vars", "boardThickness", 54))
-		self.zGangedDifferenceVar.set(Utils.getFloat("Vars", "zGangedDifference", 0.04))
-		self.punctureDistanceVar.set(Utils.getFloat("Vars", "punctureDistance", 152))
-		self.cavityDistanceVar.set(Utils.getFloat("Vars", "cavityDistance", 355.22))
-		self.a1PositionVar.set(Utils.getFloat("Vars", "a1Position", 111.3))
-		self.a2PositionVar.set(Utils.getFloat("Vars", "a2Position", 204.44))
+	def loadValues(self, pairs):
+		for (st, var) in pairs:
+			var.set(Utils.getFloat("Vars", st, 0))
+		#self.boardThicknessVar.set(Utils.getFloat("Vars", "boardThickness", 54))
+		#self.zGangedDifferenceVar.set(Utils.getFloat("Vars", "zGangedDifference", 0.04))
+		#self.punctureDistanceVar.set(Utils.getFloat("Vars", "punctureDistance", 152))
+		#self.cavityDistanceVar.set(Utils.getFloat("Vars", "cavityDistance", 355.22))
+		#self.a1PositionVar.set(Utils.getFloat("Vars", "a1Position", 111.3))
+		#self.a2PositionVar.set(Utils.getFloat("Vars", "a2Position", 204.44))
 
-	def saveValues(self):
-		Utils.setFloat("Vars", "boardThickness", self.boardThicknessVar.get())
-		Utils.setFloat("Vars", "zGangedDifference", self.zGangedDifferenceVar.get())
-		Utils.setFloat("Vars", "punctureDistance", self.punctureDistanceVar.get())
-		Utils.setFloat("Vars", "cavityDistance", self.cavityDistanceVar.get())
-		Utils.setFloat("Vars", "a1Position", self.a1PositionVar.get())
-		Utils.setFloat("Vars", "a2Position", self.a2PositionVar.get())
+	def saveValues(self, pairs):
+		for (st, var) in pairs:
+			Utils.setFloat("Vars", st, var.get())
+			CNC.vars[st] = var.get()
+		#Utils.setFloat("Vars", "boardThickness", self.boardThicknessVar.get())
+		#Utils.setFloat("Vars", "zGangedDifference", self.zGangedDifferenceVar.get())
+		#Utils.setFloat("Vars", "punctureDistance", self.punctureDistanceVar.get())
+		#Utils.setFloat("Vars", "cavityDistance", self.cavityDistanceVar.get())
+		#Utils.setFloat("Vars", "a1Position", self.a1PositionVar.get())
+		#Utils.setFloat("Vars", "a2Position", self.a2PositionVar.get())
 
 	def entryReturn(self, doubleVar, cncVarName, *args):
 		self.focus_set()
 		CNC.vars[cncVarName] = doubleVar.get()
-		self.saveValues()
+		self.saveValues(self.varPairs) # The user only needs to click enter in one of the entries
+		# this corrects a user that forgot to click enter in one of the entries
 
 	def valid(self, future_value):
 		if len(future_value)==0: return True
