@@ -1,8 +1,8 @@
 def code(st):
     self.sendGCode(st)
 def setConnection(id, value):
-    code("%d=%d"%(id, value))
-    code((8,int(0.05//WRITE_THREAD_PERIOD)))
+    self.sendGCode("$%d=%d"%(id, value))
+    self.sendGCode((8,100))
 
 xConnection = 500
 zConnection = 502
