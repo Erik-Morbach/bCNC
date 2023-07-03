@@ -182,7 +182,7 @@ class _GenericController:
 				value = int(value)
 			cmd = "${}={}\n".format(int(id), value)
 			self.master.sendGCode(cmd)
-			self.master.sendGCode((8,20))
+			self.master.sendGCode((4,))
 			return
 
 	def sendSettings(self):
@@ -237,7 +237,7 @@ class _GenericController:
 					val = float(tool[axe]) + float(compensation[axe])
 					cmd += "%c%.3f" % (axe.upper(), float(val))
 			self.master.sendGCode(cmd)
-			self.master.sendGCode((8,20))
+			self.master.sendGCode((4,))
 			self.master.sendGCode("G43")
 			return
 
@@ -267,7 +267,7 @@ class _GenericController:
 				if axe in work.keys():
 					cmd += "%c%.3f" % (axe.upper(), float(work[axe]))
 			self.master.sendGCode(cmd)
-			self.master.sendGCode((8,20))
+			self.master.sendGCode((4,))
 			return
 
 	def viewState(self): #Maybe rename to viewParserState() ???
