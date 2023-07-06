@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: Vasilis Vlachoudis
 #  Email: vvlachoudis@gmail.com
 #   Date: 18-Jun-2015

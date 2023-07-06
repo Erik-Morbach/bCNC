@@ -15,7 +15,9 @@ for block in pins:
 
 while 1:
     os.system("clear")
+    st = ""
     for block in pins:
-        print("-------")
-        print(" ".join([str(w) for w in block]))
-        print(" ".join([str(wiringpi.digitalRead(w)) for w in block]))
+        st += "-"*20 + "\n"
+        st += " ".join([str(w) for w in block]) + "\n"
+        st += " ".join([str(wiringpi.digitalRead(w)) for w in block]) + "\n"
+    print(st, end='')

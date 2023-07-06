@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:	https://github.com/carlosgs
 # Date:	14-Sep-2015
 

@@ -1,5 +1,3 @@
-# -*- coding: ascii -*-
-
 # Author: @harvie Tomas Mudrunka
 # Date: 25 sept 2018
 

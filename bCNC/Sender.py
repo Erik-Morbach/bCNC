@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# $Id: bCNC.py,v 1.6 2014/10/15 15:04:48 bnv Exp bnv $
-#
 # Author: Vasilis Vlachoudis
 #  Email: vvlachoudis@gmail.com
 #   Date: 17-Jun-2015

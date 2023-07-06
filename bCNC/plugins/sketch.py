@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:	Filippo Rivato
 # Date: 	07 January 2016
 # Inspired by: "Death to sharpie" a drawbot by Scott Cooper

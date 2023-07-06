@@ -1,6 +1,4 @@
-# -*- coding: ascii -*-
-# $Id$
-#
+
 # Author:	Filippo Rivato
 # Date:	2015/10/04
 

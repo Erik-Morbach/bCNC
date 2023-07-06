@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:	Filippo Rivato
 # Date:     18 November 2015
 # Porting of image2gcode and based on dmap2gcode

@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:	DodoLaSaumure
 # Date:	30-Dec-2019
 

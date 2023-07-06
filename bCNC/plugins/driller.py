@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: Filippo Rivato
 # Date: 9 November 2015
 # A special thanks to Vasilis for his patient explanations
