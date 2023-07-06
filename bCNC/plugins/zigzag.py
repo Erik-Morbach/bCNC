@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: @CarlosGS
 # Date:	2-Jan-2017
 

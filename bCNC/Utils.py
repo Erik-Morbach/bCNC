@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: Vasilis Vlachoudis
 #  Email: Vasilis.Vlachoudis@cern.ch
 #   Date: 16-Apr-2015

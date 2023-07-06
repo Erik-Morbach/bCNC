@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:	Filippo Rivato
 # Date:		20 December 2015
 # Porting of midi2cnc https://github.com/michthom/MIDI-to-CNC (GPLv2+)

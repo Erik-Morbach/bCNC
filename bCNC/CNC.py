@@ -1,9 +1,3 @@
-# -*- coding: ascii -*-
-# $Id: CNC.py,v 1.8 2014/10/15 15:03:49 bnv Exp $
-#
-# Author: vvlachoudis@gmail.com
-# Date: 24-Aug-2014
-
 from __future__ import absolute_import
 from __future__ import print_function
 import os

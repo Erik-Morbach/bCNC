@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: Mario Basz
 #mariob_1960@yahoo.com.ar
 # Date: 9 November 2017

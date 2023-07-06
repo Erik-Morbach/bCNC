@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: Filippo Rivato
 # Date:	11 March 2016
 # Done in Annonay at Hotel "Du midi" after a business trip and 10 hours of work.

@@ -1,5 +1,3 @@
-# -*- coding: ascii -*-
-#
 # Copyright and User License
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Copyright Vasilis.Vlachoudis@cern.ch for the

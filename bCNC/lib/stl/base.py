@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
 import math
 import numpy
 import logging
-import collections
+import collections.abc
 
 from python_utils import logger
 
@@ -74,7 +74,7 @@ def logged(class_):
 
 
 @logged
-class BaseMesh(logger.Logged, collections.Mapping):
+class BaseMesh(logger.Logged, collections.abc.Mapping):
     '''
     Mesh object with easy access to the vectors through v0, v1 and v2.
     The normals, areas, min, max and units are calculated automatically.
