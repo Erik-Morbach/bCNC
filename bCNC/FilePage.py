@@ -412,6 +412,7 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 			return f
 		self.boardThicknessVar = DoubleVar(value=0)
 		self.zGangedDifferenceVar = DoubleVar(value=0)
+		self.zGangedDifferenceBaseVar = DoubleVar(value=0)
 		self.punctureDistanceVar = DoubleVar(value=0)
 		self.cavityDistanceVar = DoubleVar(value=0)
 		self.a1PositionVar = DoubleVar(value=0)
@@ -426,6 +427,7 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 		f.pack(side=TOP)
 		self.varPairs = [("boardThickness", self.boardThicknessVar),
 			  ("zGangedDifference", self.zGangedDifferenceVar),
+			  ("zGangedDifferenceBase", self.zGangedDifferenceVar),
 			  ("punctureDistance", self.punctureDistanceVar),
 			  ("cavityDistance", self.cavityDistanceVar),
 			  ("a1Position", self.a1PositionVar),
@@ -447,12 +449,6 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 		for (st, var) in pairs:
 			Utils.setFloat("Vars", st, var.get())
 			CNC.vars[st] = var.get()
-		#Utils.setFloat("Vars", "boardThickness", self.boardThicknessVar.get())
-		#Utils.setFloat("Vars", "zGangedDifference", self.zGangedDifferenceVar.get())
-		#Utils.setFloat("Vars", "punctureDistance", self.punctureDistanceVar.get())
-		#Utils.setFloat("Vars", "cavityDistance", self.cavityDistanceVar.get())
-		#Utils.setFloat("Vars", "a1Position", self.a1PositionVar.get())
-		#Utils.setFloat("Vars", "a2Position", self.a2PositionVar.get())
 
 	def entryReturn(self, doubleVar, cncVarName, *args):
 		self.focus_set()

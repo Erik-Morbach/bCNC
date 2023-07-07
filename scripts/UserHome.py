@@ -15,7 +15,7 @@ setConnection(zConnection,2)
 code("$HZ")
 code((4,))
 # zGangedDifference is only a fine tune
-distance = -1.5 + CNC.vars["zGangedDifference"]
+distance = CNC.vars["zGangedDifferenceBase"] + CNC.vars["zGangedDifference"]
 code("G91G0Z%.3f" % distance)
 code((4,))
 setConnection(zConnection, 3)
@@ -38,6 +38,9 @@ code((4,))
 code("$HY")
 code((4,))
 
+setConnection(aConnection, 3)
+code("$HA")
+code((4,))
 setConnection(aConnection, 1)
 code("$HA")
 code((4,))
