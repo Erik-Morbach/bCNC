@@ -594,7 +594,8 @@ class Sender:
 						parity=serial.PARITY_NONE,
 						stopbits=serial.STOPBITS_TWO,
 						xonxoff=False,
-						rtscts=False)
+						rtscts=False,
+						timeout=1)
 		time.sleep(0.2)
 		CNC.vars["state"] = CONNECTED
 		CNC.vars["color"] = STATECOLOR[CNC.vars["state"]]
@@ -784,19 +785,24 @@ class Sender:
 			self.jobDone()
 
 	def readExecutor(self):
-		while self.readExecutorThread:
-			if self.readQueue.empty():
-				time.sleep(READ_THREAD_PERIOD*20)
-				continue
-			line = self.readQueue.get(block=True, timeout=1)
-			try:
-				if self.mcontrol.parseLine(line, self.ioData):
-					pass
-				else:
-					self.log.put((Sender.MSG_RECEIVE, line))
-			except:
-				print(line)
-				self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+		try:
+			while self.readExecutorThread:
+				if self.readQueue.empty():
+					time.sleep(READ_THREAD_PERIOD*20)
+					continue
+				line = self.readQueue.get(block=True, timeout=1)
+				try:
+					if self.mcontrol.parseLine(line, self.ioData):
+						pass
+					else:
+						self.log.put((Sender.MSG_RECEIVE, line))
+				except:
+					print(line)
+					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+		except:
+			with open("myLog.txt", 'a') as logfile:
+				logfile.write("EXCEPTION {} {} : {}".format(time.ctime(), "ReadExecutor", str(traceback.format_exc())))
+			traceback.print_exc()
 
 	def serialIORead(self):
 		buff = ""
@@ -808,10 +814,11 @@ class Sender:
 				try:
 					rawLine = self.serial.read()
 					line = str(rawLine.decode('utf-8','ignore'))
-					buff += line
 				except:
 					print(rawLine)
 					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
+					continue
+				buff += line
 				index = buff.find('\n')
 				if index != -1:
 					line = buff[:index+1].strip()

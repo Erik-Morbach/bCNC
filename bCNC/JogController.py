@@ -37,8 +37,9 @@ class JogController:
                 self.app.bind("<"+str(sym)+">", self.jogEvent)
         self.mtx = threading.Lock()
         self.mtx.acquire()
-        self.updateTaskThread = threading.Thread(target=self.updateTask)
-        self.updateTaskThread.start()
+        if self.active:
+            self.updateTaskThread = threading.Thread(target=self.updateTask)
+            self.updateTaskThread.start()
 
     def updateTask(self):
         while self.mtx.locked():
