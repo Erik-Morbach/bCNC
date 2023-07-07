@@ -12,6 +12,9 @@ class IoData:
         self._toSend = ThreadVar(None)
         self.processNode = ThreadVar(None)
 
+    def haveCommand(self):
+        return self._toSend.value is not None and self.processNode.value is not None
+
     def deleteFirstLine(self):
         self._cline.execute(lambda c: c.pop(0) if c else None)
         value = self._sline.execute(lambda s: s.pop(0) if s else None)

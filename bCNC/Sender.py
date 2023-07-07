@@ -859,7 +859,11 @@ class Sender:
 	# Helper functions for serialIOWrite
 	#----------------------------------------------------------------------
 	def shouldSend(self):
-		return not self.ioData.sio_wait and not self._pause.value
+		# is in wait
+		if not self.ioData.sio_wait and not self._pause.value: return True
+		# do not have commands to send, then simply continue
+		if self.ioData.haveCommand() and self.hasNewCommand(): return True
+		return False
 
 	def hasNewCommand(self):
 		return len(self.deque)!=0
