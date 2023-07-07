@@ -120,7 +120,7 @@ class Jog(MemberImpl):
     JOGMOTION = 0
     JOGSTOP = 1
     def __init__(self, app):
-        self.active = Utils.getBool("Jog", "panel", False) and not Utils.getBool("Jog", "keyboard", True)
+        self.active = Utils.getBool("Jog", "panel", False)
 
         self.type = Utils.getBool("Jog", "directionMode", True)
         #directionMode:
