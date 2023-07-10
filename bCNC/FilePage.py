@@ -403,58 +403,26 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Config", _("Config"), app)
 		vcmd = (self.master.register(self.valid), '%P')
 		self.app = app
-		def makeEntry(frame, labelText, doubleVar, cncVarName):
+		def makeEntry(frame, labelText, doubleVarName):
 			f = Frame(frame)
 			Label(f, text=labelText).pack(side=LEFT)
-			e = Entry(f, textvariable=doubleVar, validate='all', validatecommand=vcmd)
+			e = Entry(f, textvariable=CNC.vars[doubleVarName], validate='all', validatecommand=vcmd)
 			e.pack(side=LEFT, expand=TRUE, fill=X)
-			e.bind("<Return>", functools.partial(self.entryReturn, doubleVar, cncVarName))
+			e.bind("<Return>", self.onReturn)
 			return f
-		self.boardThicknessVar = DoubleVar(value=0)
-		self.zGangedDifferenceVar = DoubleVar(value=0)
-		self.zGangedDifferenceBaseVar = DoubleVar(value=0)
-		self.punctureDistanceVar = DoubleVar(value=0)
-		self.cavityDistanceVar = DoubleVar(value=0)
-		self.a1PositionVar = DoubleVar(value=0)
-		self.a2PositionVar = DoubleVar(value=0)
 		f = Frame(self)
-		makeEntry(f, "Espessura da placa", self.boardThicknessVar, "boardThickness").pack(side=TOP)
-		makeEntry(f, "Diferença Z1 e Z2", self.zGangedDifferenceVar, "zGangedDifference").pack(side=TOP)
-		makeEntry(f, "Posição A1", self.a1PositionVar, "a1Position").pack(side=TOP)
-		makeEntry(f, "Posição A2", self.a2PositionVar, "a2Position").pack(side=TOP)
+		makeEntry(f, "Espessura da placa", "board_thickness").pack(side=TOP)
+		makeEntry(f, "Diferença Z1 e Z2", "z_ganged_difference").pack(side=TOP)
+		makeEntry(f, "Posição A1", "a1_position").pack(side=TOP)
+		makeEntry(f, "Posição A2", "a2_position").pack(side=TOP)
 #		makeEntry(f, "Medida entre Punções", self.punctureDistanceVar, "punctureDistance" ).pack(side=TOP)
-		makeEntry(f, "Medida entre Cavidades", self.cavityDistanceVar, "cavityDistance").pack(side=TOP)
+		makeEntry(f, "Medida entre Cavidades", "cavity_distance").pack(side=TOP)
 		f.pack(side=TOP)
-		self.varPairs = [("boardThickness", self.boardThicknessVar),
-			  ("zGangedDifference", self.zGangedDifferenceVar),
-			  ("zGangedDifferenceBase", self.zGangedDifferenceVar),
-			  ("punctureDistance", self.punctureDistanceVar),
-			  ("cavityDistance", self.cavityDistanceVar),
-			  ("a1Position", self.a1PositionVar),
-			  ("a2Position", self.a2PositionVar)]
-		self.loadValues(self.varPairs)
-		self.saveValues(self.varPairs)
+		self.app.loadVars()
 
-	def loadValues(self, pairs):
-		for (st, var) in pairs:
-			var.set(Utils.getFloat("Vars", st, 0))
-		#self.boardThicknessVar.set(Utils.getFloat("Vars", "boardThickness", 54))
-		#self.zGangedDifferenceVar.set(Utils.getFloat("Vars", "zGangedDifference", 0.04))
-		#self.punctureDistanceVar.set(Utils.getFloat("Vars", "punctureDistance", 152))
-		#self.cavityDistanceVar.set(Utils.getFloat("Vars", "cavityDistance", 355.22))
-		#self.a1PositionVar.set(Utils.getFloat("Vars", "a1Position", 111.3))
-		#self.a2PositionVar.set(Utils.getFloat("Vars", "a2Position", 204.44))
-
-	def saveValues(self, pairs):
-		for (st, var) in pairs:
-			Utils.setFloat("Vars", st, var.get())
-			CNC.vars[st] = var.get()
-
-	def entryReturn(self, doubleVar, cncVarName, *args):
-		self.focus_set()
-		CNC.vars[cncVarName] = doubleVar.get()
-		self.saveValues(self.varPairs) # The user only needs to click enter in one of the entries
-		# this corrects a user that forgot to click enter in one of the entries
+	def onReturn(self, *args):
+		self.app.focus_set()
+		self.app.saveVars()
 
 	def valid(self, future_value):
 		if len(future_value)==0: return True

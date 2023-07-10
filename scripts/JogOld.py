@@ -1,4 +1,4 @@
-if CNC.vars["jogOldStep"] != -1:
-    self.control.step.set(CNC.vars["jogOldStep"])
-    CNC.vars["jogOldStep"] = -1
+if get('jogOldStep') != -1:
+    self.control.step.set(get('jogOldStep'))
+    set('jogOldStep', -1)
 

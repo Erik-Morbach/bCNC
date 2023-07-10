@@ -141,6 +141,8 @@ class Jog(MemberImpl):
         self.jogLastAction = self.JOGMOTION
         debounce = Utils.getFloat("Jog", "debounce", 0.05)
 
+        self.plannerLimit = Utils.getInt("Jog","planner", 90)
+
         pins, inversion = self.load_pins()
         self.lastPinValues = []
 
@@ -191,15 +193,15 @@ class Jog(MemberImpl):
                 data += '+' if con[1:] == "Up" else '-'
         if len(data) == 0:
             return
-        mutex = threading.Lock()
-        mutex.acquire()
-        self.app.jogMutex = mutex
+        if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:
+            return
+        self.app.jogMutex.acquire()
         self.app.focus_set()
         self.app.jogData = data
         self.app.event_generate("<<JOG>>", when="tail")
         self.jogLastAction = self.JOGMOTION
-        mutex.acquire(blocking=True, timeout=0.5)
-        self.app.jogMutex = None
+        self.app.jogMutex.acquire(blocking=True, timeout=0.5)
+        self.app.jogMutex.release()
 
     def callback(self, pinValues):
         if self.app.running.value or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
@@ -211,14 +213,12 @@ class Jog(MemberImpl):
                     shouldStop = True
         self.lastPinValues = pinValues
         if shouldStop and self.jogLastAction != self.JOGSTOP:
-            mutex = threading.Lock()
-            mutex.acquire()
-            self.app.jogMutex = mutex
+            self.app.jogMutex.acquire()
             self.app.focus_set()
             self.app.event_generate("<<JogStop>>", when="tail")
             self.jogLastAction = self.JOGSTOP
-            mutex.acquire(blocking=True, timeout=0.5)
-            self.app.jogMutex = None
+            self.app.jogMutex.acquire(blocking=True, timeout=0.5)
+            self.app.jogMutex.release()
             return
         if self.type == True:
             self.directionMode(pinValues)

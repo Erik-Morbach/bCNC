@@ -1,8 +1,6 @@
-def code(st):
-    self.sendGCode(st)
 def setConnection(id, value):
-    self.sendGCode("$%d=%d"%(id, value))
-    self.sendGCode((8,100))
+    execute("MODIFY %d %.3f"%(id, value))
+    sleep()
 
 xConnection = 500
 zConnection = 502
@@ -10,46 +8,50 @@ aConnection = 503
 
 setConnection(zConnection,1)
 code("$HZ")
-code((4,))
+wait()
 setConnection(zConnection,2)
 code("$HZ")
-code((4,))
+wait()
 # zGangedDifference is only a fine tune
-distance = CNC.vars["zGangedDifferenceBase"] + CNC.vars["zGangedDifference"]
+distance = get("z_ganged_difference_base") + get("z_ganged_difference")
 code("G91G0Z%.3f" % distance)
-code((4,))
+wait()
 setConnection(zConnection, 3)
 code("$HZ")
-code((4,))
+wait()
 
 setConnection(xConnection, 1)
 code("$HX")
-code((4,))
+wait()
 setConnection(xConnection, 2)
 code("$HX")
-code((4,))
-distance = CNC.vars["cavityDistance"] - CNC.vars["punctureDistance"]
+wait()
+distance = get("cavity_distance") - get("puncture_distance")
 code("G91G0X%.3f" % distance)
-code((4,))
+wait()
 setConnection(xConnection, 3)
 code("$HX")
-code((4,))
+wait()
+
+newLimit = get("limit_x") - distance
+execute("MODIFY %d %.3f" % (130, newLimit))
+sleep()
 
 code("$HY")
-code((4,))
+wait()
 
 setConnection(aConnection, 3)
 code("$HA")
-code((4,))
+wait()
 setConnection(aConnection, 1)
 code("$HA")
-code((4,))
-code("G53 G0 A%.3f" % CNC.vars["a1Position"])
-code((4,))
+wait()
+code("G53 G0 A%.3f" % get("a1_position"))
+wait()
 setConnection(aConnection, 2)
 code("$HA")
-code((4,))
-code("G53 G0 A%.3f" % CNC.vars["a2Position"])
-code((4,))
-code("$603=%.3f"%float(CNC.vars["a2Position"]))
-code((4,))
+wait()
+code("G53 G0 A%.3f" % get("a2_position"))
+wait()
+code("$603=%.3f"%float(get("a2_position")))
+wait()

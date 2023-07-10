@@ -21,6 +21,7 @@ import socket
 import traceback
 import threading
 import copy
+import logging
 
 from datetime import datetime
 
@@ -130,6 +131,9 @@ class Application(Toplevel, Sender):
         self.tools = Tools(self.gcode)
         self.controller = None
         self.loadConfig()
+
+        self.createVars()
+
         # --- Ribbon ---
         self.ribbon = Ribbon.TabRibbonFrame(self)
         self.ribbon.pack(side=TOP, fill=X)
@@ -404,11 +408,9 @@ class Application(Toplevel, Sender):
         self.bind('<<ToolClone>>', tools.clone)
         self.bind('<<ToolRename>>', tools.rename)
 
-        self.jogMutex = None
+        self.jogMutex = threading.Lock()
         self.jogData = ""
         def releaseJogMutex():
-            if self.jogMutex is None:
-                return
             if self.jogMutex.locked():
                 self.jogMutex.release()
         def jog(*args):
@@ -471,6 +473,7 @@ class Application(Toplevel, Sender):
 
         self.paned.sash_place(0, Utils.getInt(Utils.__prg__, "sash", 340), 0)
 
+        self.loadVars()
         # Auto start pendant and serial
         if Utils.getBool("Connection", "pendant"):
             self.startPendant(False)
@@ -610,6 +613,22 @@ class Application(Toplevel, Sender):
                 self.unbind(key)
                 self.bind(key, functor)
 
+    def saveVars(self):
+        for name, value in Utils.config.items("Vars"):
+            logging.info("save {} = {}".format(name, CNC.vars[name]))
+            Utils.setFloat("Vars", name, CNC.vars[name])
+
+    def loadVars(self):
+        for name, value in Utils.config.items("Vars"):
+            value = float(value)
+            logging.info("load {} = {}".format(name, value))
+            CNC.vars[name].set(value)
+
+    def createVars(self):
+        for name, value in Utils.config.items("Vars"):
+            value = float(value)
+            logging.info("Create {} = {}".format(name, value))
+            CNC.vars[name] = DoubleVar(value=value)
 
     # -----------------------------------------------------------------------
     def showUserFile(self):
