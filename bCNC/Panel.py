@@ -143,6 +143,7 @@ class Jog(MemberImpl):
 
         self.jogLastAction = self.JOGMOTION
         debounce = Utils.getFloat("Jog", "debounce", 0.05)
+        self.plannerLimit = Utils.getInt("Jog","planner", 90)
 
         pins, inversion = self.load_pins()
         self.lastPinValues = []
