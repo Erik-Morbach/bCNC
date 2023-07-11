@@ -872,7 +872,7 @@ class Sender:
 		line = cmd.src
 		if not isinstance(line, str): return False
 		line = line.upper()
-		if CNC.vars["SafeDoor"]:
+		if CNC.vars["safe_door"]:#.get():
 			if "M3" in line or "M4" in line:
 				return True
 		return False

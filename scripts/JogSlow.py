@@ -1,3 +1,3 @@
-if CNC.vars["jogOldStep"] == -1:
-    CNC.vars["jogOldStep"] = self.control.step.get()
+if get("jog_old_step") == -1:
+    set("jog_old_step", self.control.step.get())
 self.control.step.set(0.01)
