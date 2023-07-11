@@ -2,6 +2,7 @@ import threading
 import sys
 import functools
 import time
+import copy
 from CNC import CNC
 import Utils
 import ThreadVar
@@ -57,27 +58,42 @@ class JogController:
         if self.app.running.val:
             return
         t = time.time()
-        if t - self.lastTime.value >= self.period:
-            if not self.mutex.locked() or CNC.vars["state"] == "Jog":
-                self.currentKeys.clear()
-                self.app.event_generate("<<JogStop>>", when="tail")
-                self.lastStop.value = time.time()
-                if CNC.vars["state"] != "Jog":
-                    self.mutex.acquire()
+        cp = copy.deepcopy(self.currentKeys)
+        for (key, lastTime) in cp.items(): # Verify each key
+            if lastTime>0:
+                continue
+            lastTime = -lastTime
+            if t - lastTime >= self.period:
+                if not self.mutex.locked() or CNC.vars["state"] == "Jog":
+                    self.app.event_generate("<<JogStop>>", when="tail")
+                    self.lastStop.value = time.time()
+                    if CNC.vars["state"] != "Jog":
+                        self.mutex.acquire()
+                self.currentKeys.pop(key)
+
+            
+        #if t - self.lastTime.value >= self.period:
+        #    if not self.mutex.locked() or CNC.vars["state"] == "Jog":
+        #        self.currentKeys.clear()
+        #        self.app.event_generate("<<JogStop>>", when="tail")
+        #        self.lastStop.value = time.time()
+        #        if CNC.vars["state"] != "Jog":
+        #            self.mutex.acquire()
 
     def moveKeys(self, keys):
-        keys = "".join(keys)
-        self.app.control.move(keys[::2], keys[1::2])
+        mergedKeys = ""
+        for curKey in keys:
+            if curKey[0] in mergedKeys: continue
+            mergedKeys += curKey
+        self.app.control.move(mergedKeys[::2], mergedKeys[1::2])
 
     def jogEvent(self, eventData=None, simulatedData=None):
         if eventData is None and simulatedData is None: return
         if simulatedData is not None:
             keytype, keycode = simulatedData
-            keytime = time.time()*10**6
         else:
             keytype = eventData.type
             keycode = eventData.keycode
-            keytime = eventData.time
         if keycode not in self.mapCodeToKey.keys():
             return
         if self.app.running.val or \
@@ -92,10 +108,9 @@ class JogController:
             return
         currentKey = self.mapCodeToKey[keycode]
         if keytype == tkinter.EventType.KeyPress:
-            self.currentKeys[currentKey] = keytime
+            self.currentKeys[currentKey] = time.time()
         else:
-            if currentKey in self.currentKeys.keys():
-                self.currentKeys.pop(currentKey)
+            self.currentKeys[currentKey] = -time.time()
             return
 
         self.moveKeys(self.currentKeys.keys())
