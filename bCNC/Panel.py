@@ -177,7 +177,8 @@ class Jog(MemberImpl):
                 self.app.focus_set()
                 self.app.event_generate("<<"+con+">>", when="tail")
                 self.jogLastAction = self.JOGMOTION
-                self.app.jogMutex.acquire(blocking=True, timeout=0.5)
+                self.app.jogMutex.acquire(blocking=True)
+                self.app.jogMutex.release()
                 return
 
     def directMode(self, pinValues):
@@ -199,7 +200,8 @@ class Jog(MemberImpl):
         self.app.jogData = data
         self.app.event_generate("<<JOG>>", when="tail")
         self.jogLastAction = self.JOGMOTION
-        self.app.jogMutex.acquire(blocking=True, timeout=0.5)
+        self.app.jogMutex.acquire(blocking=True)
+        self.app.jogMutex.release()
 
     def callback(self, pinValues):
         if self.app.running.value or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
@@ -215,7 +217,8 @@ class Jog(MemberImpl):
             self.app.focus_set()
             self.app.event_generate("<<JogStop>>", when="tail")
             self.jogLastAction = self.JOGSTOP
-            self.app.jogMutex.acquire(blocking=True, timeout=0.5)
+            self.app.jogMutex.acquire(blocking=True)
+            self.app.jogMutex.release()
             return
         if self.type == True:
             self.directionMode(pinValues)
