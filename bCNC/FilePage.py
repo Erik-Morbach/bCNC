@@ -403,10 +403,12 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Config", _("Config"), app)
 		vcmd = (self.master.register(self.valid), '%P')
 		self.app = app
+		self.myVars = {}
 		def makeEntry(frame, labelText, doubleVarName):
 			f = Frame(frame)
 			Label(f, text=labelText).pack(side=LEFT)
-			e = Entry(f, textvariable=CNC.vars[doubleVarName], validate='all', validatecommand=vcmd)
+			self.myVars[doubleVarName] = DoubleVar(value = CNC.vars[doubleVarName])
+			e = Entry(f, textvariable=self.myVars[doubleVarName], validate='all', validatecommand=vcmd)
 			e.pack(side=LEFT, expand=TRUE, fill=X)
 			e.bind("<Return>", self.onReturn)
 			return f
@@ -421,6 +423,8 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 		self.app.loadVars()
 
 	def onReturn(self, *args):
+		for name, variable in self.myVars.items():
+			CNC.vars[name] = variable.get()
 		self.app.focus_set()
 		self.app.saveVars()
 
