@@ -42,7 +42,7 @@ class JogController:
             self.updateTaskThread.start()
 
     def updateTask(self):
-        while self.mtx.locked():
+        while self.mtx.locked() and self.app is not None:
             time.sleep(self.period)
             self.update()
     def stopTask(self):
