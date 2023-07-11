@@ -549,6 +549,7 @@ class Application(Toplevel, Sender):
 
         self.canvas.cameraOff()
         Sender.quit(self)
+        self.panel.stopTask()
         self.jogController.stopTask()
         self.saveConfig()
         self.destroy()
@@ -2603,8 +2604,6 @@ class Application(Toplevel, Sender):
             elif self._update == "TLO":
                 Page.lframes["ProbeCommon"].updateTlo()
             self._update = None
-
-        self.panel.update()
 
         if self.running.value:
             self.updateStatusBar()
