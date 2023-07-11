@@ -1,4 +1,4 @@
-if get('jogOldStep') != -1:
-    self.control.step.set(get('jogOldStep'))
-    set('jogOldStep', -1)
+if get("jog_old_step") != -1:
+    self.control.step.set(get("jog_old_step"))
+    set("jog_old_step", -1)
 

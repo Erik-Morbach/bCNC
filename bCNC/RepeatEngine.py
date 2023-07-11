@@ -26,7 +26,7 @@ class RepeatEngine:
 		self.cleanState()
 
 	def isRepeatable(self):
-		if self.CNCRef.vars["barEnd"] == 1:
+		if self.CNCRef.vars["bar_end"] == 1:
 			return False
 		if self.repeatType == self.TYPE_M47:
 			return True

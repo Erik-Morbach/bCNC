@@ -740,8 +740,6 @@ class CNC:
 			"beginLine"  : 0,
 			"pgmEnd"     : False,
 			"inputs"     : 0,
-			"barEnd"     : 0,
-			"SafeDoor"   : 0,
 			"pitch"      : -1,
 
 			"workTable": {},

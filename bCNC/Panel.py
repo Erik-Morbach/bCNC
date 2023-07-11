@@ -3,6 +3,7 @@ import threading
 import time
 import Utils
 import io
+import logging
 
 from CNC import CNC
 
@@ -15,13 +16,15 @@ def is_raspberrypi():
         pass
     return False
 
+logPanel = logging.getLogger("Panel")
+logPanel.setLevel(logging.INFO)
 if is_raspberrypi():
-    print("Is a Pi")
+    logPanel.info("Is running on a Pi")
     import wiringpi as wp
     wp.wiringPiSetupGpio()
 else:
-    print("Not a Pi")
-    class A:
+    logPanel.info("Is running on a PC")
+    class A: # dumb
         INPUT = 0
         PUD_DOWN = 1
         PUD_OFF = 2
@@ -35,18 +38,18 @@ else:
 
 class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
-        print("Member:", end='')
+        infoStr = "Member: "
         self.pins = pins
         self.debounce = debounce
         self.callback = callback
         self.mutex = threading.Lock()
         self.active = active
         for pin in pins:
-            print(" " + str(pin), end='')
+            infoStr += " " + str(pin)
             if pin < 0: continue
             wp.pinMode(pin, wp.INPUT)
             wp.pullUpDnControl(pin, wp.PUD_DOWN)
-        print()
+        logPanel.info(infoStr)
 
         self.inversion = inversion
         self.lastTime = time.time()
@@ -140,13 +143,14 @@ class Jog(MemberImpl):
 
         self.jogLastAction = self.JOGMOTION
         debounce = Utils.getFloat("Jog", "debounce", 0.05)
+        self.plannerLimit = Utils.getInt("Jog","planner", 90)
 
         self.plannerLimit = Utils.getInt("Jog","planner", 90)
 
         pins, inversion = self.load_pins()
         self.lastPinValues = []
 
-        print("JOG", end=' ')
+        logPanel.info("Jog Member: ")
         super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
@@ -171,14 +175,11 @@ class Jog(MemberImpl):
         for id, (axe,dire) in enumerate(zip(axis,direction)):
             if axe == 1:
                 con = self.axisMap[id] + self.directionMap[dire]
-                mutex = threading.Lock()
-                mutex.acquire()
-                self.app.jogMutex = mutex
+                self.app.jogMutex.acquire()
                 self.app.focus_set()
                 self.app.event_generate("<<"+con+">>", when="tail")
                 self.jogLastAction = self.JOGMOTION
-                mutex.acquire(blocking=True, timeout=0.5)
-                self.app.jogMutex = None
+                self.app.jogMutex.acquire(blocking=True, timeout=0.5)
                 return
 
     def directMode(self, pinValues):
@@ -201,7 +202,6 @@ class Jog(MemberImpl):
         self.app.event_generate("<<JOG>>", when="tail")
         self.jogLastAction = self.JOGMOTION
         self.app.jogMutex.acquire(blocking=True, timeout=0.5)
-        self.app.jogMutex.release()
 
     def callback(self, pinValues):
         if self.app.running.value or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
@@ -218,7 +218,6 @@ class Jog(MemberImpl):
             self.app.event_generate("<<JogStop>>", when="tail")
             self.jogLastAction = self.JOGSTOP
             self.app.jogMutex.acquire(blocking=True, timeout=0.5)
-            self.app.jogMutex.release()
             return
         if self.type == True:
             self.directionMode(pinValues)
@@ -251,7 +250,7 @@ class Selector(MemberImpl):
             self.resolution = 2**self.resolution-1
         self.resolution = Utils.getInt(self.selectorName, "resolution", self.resolution)
 
-        print(self.selectorName, end= ' ')
+        logPanel.info(self.selectorName + " Member: ")
         if self.useBeginEnd:
             self.currentVar = self.variableBegin
         else:
@@ -332,7 +331,7 @@ class ButtonPanel(MemberImpl):
         self.active = Utils.getBool(self.panelName, "panel", False)
         debounce = Utils.getFloat(self.panelName, "debounce", 0.5)
         pins, inversion = self.load_pins()
-        print("Button{}".format(index), end=' ')
+        logPanel.info("Button%d Member:" % (index))
         self.lastState = [0]
         self.onOnExecute = Utils.getStr(self.panelName, "on", "")
         self.onOffExecute = Utils.getStr(self.panelName, "off", "")
@@ -388,31 +387,6 @@ class StartPauseButton(ButtonPanel):
             self.app.focus_set()
             self.app.pause()
 
-class ClampButton(ButtonPanel):
-    def __init__(self, app, index) -> None:
-         super().__init__(app, index)
-    def on(self):
-        self.app.executeCommand("ClampToggle")
-
-class SafetyDoorButton(ButtonPanel):
-    def __init__(self, app, index) -> None:
-         super().__init__(app, index)
-    def on(self):
-        CNC.vars["SafeDoor"] = 1
-        self.app.focus_set()
-        self.app.event_generate("<<Stop>>", when="tail")
-    def off(self):
-        CNC.vars["SafeDoor"] = 0
-
-class BarEndButton(ButtonPanel):
-    def __init__(self, app, index) -> None:
-        super().__init__(app,index)
-    def on(self):
-        CNC.vars["barEnd"] = 1
-        self.app.feedHold()
-    def off(self):
-        CNC.vars["barEnd"] = 0
-
 class ResetButton(ButtonPanel):
     def __init__(self, app, index) -> None:
         super().__init__(app, index)
@@ -429,9 +403,7 @@ class Panel:
         self.mapper = {"stepselector":StepSelector, "rapidselector":RapidSelector,
                 "feedselector":FeedSelector, "startbutton":StartButton,
                 "pausebutton":PauseButton, "startpausebutton":StartPauseButton,
-                "clampbutton":ClampButton, "safetydoorbutton":SafetyDoorButton,
-                "barendbutton":BarEndButton, "resetbutton": ResetButton,
-                "button":ButtonPanel}
+                "resetbutton": ResetButton, "button":ButtonPanel}
         self.members = []
         self.members += [Jog(app)]
         index = 0

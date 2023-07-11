@@ -133,6 +133,7 @@ class Application(Toplevel, Sender):
         self.loadConfig()
 
         self.createVars()
+        self.loadVars()
 
         # --- Ribbon ---
         self.ribbon = Ribbon.TabRibbonFrame(self)
@@ -622,13 +623,13 @@ class Application(Toplevel, Sender):
         for name, value in Utils.config.items("Vars"):
             value = float(value)
             logging.info("load {} = {}".format(name, value))
-            CNC.vars[name].set(value)
+            CNC.vars[name] = value#.set(value)
 
     def createVars(self):
         for name, value in Utils.config.items("Vars"):
             value = float(value)
             logging.info("Create {} = {}".format(name, value))
-            CNC.vars[name] = DoubleVar(value=value)
+            CNC.vars[name] = value#DoubleVar(value=value)
 
     # -----------------------------------------------------------------------
     def showUserFile(self):
@@ -2319,7 +2320,7 @@ class Application(Toplevel, Sender):
     # -----------------------------------------------------------------------
 
     def run(self, lines=None, cleanRepeat=False):
-        if CNC.vars["SafeDoor"]: return
+        if CNC.vars["safe_door"]: return
         if self.checkStop(): return
 
         if cleanRepeat:
@@ -2856,6 +2857,10 @@ def main(args=None):
 
 
 if __name__ == "__main__":
+    FORMAT = '%(asctime)s %(message)s'
+    logging.basicConfig(format=FORMAT)
+    log = logging.getLogger("Main")
+    log.info("Program Initialized")
     with open("myLog.txt", 'a') as logFile:
         logFile.write("PROGRAM INITIALIZED\n")
     try:
@@ -2863,5 +2868,6 @@ if __name__ == "__main__":
     except:
         with open("myLog.txt", 'a') as logfile:
             logfile.write("EXCEPTION {} {} : {}".format(time.ctime(), "Main", str(traceback.format_exc())))
+        log.info("Program Exception {}".format(traceback.format_exc()))
         traceback.print_exc()
-# vim:ts=8:sw=8:sts=8:noet
+    log.info("Program Finalized")
