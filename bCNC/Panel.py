@@ -7,6 +7,10 @@ import logging
 
 from CNC import CNC
 
+import tkinter
+
+from mttkinter import *
+
 def is_raspberrypi():
     try:
         with io.open('/sys/firmware/devicetree/base/model', 'r') as m:
@@ -173,12 +177,16 @@ class Jog(MemberImpl):
         for id, (axe,dire) in enumerate(zip(axis,direction)):
             if axe == 1:
                 con = self.axisMap[id] + self.directionMap[dire]
-                self.app.jogMutex.acquire()
-                self.app.focus_set()
-                self.app.event_generate("<<"+con+">>", when="tail")
-                self.jogLastAction = self.JOGMOTION
-                self.app.jogMutex.acquire(blocking=True)
-                self.app.jogMutex.release()
+                code = self.app.jogController.mapKeyToCode[con][0]
+                codeWrapper = tkinter.EventType.KeyPress, code
+                self.app.jogController.jogEvent(simulatedData = codeWrapper)
+                #self.app.jogController
+                #self.app.jogMutex.acquire()
+                #self.app.focus_set()
+                #self.app.event_generate("<<"+con+">>", when="tail")
+                #self.jogLastAction = self.JOGMOTION
+                #self.app.jogMutex.acquire(blocking=True)
+                #self.app.jogMutex.release()
                 return
 
     def directMode(self, pinValues):
@@ -193,33 +201,36 @@ class Jog(MemberImpl):
                 data += '+' if con[1:] == "Up" else '-'
         if len(data) == 0:
             return
-        if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:
-            return
-        self.app.jogMutex.acquire()
-        self.app.focus_set()
-        self.app.jogData = data
-        self.app.event_generate("<<JOG>>", when="tail")
-        self.jogLastAction = self.JOGMOTION
-        self.app.jogMutex.acquire(blocking=True)
-        self.app.jogMutex.release()
+        for i in range(0, len(data),2):
+            key = data[i:i+2]
+            code = self.app.jogController.mapKeyToCode[key][0]
+            codeWrapper = tkinter.EventType.KeyPress, code
+            self.app.jogController.jogEvent(simulatedData = codeWrapper)
+        #self.app.jogMutex.acquire()
+        #self.app.focus_set()
+        #self.app.jogData = data
+        #self.app.event_generate("<<JOG>>", when="tail")
+        #self.jogLastAction = self.JOGMOTION
+        #self.app.jogMutex.acquire(blocking=True)
+        #self.app.jogMutex.release()
 
     def callback(self, pinValues):
-        if self.app.running.value or CNC.vars["state"] == "Home" or not CNC.vars["JogActive"]:
-            return
         shouldStop = False
         if len(self.lastPinValues) == len(pinValues):
             for (a,b) in zip(self.lastPinValues, pinValues):
                 if a!=b:
                     shouldStop = True
         self.lastPinValues = pinValues
-        if shouldStop and self.jogLastAction != self.JOGSTOP:
-            self.app.jogMutex.acquire()
-            self.app.focus_set()
-            self.app.event_generate("<<JogStop>>", when="tail")
-            self.jogLastAction = self.JOGSTOP
-            self.app.jogMutex.acquire(blocking=True)
-            self.app.jogMutex.release()
+        if shouldStop:
             return
+        #if shouldStop and self.jogLastAction != self.JOGSTOP:
+        #    self.app.jogMutex.acquire()
+        #    self.app.focus_set()
+        #    self.app.event_generate("<<JogStop>>", when="tail")
+        #    self.jogLastAction = self.JOGSTOP
+        #    self.app.jogMutex.acquire(blocking=True)
+        #    self.app.jogMutex.release()
+        #    return
         if self.type == True:
             self.directionMode(pinValues)
         else:
@@ -425,6 +436,18 @@ class Panel:
 
         self.active = Utils.getBool("CNC", "panel", False)
         self.lastCheck = time.time()
+        self.mtx = threading.Lock()
+        self.mtx.acquire()
+        self.th = threading.Thread(target=self.updateTask)
+        self.th.start()
+
+    def updateTask(self):
+        while self.mtx.locked() and self.app is not None:
+            time.sleep(self.period)
+            self.update()
+
+    def stopTask(self):
+        self.mtx.release()
 
     def update(self):
         if not self.active:

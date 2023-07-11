@@ -5,6 +5,8 @@ import time
 from CNC import CNC
 import Utils
 import ThreadVar
+import tkinter
+from mttkinter import *
 
 class JogController:
     def __init__(self, app, keys):
@@ -31,10 +33,13 @@ class JogController:
         self.mutex = threading.Lock()
         self.mutex.acquire()
         self.active = Utils.getBool("Jog", "keyboard", False)
+        self.app.bind("<Key>", self.jogEvent)
+        self.app.bind("<KeyRelease>", self.jogEvent)
+        self.currentKeys = {}
         if self.active:
             for (key,(code,sym)) in self.mapKeyToCode.items():
                 print("Bind {},{} to {}".format(code,sym,key))
-                self.app.bind("<"+str(sym)+">", self.jogEvent)
+                #self.app.bind("<"+str(sym)+">", self.jogEvent)
         self.mtx = threading.Lock()
         self.mtx.acquire()
         if self.active:
@@ -54,15 +59,29 @@ class JogController:
         t = time.time()
         if t - self.lastTime.value >= self.period:
             if not self.mutex.locked() or CNC.vars["state"] == "Jog":
+                self.currentKeys.clear()
                 self.app.event_generate("<<JogStop>>", when="tail")
                 self.lastStop.value = time.time()
                 if CNC.vars["state"] != "Jog":
                     self.mutex.acquire()
 
-    def jogEvent(self, data):
+    def moveKeys(self, keys):
+        keys = "".join(keys)
+        self.app.control.move(keys[::2], keys[1::2])
+
+    def jogEvent(self, eventData=None, simulatedData=None):
+        if eventData is None and simulatedData is None: return
+        if simulatedData is not None:
+            keytype, keycode = simulatedData
+            keytime = time.time()*10**6
+        else:
+            keytype = eventData.type
+            keycode = eventData.keycode
+            keytime = eventData.time
+        if keycode not in self.mapCodeToKey.keys():
+            return
         if self.app.running.val or \
            CNC.vars["state"] == "Run" or \
-           data is None or \
            time.time() - self.lastStop.value < self.releasePeriod or \
            not CNC.vars["JogActive"]:
             return
@@ -71,5 +90,14 @@ class JogController:
             self.mutex.release()
         if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:
             return
-        self.keys[self.mapCodeToKey[data.keycode]](data)
+        currentKey = self.mapCodeToKey[keycode]
+        if keytype == tkinter.EventType.KeyPress:
+            self.currentKeys[currentKey] = keytime
+        else:
+            if currentKey in self.currentKeys.keys():
+                self.currentKeys.pop(currentKey)
+            return
+
+        self.moveKeys(self.currentKeys.keys())
+        #self.keys[currentKey](data)
 
