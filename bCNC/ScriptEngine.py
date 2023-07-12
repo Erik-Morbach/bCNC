@@ -42,7 +42,7 @@ class ScriptEngine:
         exec(self.scripts[name], local, globa)
     
     def execCommand(self, code):
-        self.app.execCommand(code)
+        self.app.executeCommand(code)
     
     def code(self, gcode):
         self.app.sendGCode(gcode)
