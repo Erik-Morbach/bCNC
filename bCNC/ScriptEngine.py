@@ -2,9 +2,12 @@ import pathlib
 import logging
 from tkinter import Variable
 from CNC import CNC
+import Utils
 
 logScript = logging.getLogger("Script")
 logScript.setLevel(logging.INFO)
+
+REFERENCE_PERIOD = Utils.getFloat("Connection", "write_poll", 0.01)
 
 class ScriptEngine:
     def __init__(self, app) -> None:
@@ -51,7 +54,7 @@ class ScriptEngine:
         self.app.sendGCode((4,))
 
     def sleep(self):
-        self.app.sendGCode((8,200))
+        self.app.sendGCode((8,0.1//REFERENCE_PERIOD))
 
     def exist(self, name):
         return name in CNC.vars.keys()
