@@ -2345,7 +2345,7 @@ class GCode:
 		if filename is None: filename = self.filename
 		self.init()
 		self.filename = filename
-		try: f = open(self.filename,"r")
+		try: f = open(self.filename, "r", encoding='latin-1', errors="backslashreplace")
 		except: return False
 		self._lastModified = os.stat(self.filename).st_mtime
 		self.cnc.initPath()
