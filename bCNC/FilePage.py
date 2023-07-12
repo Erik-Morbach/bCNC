@@ -413,11 +413,11 @@ class ClientFrame(CNCRibbon.PageLabelFrame):
 			e.bind("<Return>", self.onReturn)
 			return f
 		f = Frame(self)
+		makeEntry(f, "Zero Mesa", "board_zero").pack(side=TOP)
 		makeEntry(f, "Espessura da placa", "board_thickness").pack(side=TOP)
 		makeEntry(f, "Diferença Z1 e Z2", "z_ganged_difference").pack(side=TOP)
 		makeEntry(f, "Posição A1", "a1_position").pack(side=TOP)
 		makeEntry(f, "Posição A2", "a2_position").pack(side=TOP)
-#		makeEntry(f, "Medida entre Punções", self.punctureDistanceVar, "punctureDistance" ).pack(side=TOP)
 		makeEntry(f, "Medida entre Cavidades", "cavity_distance").pack(side=TOP)
 		f.pack(side=TOP)
 		self.app.loadVars()
