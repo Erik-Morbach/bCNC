@@ -34,13 +34,13 @@ class JogController:
         self.mutex = threading.Lock()
         self.mutex.acquire()
         self.active = Utils.getBool("Jog", "keyboard", False)
-        self.app.bind("<Key>", self.jogEvent)
-        self.app.bind("<KeyRelease>", self.jogEvent)
+        #self.app.bind("<Key>", self.jogEvent)
+        #self.app.bind("<KeyRelease>", self.jogEvent)
         self.currentKeys = {}
         if self.active:
             for (key,(code,sym)) in self.mapKeyToCode.items():
                 print("Bind {},{} to {}".format(code,sym,key))
-                #self.app.bind("<"+str(sym)+">", self.jogEvent)
+                self.app.bind("<"+str(sym)+">", self.jogEvent)
         self.mtx = threading.Lock()
         self.mtx.acquire()
         self.updateTaskThread = threading.Thread(target=self.updateTask)
