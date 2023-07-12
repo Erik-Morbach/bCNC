@@ -1,5 +1,5 @@
 def setConnection(id, value):
-    execute("MODIFY %d %.3f"%(id, value))
+    execute("$%d = %.3f"%(id, value))
     sleep()
 
 xConnection = 500
