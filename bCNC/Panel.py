@@ -222,6 +222,13 @@ class Jog(MemberImpl):
                     shouldStop = True
         self.lastPinValues = pinValues
         if shouldStop:
+            for a in self.axisMap:
+                for d in "+-":
+                    if a+d not in self.app.jogController.mapKeyToCode.keys():
+                        continue
+                    code = self.app.jogController.mapKeyToCode[a+d][0]
+                    codeWrapper = tkinter.EventType.KeyRelease, code
+                    self.app.jogController.jogEvent(simulatedData = codeWrapper)
             return
         #if shouldStop and self.jogLastAction != self.JOGSTOP:
         #    self.app.jogMutex.acquire()
