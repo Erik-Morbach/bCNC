@@ -60,9 +60,6 @@ class JogController:
         t = time.time()
         cp = copy.deepcopy(self.currentKeys)
         for (key, lastTime) in cp.items(): # Verify each key
-            if lastTime>0:
-                continue
-            lastTime = -lastTime
             if t - lastTime >= self.period:
                 if not self.mutex.locked() or CNC.vars["state"] == "Jog":
                     self.app.event_generate("<<JogStop>>", when="tail")
@@ -107,16 +104,7 @@ class JogController:
         if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:
             return
         currentKey = self.mapCodeToKey[keycode]
-        if keytype == tkinter.EventType.KeyPress:
-            self.currentKeys[currentKey] = time.time()
-        else:
-            self.currentKeys[currentKey] = -time.time()
-            return
+        self.currentKeys[currentKey] = time.time()
 
-        keysToSend = []
-        for (k, t) in self.currentKeys.items():
-            if t < 0: continue
-            keysToSend += [k]
-
-        self.moveKeys(keysToSend)
+        self.moveKeys(currentKey)
 
