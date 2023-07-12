@@ -43,9 +43,8 @@ class JogController:
                 #self.app.bind("<"+str(sym)+">", self.jogEvent)
         self.mtx = threading.Lock()
         self.mtx.acquire()
-        if self.active:
-            self.updateTaskThread = threading.Thread(target=self.updateTask)
-            self.updateTaskThread.start()
+        self.updateTaskThread = threading.Thread(target=self.updateTask)
+        self.updateTaskThread.start()
 
     def updateTask(self):
         while self.mtx.locked() and self.app is not None:
@@ -58,15 +57,12 @@ class JogController:
         if self.app.running.val:
             return
         t = time.time()
-        cp = copy.deepcopy(self.currentKeys)
-        for (key, lastTime) in cp.items(): # Verify each key
-            if t - lastTime >= self.period:
-                if not self.mutex.locked() or CNC.vars["state"] == "Jog":
-                    self.app.event_generate("<<JogStop>>", when="tail")
-                    self.lastStop.value = time.time()
-                    if CNC.vars["state"] != "Jog":
-                        self.mutex.acquire()
-                self.currentKeys.pop(key)
+        if t - self.lastTime.value >= self.period:
+            if not self.mutex.locked() or CNC.vars["state"] == "Jog":
+                self.app.event_generate("<<JogStop>>", when="tail")
+                self.lastStop.value = time.time()
+                if CNC.vars["state"] != "Jog":
+                    self.mutex.acquire()
 
             
         #if t - self.lastTime.value >= self.period:
@@ -104,7 +100,6 @@ class JogController:
         if CNC.vars["planner"] < self.plannerLimit and CNC.vars["planner"]!=-1:
             return
         currentKey = self.mapCodeToKey[keycode]
-        self.currentKeys[currentKey] = time.time()
-
+        #self.currentKeys[currentKey] = time.time()
         self.moveKeys(currentKey)
 
