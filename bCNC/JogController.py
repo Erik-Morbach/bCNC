@@ -113,6 +113,10 @@ class JogController:
             self.currentKeys[currentKey] = -time.time()
             return
 
-        self.moveKeys(self.currentKeys.keys())
-        #self.keys[currentKey](data)
+        keysToSend = []
+        for (k, t) in self.currentKeys.items():
+            if t < 0: continue
+            keysToSend += [k]
+
+        self.moveKeys(keysToSend)
 
