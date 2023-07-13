@@ -33,7 +33,7 @@ setConnection(xConnection, 3)
 code("$HX")
 wait()
 
-newLimit = get("limit_x") - distance
+newLimit = get("limit_x") - get("cavity_distance")
 execute("MODIFY %d %.3f" % (130, newLimit))
 sleep()
 
