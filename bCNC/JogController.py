@@ -20,7 +20,7 @@ class JogController:
             sym = sym[:len(sym)-1]
             if key not in self.mapKeyToCode.keys():
                 self.mapKeyToCode[key] = []
-            self.mapKeyToCode[key] += [(int(code),sym)]
+            self.mapKeyToCode[key] += [int(code)]
             self.mapCodeToKey[int(code)] = key
         myConfigFile.close()
 
@@ -88,6 +88,7 @@ class JogController:
         if eventData is None and simulatedData is None: return
         if simulatedData is not None:
             keytype, keycode = simulatedData
+            eventData = 1 #bypass app.control.move event is not None check
         else:
             keytype = eventData.type
             keycode = eventData.keycode
