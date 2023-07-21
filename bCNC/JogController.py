@@ -18,7 +18,9 @@ class JogController:
         for line in myConfigFile.readlines():
             key,code,sym = line.split(' ')
             sym = sym[:len(sym)-1]
-            self.mapKeyToCode[key] = int(code),sym
+            if key not in self.mapKeyToCode.keys():
+                self.mapKeyToCode[key] = []
+            self.mapKeyToCode[key] += [(int(code),sym)]
             self.mapCodeToKey[int(code)] = key
         myConfigFile.close()
 
@@ -34,13 +36,15 @@ class JogController:
         self.mutex = threading.Lock()
         self.mutex.acquire()
         self.active = Utils.getBool("Jog", "keyboard", False)
-        #self.app.bind("<Key>", self.jogEvent)
         #self.app.bind("<KeyRelease>", self.jogEvent)
         self.currentKeys = {}
         if self.active:
-            for (key,(code,sym)) in self.mapKeyToCode.items():
-                print("Bind {},{} to {}".format(code,sym,key))
-                self.app.bind("<"+str(sym)+">", self.jogEvent)
+            self.app.bind("<Key>", self.jogEvent)
+            #for (key,codeSyms) in self.mapKeyToCode.items():
+            #    print(key, codeSyms)
+            #    for (code, sym) in codeSyms:
+            #        print("Bind {},{} to {}".format(code,sym,key))
+            #        #self.app.bind("<"+sym+">", self.jogEvent)
         self.mtx = threading.Lock()
         self.mtx.acquire()
         self.updateTaskThread = threading.Thread(target=self.updateTask)
