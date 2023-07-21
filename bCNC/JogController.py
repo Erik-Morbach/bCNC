@@ -73,12 +73,12 @@ class JogController:
         #        if CNC.vars["state"] != "Jog":
         #            self.mutex.acquire()
 
-    def moveKeys(self, keys):
+    def moveKeys(self, keys, event):
         mergedKeys = ""
         for curKey in keys:
             if curKey[0] in mergedKeys: continue
             mergedKeys += curKey
-        self.app.control.move(mergedKeys[::2], mergedKeys[1::2])
+        self.app.control.move(mergedKeys[::2], mergedKeys[1::2], event)
 
     def jogEvent(self, eventData=None, simulatedData=None):
         if eventData is None and simulatedData is None: return
@@ -101,5 +101,5 @@ class JogController:
             return
         currentKey = self.mapCodeToKey[keycode]
         #self.currentKeys[currentKey] = time.time()
-        self.moveKeys(currentKey)
+        self.moveKeys(currentKey, eventData)
 
