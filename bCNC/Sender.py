@@ -785,7 +785,6 @@ class Sender:
 			self.jobDone()
 
 	def readExecutor(self):
-		print("ReadExecutor = ", self.readExecutorThread.native_id)
 		try:
 			while self.readExecutorThread:
 				if self.readQueue.empty():
@@ -806,7 +805,6 @@ class Sender:
 			traceback.print_exc()
 
 	def serialIORead(self):
-		print("Read = ", self.readThread.native_id)
 		buff = ""
 		try:
 			while self.readThread:
@@ -837,7 +835,6 @@ class Sender:
 	# thread performing I/O on serial line
 	#----------------------------------------------------------------------
 	def serialIOWriteRT(self):
-		print("Write Rt = ",self.writeRTThread.native_id)
 		tr = to = time.time()		# last time a ? or $G was send to grbl
 		try:
 			while self.writeRTThread:
@@ -1007,7 +1004,6 @@ class Sender:
 	# thread performing I/O on serial line
 	#----------------------------------------------------------------------
 	def serialIOWrite(self):
-		print("Write = ",self.writeThread.native_id)
 		self.ioData.clear()
 		try:
 			while self.writeThread:
