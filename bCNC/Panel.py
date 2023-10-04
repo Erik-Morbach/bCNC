@@ -4,6 +4,7 @@ import time
 import Utils
 import io
 import logging
+from queue import Queue
 
 from CNC import CNC
 
@@ -39,6 +40,18 @@ else:
         def digitalRead(self, *args):
             return 0
     wp = A()
+
+debouncerQueue = Queue()
+debouncerMtx = threading.Lock()
+debouncerMtx.acquire()
+def debouncerFunction():
+    while debouncerMtx.locked():
+        if debouncerQueue.empty():
+            time.sleep(0.016) # 60 fps
+            continue
+        func = debouncerQueue.get_nowait()
+        func()
+
 
 class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
@@ -91,7 +104,7 @@ class Member:
             return
         self.lastTime = time.time()
         self.mutex.acquire()
-        threading.Thread(target=self.waitDebounce).start()
+        debouncerQueue.put(self.waitDebounce)
 
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
     values = []
@@ -438,6 +451,8 @@ class Panel:
         self.lastCheck = time.time()
         self.mtx = threading.Lock()
         self.mtx.acquire()
+        self.debouncerThread = threading.Thread(target=debouncerFunction)
+        self.debouncerThread.start()
         self.th = threading.Thread(target=self.updateTask)
         self.th.start()
 
@@ -448,6 +463,7 @@ class Panel:
 
     def stopTask(self):
         self.mtx.release()
+        debouncerMtx.release()
 
     def update(self):
         if not self.active:

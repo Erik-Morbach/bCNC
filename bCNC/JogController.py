@@ -92,6 +92,7 @@ class JogController:
         else:
             keytype = eventData.type
             keycode = eventData.keycode
+        if eventData is not None and not self.app.acceptKey(): return
         if keycode not in self.mapCodeToKey.keys():
             return
         if self.app.running.val or \

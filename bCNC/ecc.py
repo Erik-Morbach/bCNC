@@ -1,4 +1,6 @@
 import random
+encodeTable = [0]*256
+decodeTable = [0]*256
 
 # encode the first 4 bits of this value
 def _singleEncode(val): # TODO: LookUpTable
@@ -16,6 +18,7 @@ def _singleEncode(val): # TODO: LookUpTable
 
 # return 4 bits
 def _decode(val):
+    if decodeTable[val] != 0: return decodeTable[val]
     errorIndex = 0
     if (val&1) ^ ((val>>2)&1) ^ ((val>>4)&1) ^ ((val>>6)&1):
         errorIndex += 1
@@ -26,14 +29,17 @@ def _decode(val):
 
     if errorIndex>0:
         val ^= 1<<(7-errorIndex);
-    return (val&1) | (val&2) | (val&4) | ((val&16)>>1)
+    decodeTable[val] = (val&1) | (val&2) | (val&4) | ((val&16)>>1)
+    return decodeTable[val]
 
 
 # return 2 bytes
 def _encode(val):
+    if encodeTable[val] != 0: return encodeTable[val]
     first = val>>4;
     second = val&(0b1111);
-    return (_singleEncode(first) << 8) | _singleEncode(second);
+    encodeTable[val] = (_singleEncode(first) << 8) | _singleEncode(second);
+    return encodeTable[val]
 
 def decodeOne(val):
     return (_decode(val>>8)<<4) | _decode(val&0xff);
