@@ -69,7 +69,7 @@ from Sender import Sender, NOT_CONNECTED, STATECOLOR, STATECOLORDEF
 
 import webbrowser
 
-from Panel import Panel
+from panel.Panel import Panel
 from JogController import JogController
 from CNCRibbon import Page
 from ToolsPage import Tools, ToolsPage
@@ -411,9 +411,11 @@ class Application(Toplevel, Sender):
 
         self.jogMutex = threading.Lock()
         self.jogData = ""
+
         def releaseJogMutex():
             if self.jogMutex.locked():
                 self.jogMutex.release()
+
         def jog(*args):
             data = self.jogData
             axis = ""
@@ -424,8 +426,10 @@ class Application(Toplevel, Sender):
             self.control.move(axis, directions, 1)
             releaseJogMutex()
         self.bind('<<JOG>>', jog)
+
         def stopJog(*args):
-            if self.serial is None: return
+            if self.serial is None:
+                return
             self.clearSendBuffer()
             for _ in range(20):
                 self.serial_write(chr(0x85))
@@ -447,7 +451,9 @@ class Application(Toplevel, Sender):
                 'C+': self.control.moveCup,
                 'C-': self.control.moveCdown}
         self.jogController = JogController(self, keys)
-        self.panel = Panel(self)
+
+        self.panel = Panel(self, "panel.ini")
+        self.panel.start()
 
         for x in self.widgets:
             if isinstance(x, Entry):
@@ -548,7 +554,7 @@ class Application(Toplevel, Sender):
 
         self.canvas.cameraOff()
         Sender.quit(self)
-        self.panel.stopTask()
+        self.panel.stop()
         self.jogController.stopTask()
         self.saveConfig()
         self.destroy()

@@ -1,5 +1,5 @@
 import threading
-import traceback
+
 
 class ThreadVar:
     def __init__(self, val):
@@ -36,5 +36,3 @@ class ThreadVar:
         value = func(self.val)
         self.unlock()
         return value
-
-

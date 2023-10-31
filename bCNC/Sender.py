@@ -425,6 +425,8 @@ class Sender:
 			pass
 
 		elif self.scripts.find(cmd):
+			if len(line)>1:
+				values = list(map(float,line[1].split(',')))
 			self.scripts.execute(cmd, locals(), globals())
 		else:
 			return _("unknown command"),_("Invalid command %s")%(oline)

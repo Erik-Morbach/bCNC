@@ -11,88 +11,6 @@ import tkinter
 
 from mttkinter import *
 
-def is_raspberrypi():
-    try:
-        with io.open('/sys/firmware/devicetree/base/model', 'r') as m:
-            if 'raspberry pi' in m.read().lower(): 
-                return True
-    except Exception:
-        pass
-    return False
-
-logPanel = logging.getLogger("Panel")
-logPanel.setLevel(logging.INFO)
-if is_raspberrypi():
-    logPanel.info("Is running on a Pi")
-    import wiringpi as wp
-    wp.wiringPiSetupGpio()
-else:
-    logPanel.info("Is running on a PC")
-    class A: # dumb
-        INPUT = 0
-        PUD_DOWN = 1
-        PUD_OFF = 2
-        def pinMode(self, *args):
-            pass
-        def pullUpDnControl(self, *args):
-            pass
-        def digitalRead(self, *args):
-            return 0
-    wp = A()
-
-class Member:
-    def __init__(self, pins, inversion, debounce, callback, active):
-        infoStr = "Member: "
-        self.pins = pins
-        self.debounce = debounce
-        self.callback = callback
-        self.mutex = threading.Lock()
-        self.active = active
-        for pin in pins:
-            infoStr += " " + str(pin)
-            if pin < 0: continue
-            wp.pinMode(pin, wp.INPUT)
-            wp.pullUpDnControl(pin, wp.PUD_DOWN)
-        logPanel.info(infoStr)
-
-        self.inversion = inversion
-        self.lastTime = time.time()
-
-    def read(self, pin):
-        if pin < 0:
-            return (CNC.vars["inputs"] & (2 ** (-pin - 1))) > 0
-        return wp.digitalRead(pin)
-
-    def waitDebounce(self):
-        haveErro = False
-        debounceQnt = 100
-        pinValues = [0]*len(self.pins)
-        for _ in range(debounceQnt):
-            time.sleep(self.debounce/debounceQnt)
-            pinValuesDebounced = [self.read(pin) for pin in self.pins]
-            for i in range(len(pinValues)):
-                pinValues[i] += pinValuesDebounced[i]
-
-        for i in range(len(pinValues)):
-            if pinValues[i] > 0 and pinValues[i] < debounceQnt:
-                haveErro = True
-                break
-            pinValues[i] = 1 if pinValues[i]==debounceQnt else 0
-            if self.inversion & (2**i):
-                pinValues[i] = not pinValues[i]
-        if not haveErro:
-            self.callback(pinValues)
-        self.mutex.release()
-
-    def check(self):
-        if self.mutex.locked():
-            return
-        if time.time() < self.lastTime + self.debounce:
-            return
-        self.lastTime = time.time()
-        self.mutex.acquire()
-        threading.Thread(target=self.waitDebounce).start()
-
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
     values = []
     index = 0
@@ -111,17 +29,6 @@ def getArrayFromUtils(section, array, method=Utils.getInt, default=-20):
         values += [method(section, w, default)]
     return values
 
-class MemberImpl(Member):
-    def __init__(self, app, pins, inversion, debounce, callback, active):
-        super().__init__(pins, inversion, debounce, callback, active)
-        self.app = app
-
-    @abc.abstractmethod
-    def load_pins(self):
-        pass
-    @abc.abstractmethod
-    def callback(self):
-        pass
 
 class Jog(MemberImpl):
     JOGMOTION = 0
