@@ -65,8 +65,8 @@ G_POLL	       = 10	# s
 RX_BUFFER_SIZE = 512
 GCODE_POLL = 0.1
 WRITE_THREAD_PERIOD = Utils.getFloat("Connection", "write_poll", 0.01)#s
-WRITE_THREAD_RT_PERIOD = 0.0001 #s
-READ_THREAD_PERIOD = 0.0001
+WRITE_THREAD_RT_PERIOD = 0.01 #s
+READ_THREAD_PERIOD = 0.001
 print(SERIAL_POLL)
 
 
@@ -788,9 +788,9 @@ class Sender:
 		try:
 			while self.readExecutorThread:
 				if self.readQueue.empty():
-					time.sleep(READ_THREAD_PERIOD*20)
+					time.sleep(READ_THREAD_PERIOD*4)
 					continue
-				line = self.readQueue.get(block=True, timeout=1)
+				line = self.readQueue.get_nowait()
 				try:
 					if self.mcontrol.parseLine(line, self.ioData):
 						pass

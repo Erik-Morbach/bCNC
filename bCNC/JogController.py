@@ -18,7 +18,9 @@ class JogController:
         for line in myConfigFile.readlines():
             key,code,sym = line.split(' ')
             sym = sym[:len(sym)-1]
-            self.mapKeyToCode[key] = int(code),sym
+            if key not in self.mapKeyToCode.keys():
+                self.mapKeyToCode[key] = []
+            self.mapKeyToCode[key] += [int(code)]
             self.mapCodeToKey[int(code)] = key
         myConfigFile.close()
 
@@ -34,13 +36,15 @@ class JogController:
         self.mutex = threading.Lock()
         self.mutex.acquire()
         self.active = Utils.getBool("Jog", "keyboard", False)
-        #self.app.bind("<Key>", self.jogEvent)
         #self.app.bind("<KeyRelease>", self.jogEvent)
         self.currentKeys = {}
         if self.active:
-            for (key,(code,sym)) in self.mapKeyToCode.items():
-                print("Bind {},{} to {}".format(code,sym,key))
-                self.app.bind("<"+str(sym)+">", self.jogEvent)
+            self.app.bind("<Key>", self.jogEvent)
+            #for (key,codeSyms) in self.mapKeyToCode.items():
+            #    print(key, codeSyms)
+            #    for (code, sym) in codeSyms:
+            #        print("Bind {},{} to {}".format(code,sym,key))
+            #        #self.app.bind("<"+sym+">", self.jogEvent)
         self.mtx = threading.Lock()
         self.mtx.acquire()
         self.updateTaskThread = threading.Thread(target=self.updateTask)
@@ -73,20 +77,22 @@ class JogController:
         #        if CNC.vars["state"] != "Jog":
         #            self.mutex.acquire()
 
-    def moveKeys(self, keys):
+    def moveKeys(self, keys, event):
         mergedKeys = ""
         for curKey in keys:
             if curKey[0] in mergedKeys: continue
             mergedKeys += curKey
-        self.app.control.move(mergedKeys[::2], mergedKeys[1::2])
+        self.app.control.move(mergedKeys[::2], mergedKeys[1::2], event)
 
     def jogEvent(self, eventData=None, simulatedData=None):
         if eventData is None and simulatedData is None: return
         if simulatedData is not None:
             keytype, keycode = simulatedData
+            eventData = 1 #bypass app.control.move event is not None check
         else:
             keytype = eventData.type
             keycode = eventData.keycode
+        if eventData is not None and not self.app.acceptKey(): return
         if keycode not in self.mapCodeToKey.keys():
             return
         if self.app.running.val or \
@@ -101,5 +107,5 @@ class JogController:
             return
         currentKey = self.mapCodeToKey[keycode]
         #self.currentKeys[currentKey] = time.time()
-        self.moveKeys(currentKey)
+        self.moveKeys(currentKey, eventData)
 
