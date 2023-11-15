@@ -25,8 +25,7 @@ class ScriptEngine:
                 self.scripts[name] = "\n".join(fileObj.readlines())
 
     def find(self, name):
-        name = name.upper()
-        #print("Finding {}".format(name))
+        name = name.upper().strip()
         return name in self.scripts.keys()
 
     def _setBindings(self, local, globa):
@@ -39,7 +38,7 @@ class ScriptEngine:
         local["exist"] = self.exist
 
     def execute(self, name, local, globa):
-        name = name.upper()
+        name = name.upper().strip()
         #print("Executing {}".format(name))
         self._setBindings(local, globa)
         exec(self.scripts[name], local, globa)
