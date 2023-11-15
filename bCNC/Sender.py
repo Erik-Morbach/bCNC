@@ -883,7 +883,7 @@ class Sender:
 		return self.deque.popleft()
 
 	def isInternalStrCommand(self, code):
-		return False
+		return self.scripts.find(code)
 
 	def isInternalCommand(self, cmd):
 		code = cmd.src
@@ -944,11 +944,10 @@ class Sender:
 			self._gcount.assign(lambda x: x + 1)
 
 	def executeStrInternalCommand(self, code):
-		pass
+		self.scripts.execute(code, locals(), globals())
 
 	def isRunningMacro(self):
 		return self.ioData.macrosRunning.value > 0
-
 
 	def executeInternalCommand(self, cmd):
 		code = cmd.src
