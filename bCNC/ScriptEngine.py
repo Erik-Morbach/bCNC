@@ -7,7 +7,7 @@ import Utils
 logScript = logging.getLogger("Script")
 logScript.setLevel(logging.INFO)
 
-REFERENCE_PERIOD = Utils.getFloat("Connection", "write_poll", 0.01)
+REFERENCE_PERIOD = Utils.getFloat("Connection", "poll", 10)/1000
 
 class ScriptEngine:
     def __init__(self, app) -> None:
