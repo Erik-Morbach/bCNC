@@ -97,13 +97,13 @@ class FileGroup(CNCRibbon.ButtonGroup):
 
 		# ---
 		col,row=2,0
-		b = Ribbon.LabelButton(self.frame, self, "<<Import>>",
+		b = Ribbon.LabelButton(self.frame, self, "<<FileManager>>",
 				image=Utils.icons["import32"],
-				text=_("Import"),
+				text=_("File Manager"),
 				compound=TOP,
 				background=Ribbon._BACKGROUND)
 		b.grid(row=row, column=col, rowspan=3, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Import gcode/dxf file"))
+		tkExtra.Balloon.set(b, _("File Manager"))
 		self.addWidget(b)
 
 		# ---
