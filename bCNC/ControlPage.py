@@ -1040,7 +1040,7 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		tkExtra.Balloon.set(b, _("Increase step by 1 unit"))
 		self.addWidget(b)
 
-		self.step = tkExtra.Combobox(f3, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, font="Helvetica, 14")
+		self.step = tkExtra.Combobox(f3, False, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, font="Helvetica, 14")
 		self.step.pack(side=LEFT)
 		self.step.set(Utils.config.get("Control","step"))
 		self.step.fill(map(float, Utils.config.get("Control","steplist").split()))

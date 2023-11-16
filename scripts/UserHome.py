@@ -4,7 +4,7 @@ def setConnection(id, value):
 
 xConnection = 500
 zConnection = 502
-aConnection = 503
+bConnection = 504
 
 setConnection(zConnection,1)
 code("$HZ")
@@ -40,19 +40,19 @@ sleep()
 code("$HY")
 wait()
 
-setConnection(aConnection, 3)
-code("$HA")
+setConnection(bConnection, 3)
+code("$HB")
 wait()
-setConnection(aConnection, 1)
-code("$HA")
+setConnection(bConnection, 1)
+code("$HB")
 wait()
-code("G53 G0 A%.3f" % get("a1_position"))
+code("G53 G0 B%.3f" % get("b1_position"))
 wait()
-setConnection(aConnection, 2)
-code("$HA")
+setConnection(bConnection, 2)
+code("$HB")
 wait()
-code("G53 G0 A%.3f" % get("a2_position"))
+code("G53 G0 B%.3f" % get("b2_position"))
 wait()
-setConnection(aConnection, 3)
-code("$603=0")
+setConnection(bConnection, 3)
+code("$604=0")
 wait()
