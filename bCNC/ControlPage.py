@@ -188,7 +188,7 @@ class SetCompensationDialog(Dialog):
 		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
 		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
 
-class SetToolZeroDialog(Dialog):
+class SetToolZeroDialog(Dialog): # TODO: Show all tools on the table
 	def __init__(self, parent, title, app):
 		self.app = app
 		self.tool = self.app.toolTable
@@ -260,7 +260,8 @@ class SetToolZeroDialog(Dialog):
 		tlo = self.getTool(index)
 		wcs, id = self.workTable.getRow(self.wcs)
 		for (id, w) in enumerate(self.axes):
-			self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w]) - float(wcs[w])))
+			#self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w]) - float(wcs[w])))
+			self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w]) ))
 
 	def valid(self, future_value):
 		if len(future_value)==0: return True
@@ -285,7 +286,8 @@ class SetToolZeroDialog(Dialog):
 		tlo = self.getTlo()
 		wcs, id = self.workTable.getRow(self.wcs)
 		for axe in self.axes:
-			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe] - float(wcs[axe])
+			#      tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe] - float(wcs[axe])
+			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe]
 		self.app.mcontrol._tloSet(index, **tlo)
 		self.app.unlock()
 
@@ -296,7 +298,7 @@ class SetToolZeroDialog(Dialog):
 		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
 		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
 
-class SetWorkZeroDialog(Dialog):
+class SetWorkZeroDialog(Dialog): # TODO: Show all WCS on the table
 	def __init__(self, parent, title, app):
 		self.app = app
 		self.wcs = StringVar(value="G54")
@@ -339,7 +341,7 @@ class SetWorkZeroDialog(Dialog):
 
 	def onWcs(self, *args):
 		for (id, w) in enumerate(self.axes):
-			self.var[id].set("%.03f" % float(CNC.vars["w"+w]))
+			self.var[id].set("%.03f" % float(CNC.vars["m"+w])) # TODO: Change to CNC.vars["m" +w]
 
 	def valid(self, future_value):
 		if len(future_value)==0: return True

@@ -12,6 +12,8 @@ import time
 import re
 import threading
 
+import tkinter
+from mttkinter import *
 #GRBLv1
 SPLITPAT  = re.compile(r"[:,]")
 TOOLSPLITPAT  = re.compile(r"[:|,]")
@@ -52,13 +54,14 @@ class _GenericController:
 
 	def onReset(self):
 		self.master.stopProbe()
+		self.master.runEnded()
 		CNC.vars["_OvChanged"] = True	# force a feed change if any
 		self.unlock()
 		while len(self.runOnceOnResetFunctions):
 			self.runOnceOnResetFunctions[0]()
 			del self.runOnceOnResetFunctions[0]
 		if not self.expectingReset:
-			#self.master.showErrorPopup("Erro interno. Referência é necessária para a continuação")
+			tkinter.messagebox.showerror("Erro", "Controlador foi resetado sem a devida instrução")
 			pass
 		self.expectingReset = False
 
@@ -448,6 +451,14 @@ class _GenericController:
 			if CNC.vars["debug"]:
 				self.master.log.put((self.master.MSG_RECEIVE, line))
 			self.parseBracketAngle(line, ioData)
+			if "door" in line.lower():
+				if self.master.running.value:
+					errorLine = CNC.vars["errline"]
+					self.feedHold()
+					self.master._stop.value = True
+					self.master.stopRun()
+					self.master.runEnded()
+					tkinter.messagebox.showerror("Erro", "Erro inesperado na linha "+errorLine + "\n")
 
 		elif "pgm end" in line.lower():
 			CNC.vars["pgmEnd"] = True
@@ -465,8 +476,12 @@ class _GenericController:
 			self.master._alarm.value = True
 			self.displayState(line)
 			if self.master.running.value:
+				errorLine = CNC.vars["errline"]
 				self.feedHold()
 				self.master._stop.value = True
+				self.master.stopRun()
+				self.master.runEnded()
+				tkinter.messagebox.showerror("Erro", "Erro inesperado na linha "+errorLine + "\n")
 
 		elif line.find("ok")>=0:
 			self.master.log.put((self.master.MSG_OK, line))

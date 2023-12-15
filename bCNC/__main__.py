@@ -315,7 +315,7 @@ class Application(Toplevel, Sender):
         self.bind('<<Resume>>', lambda e, s=self: s.resume())
         self.bind('<<Run>>', lambda e, s=self: s.run())
         self.bind('<<RunBegin>>', lambda e, s=self: s.run(cleanRepeat=True))
-        self.bind('<<Stop>>', self.stopRun)
+        self.bind('<<Stop>>', self.hardStop)
         self.bind('<<Pause>>', self.pause)
         #		self.bind('<<TabAdded>>',	self.tabAdded)
 

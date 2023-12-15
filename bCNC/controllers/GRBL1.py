@@ -304,3 +304,5 @@ class Controller(_GenericGRBL):
 			self.onRecieveTool(id, CNC.vars["toolTable"][id])
 		else:
 			CNC.vars[word[0]] = word[1:]
+			if word[0] == "MSG" and word[1] == "Disabled":
+				self.expectingReset = True

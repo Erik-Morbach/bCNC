@@ -104,7 +104,7 @@ class Member:
             return
         self.lastTime = time.time()
         self.mutex.acquire()
-        debouncerQueue.put(self.waitDebounce)
+        debouncerQueue.put(self.waitDebounce) # make a debouncer thread for each one of the members
 
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
     values = []

@@ -166,6 +166,8 @@ class Sender:
 		self._lastFeed	 = 0
 		self._newFeed	 = 0
 
+		self._errorOnConnection = 0
+
 		self._onStart    = ""
 		self._onStop     = ""
 
@@ -638,7 +640,7 @@ class Sender:
 		self.writeRTThread = None
 		self.readThread = None
 		self.readExecutorThread = None
-		time.sleep(1)
+		time.sleep(0.05)
 		try:
 			self.serial.close()
 		except:
@@ -646,6 +648,14 @@ class Sender:
 		self.serial = None
 		CNC.vars["state"] = NOT_CONNECTED
 		CNC.vars["color"] = STATECOLOR[CNC.vars["state"]]
+
+	def reconect(self):
+		self.close()
+		while self.serial == None and self._errorOnConnection <= 5:
+			self.openClose()
+			self._errorOnConnection += 1
+		if self.serial is not None:
+			self._errorOnConnection = 0
 
 	#----------------------------------------------------------------------
 	# Send to controller a gcode or command
@@ -697,7 +707,7 @@ class Sender:
 		self.ioData.clear()
 		self.deque.clear()
 		self.programEngine.reset()
-		self.compiledProgram = []
+		self.compiledProgram = ThreadVar.ThreadVar([])
 		self.ioData.clear()
 
 	#----------------------------------------------------------------------
@@ -759,6 +769,13 @@ class Sender:
 		self.purgeController()
 
 	#----------------------------------------------------------------------
+	# Stop the current run
+	#----------------------------------------------------------------------
+	def hardStop(self, event=None):
+		self.stopRun()
+		self.runEnded()
+
+	#----------------------------------------------------------------------
 	# This should be called everytime that milling of g-code file is finished
 	# So we can purge the controller for the next job
 	# See https://github.com/vlachoudis/bCNC/issues/1035
@@ -815,7 +832,6 @@ class Sender:
 					rawLine = self.serial.read()
 					line = str(rawLine.decode('utf-8','ignore'))
 				except:
-					print(rawLine)
 					self.log.put((Sender.MSG_RECEIVE, str(sys.exc_info()[1])))
 					continue
 				buff += line
@@ -854,6 +870,10 @@ class Sender:
 			with open("myLog.txt",'a') as logfile:
 				logfile.write("EXCEPTION {} {} :\n{}".format(time.ctime(), "WriteRt" ,traceback.format_exc()))
 			traceback.print_exc()
+			self.after(100, self.reconect)
+			self.close()
+
+
 
 	#----------------------------------------------------------------------
 	# Helper functions for serialIOWrite

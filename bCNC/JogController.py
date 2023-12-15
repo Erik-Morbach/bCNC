@@ -54,6 +54,7 @@ class JogController:
         while self.mtx.locked() and self.app is not None:
             time.sleep(self.period)
             self.update()
+
     def stopTask(self):
         self.mtx.release()
 
@@ -76,6 +77,7 @@ class JogController:
         #        self.lastStop.value = time.time()
         #        if CNC.vars["state"] != "Jog":
         #            self.mutex.acquire()
+
 
     def moveKeys(self, keys, event):
         mergedKeys = ""

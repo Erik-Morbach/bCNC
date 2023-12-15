@@ -34,12 +34,19 @@ class Serial:
 			for w in data:
 				outData += ecc.encodeOne(1).to_bytes(2, 'big')
 				outData += ecc.encodeOne(w).to_bytes(2, 'big')
-		self.lock("write")
-		self.serial.write(outData)
-		self.unlock("write")
+		try:
+			self.lock("write")
+			self.serial.write(outData)
+		except:
+			raise serial.SerialException()
+		finally:
+			self.unlock("write")
 	
 	def in_waiting(self):
-		return self.serial.in_waiting
+		if self.serial.readable():
+			return self.serial.in_waiting
+		else:
+			return 0
 
 	def _readChar(self, c):
 		if not self.shouldRead:
@@ -67,7 +74,9 @@ class Serial:
 
 	def read(self):
 		n = max(self.serial.in_waiting,1)
-		recieved = self.serial.read(n)
+		recieved  = []
+		if self.serial.readable():
+			recieved = self.serial.read(n)
 
 		if not self.activeEcc:
 			return recieved
