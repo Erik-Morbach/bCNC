@@ -41,17 +41,6 @@ else:
             return 0
     wp = A()
 
-debouncerQueue = Queue()
-debouncerMtx = threading.Lock()
-debouncerMtx.acquire()
-def debouncerFunction():
-    while debouncerMtx.locked():
-        if debouncerQueue.empty():
-            time.sleep(0.016) # 60 fps
-            continue
-        func = debouncerQueue.get_nowait()
-        func()
-
 
 class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
@@ -71,40 +60,48 @@ class Member:
         self.inversion = inversion
         self.lastTime = time.time()
 
+        self.th_mtx = threading.Lock()
+        self.th = threading.Thread(target=self.threadMethod)
+
+    def start(self):
+        if self.th_mtx.locked(): return
+        self.th_mtx.acquire()
+        self.th.start()
+
+    def stop(self):
+        if not self.th_mtx.locked(): return
+        self.th_mtx.release()
+
+    def threadMethod(self):
+        debouncer_qnt = 10
+        debouncer_period = self.debounce/debouncer_qnt
+        window = [[0]*len(self.pins) for _ in range(debouncer_qnt)]
+        index = 0
+        current_sum = [0]*len(self.pins)
+        while self.th_mtx.locked():
+            time.sleep(debouncer_period)
+            pinValues = [self.read(pin) for pin in self.pins]
+            current_sum = [(a - b) for (a,b) in zip(current_sum, window[index])]
+            window[index] = pinValues
+            current_sum = [(a + b) for (a,b) in zip(current_sum, window[index])]
+
+            index += 1
+            index %= len(window)
+
+            haveErro = any([(a!=0 and a!=debouncer_qnt) for a in current_sum])
+
+            values = []
+            for (id, w) in enumerate(current_sum):
+                values += [1 if w == debouncer_qnt else 0]
+                values[-1] ^= (1 if (self.inversion & (1<<id)) else 0)
+
+            if not haveErro:
+                self.callback(values)
+
     def read(self, pin):
         if pin < 0:
             return (CNC.vars["inputs"] & (2 ** (-pin - 1))) > 0
         return wp.digitalRead(pin)
-
-    def waitDebounce(self):
-        haveErro = False
-        debounceQnt = 100
-        pinValues = [0]*len(self.pins)
-        for _ in range(debounceQnt):
-            time.sleep(self.debounce/debounceQnt)
-            pinValuesDebounced = [self.read(pin) for pin in self.pins]
-            for i in range(len(pinValues)):
-                pinValues[i] += pinValuesDebounced[i]
-
-        for i in range(len(pinValues)):
-            if pinValues[i] > 0 and pinValues[i] < debounceQnt:
-                haveErro = True
-                break
-            pinValues[i] = 1 if pinValues[i]==debounceQnt else 0
-            if self.inversion & (2**i):
-                pinValues[i] = not pinValues[i]
-        if not haveErro:
-            self.callback(pinValues)
-        self.mutex.release()
-
-    def check(self):
-        if self.mutex.locked():
-            return
-        if time.time() < self.lastTime + self.debounce:
-            return
-        self.lastTime = time.time()
-        self.mutex.acquire()
-        debouncerQueue.put(self.waitDebounce) # make a debouncer thread for each one of the members
 
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
     values = []
@@ -448,31 +445,13 @@ class Panel:
             index += 1
 
         self.active = Utils.getBool("CNC", "panel", False)
-        self.lastCheck = time.time()
-        self.mtx = threading.Lock()
-        self.mtx.acquire()
-        self.debouncerThread = threading.Thread(target=debouncerFunction)
-        self.debouncerThread.start()
-        self.th = threading.Thread(target=self.updateTask)
-        self.th.start()
 
-    def updateTask(self):
-        while self.mtx.locked() and self.app is not None:
-            time.sleep(self.period)
-            self.update()
+        if self.active:
+            for m in self.members:
+                if m.active:
+                    m.start()
 
     def stopTask(self):
-        self.mtx.release()
-        debouncerMtx.release()
+        for m in self.members:
+            m.stop()
 
-    def update(self):
-        if not self.active:
-            return
-        t = time.time()
-        if t > self.lastCheck + self.period:
-            for member in self.members:
-                if not member.active:
-                    continue
-                member.check()
-
-            self.lastCheck = t
