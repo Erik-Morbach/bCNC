@@ -633,6 +633,10 @@ class RunGroup(CNCRibbon.ButtonGroup):
               font=("Sans", "-14")).pack(side=LEFT, fill=BOTH)
         f3.pack(side=LEFT, expand=TRUE)
         f2.pack(side=TOP, expand=TRUE)
+        f2 = Frame(f)
+        Checkbutton(f2, text=_("Contagem"), font=("Sans", "-14"),
+                    variable=self.app.gcode.repeatEngine.enableVar).pack(side=LEFT, fill=BOTH)
+        f2.pack(side=TOP, expand=TRUE)
         f.pack(side=LEFT, fill=BOTH)
         tkExtra.Balloon.set(b, _("Repeticoes"))
         self.app.bind("<<RepeatEngineConfigure>>",
