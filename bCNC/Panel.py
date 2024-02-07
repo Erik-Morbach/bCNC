@@ -37,6 +37,8 @@ class gpio:
         self.obj[pin] = gpiozero.Button(pin, pull_up=False)
 
     def read(self, pin):
+        if pin not in self.obj.keys():
+            return 0
         return self.obj[pin].is_pressed
 
 
