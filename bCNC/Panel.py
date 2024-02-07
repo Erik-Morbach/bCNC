@@ -27,9 +27,18 @@ logPanel = logging.getLogger("Panel")
 logPanel.setLevel(logging.INFO)
 
 
-class Dumb:
-    is_pressed = 0
+class gpio:
+    def __init__(self) -> None:
+        self.obj = {}
 
+    def setup(self, pin):
+        self.obj[pin] = gpiozero.Button(pin, pull_up=False)
+
+    def read(self, pin):
+        return self.obj[pin].is_pressed
+
+
+GPIO = gpio()
 
 if is_raspberrypi():
     logPanel.info("Is running on a Pi")
@@ -41,19 +50,16 @@ class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
         infoStr = "Member: "
         self.pins = pins
-        self.pinObj = [Dumb()] * len(pins)
         self.debounce = debounce
         self.callback = callback
         self.mutex = threading.Lock()
         self.active = active
-        for id, pin in enumerate(pins):
+        for pin in pins:
             infoStr += " " + str(pin)
             if pin < 0:
                 continue
-            obj = Dumb()
-            if is_raspberrypi():
-                obj = gpiozero.Button(pin, pull_up=False)
-            self.pinObj[id] = obj
+            GPIO.setup(pin)
+
         logPanel.info(infoStr)
 
         self.inversion = inversion
@@ -81,7 +87,7 @@ class Member:
         current_sum = [0]*len(self.pins)
         while self.th_mtx.locked():
             time.sleep(debouncer_period)
-            pinValues = [self.read(id) for id, pin in enumerate(self.pins)]
+            pinValues = [GPIO.read(pin) for pin in self.pins]
             current_sum = [(a - b)
                            for (a, b) in zip(current_sum, window[index])]
             window[index] = pinValues
@@ -102,11 +108,10 @@ class Member:
             if not haveErro:
                 self.callback(values)
 
-    def read(self, pin_id):
-        pin_number = self.pins[pin_id]
-        if pin_number < 0:
-            return (CNC.vars["inputs"] & (2 ** (-pin_number - 1))) > 0
-        return self.pinObj[pin_id].is_pressed
+    def read(self, pin):
+        if pin < 0:
+            return (CNC.vars["inputs"] & (2 ** (-pin - 1))) > 0
+        return GPIO.read(pin)
 
 
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
