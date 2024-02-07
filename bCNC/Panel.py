@@ -8,6 +8,7 @@ import logging
 from CNC import CNC
 
 import tkinter
+import gpiozero
 
 from mttkinter import *
 
@@ -24,48 +25,35 @@ def is_raspberrypi():
 
 logPanel = logging.getLogger("Panel")
 logPanel.setLevel(logging.INFO)
+
+
+class Dumb:
+    is_pressed = 0
+
+
 if is_raspberrypi():
     logPanel.info("Is running on a Pi")
-    import RPi.GPIO as GPIO
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setwarnings(False)
 else:
     logPanel.info("Is running on a PC")
-
-    class A:  # dumb
-        IN = 0
-        PUD_DOWN = 1
-        LOW = 2
-        HIGH = 3
-
-        def setup(self, *args, **kwargs):
-            pass
-
-        def pullUpDnControl(self, *args, **kwargs):
-            pass
-
-        def digitalRead(self, *args, **kwargs):
-            return 0
-
-        def input(self, *args):
-            return 0
-
-    GPIO = A()
 
 
 class Member:
     def __init__(self, pins, inversion, debounce, callback, active):
         infoStr = "Member: "
         self.pins = pins
+        self.pinObj = [Dumb()] * len(pins)
         self.debounce = debounce
         self.callback = callback
         self.mutex = threading.Lock()
         self.active = active
-        for pin in pins:
+        for id, pin in enumerate(pins):
             infoStr += " " + str(pin)
             if pin < 0:
                 continue
-            GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+            obj = Dumb()
+            if is_raspberrypi():
+                obj = gpiozero.Button(pin, pull_up=False)
+            self.pinObj[id] = obj
         logPanel.info(infoStr)
 
         self.inversion = inversion
@@ -93,7 +81,7 @@ class Member:
         current_sum = [0]*len(self.pins)
         while self.th_mtx.locked():
             time.sleep(debouncer_period)
-            pinValues = [self.read(pin) for pin in self.pins]
+            pinValues = [self.read(id) for id, pin in enumerate(self.pins)]
             current_sum = [(a - b)
                            for (a, b) in zip(current_sum, window[index])]
             window[index] = pinValues
@@ -114,10 +102,11 @@ class Member:
             if not haveErro:
                 self.callback(values)
 
-    def read(self, pin):
-        if pin < 0:
-            return (CNC.vars["inputs"] & (2 ** (-pin - 1))) > 0
-        return GPIO.input(pin)
+    def read(self, pin_id):
+        pin_number = self.pins[pin_id]
+        if pin_number < 0:
+            return (CNC.vars["inputs"] & (2 ** (-pin_number - 1))) > 0
+        return self.pinObj[pin_id].is_pressed
 
 
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
