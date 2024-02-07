@@ -4,7 +4,6 @@ import time
 import Utils
 import io
 import logging
-from queue import Queue
 
 from CNC import CNC
 
@@ -12,34 +11,46 @@ import tkinter
 
 from mttkinter import *
 
+
 def is_raspberrypi():
     try:
         with io.open('/sys/firmware/devicetree/base/model', 'r') as m:
-            if 'raspberry pi' in m.read().lower(): 
+            if 'raspberry pi' in m.read().lower():
                 return True
     except Exception:
         pass
     return False
 
+
 logPanel = logging.getLogger("Panel")
 logPanel.setLevel(logging.INFO)
 if is_raspberrypi():
     logPanel.info("Is running on a Pi")
-    import wiringpi as wp
-    wp.wiringPiSetupGpio()
+    import RPi.GPIO as GPIO
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setwarnings(False)
 else:
     logPanel.info("Is running on a PC")
-    class A: # dumb
-        INPUT = 0
+
+    class A:  # dumb
+        IN = 0
         PUD_DOWN = 1
-        PUD_OFF = 2
-        def pinMode(self, *args):
+        LOW = 2
+        HIGH = 3
+
+        def setup(self, *args, **kwargs):
             pass
-        def pullUpDnControl(self, *args):
+
+        def pullUpDnControl(self, *args, **kwargs):
             pass
-        def digitalRead(self, *args):
+
+        def digitalRead(self, *args, **kwargs):
             return 0
-    wp = A()
+
+        def input(self, *args):
+            return 0
+
+    GPIO = A()
 
 
 class Member:
@@ -52,9 +63,9 @@ class Member:
         self.active = active
         for pin in pins:
             infoStr += " " + str(pin)
-            if pin < 0: continue
-            wp.pinMode(pin, wp.INPUT)
-            wp.pullUpDnControl(pin, wp.PUD_DOWN)
+            if pin < 0:
+                continue
+            GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         logPanel.info(infoStr)
 
         self.inversion = inversion
@@ -64,12 +75,14 @@ class Member:
         self.th = threading.Thread(target=self.threadMethod)
 
     def start(self):
-        if self.th_mtx.locked(): return
+        if self.th_mtx.locked():
+            return
         self.th_mtx.acquire()
         self.th.start()
 
     def stop(self):
-        if not self.th_mtx.locked(): return
+        if not self.th_mtx.locked():
+            return
         self.th_mtx.release()
 
     def threadMethod(self):
@@ -81,19 +94,22 @@ class Member:
         while self.th_mtx.locked():
             time.sleep(debouncer_period)
             pinValues = [self.read(pin) for pin in self.pins]
-            current_sum = [(a - b) for (a,b) in zip(current_sum, window[index])]
+            current_sum = [(a - b)
+                           for (a, b) in zip(current_sum, window[index])]
             window[index] = pinValues
-            current_sum = [(a + b) for (a,b) in zip(current_sum, window[index])]
+            current_sum = [(a + b)
+                           for (a, b) in zip(current_sum, window[index])]
 
             index += 1
             index %= len(window)
 
-            haveErro = any([(a!=0 and a!=debouncer_qnt) for a in current_sum])
+            haveErro = any([(a != 0 and a != debouncer_qnt)
+                           for a in current_sum])
 
             values = []
             for (id, w) in enumerate(current_sum):
                 values += [1 if w == debouncer_qnt else 0]
-                values[-1] ^= (1 if (self.inversion & (1<<id)) else 0)
+                values[-1] ^= (1 if (self.inversion & (1 << id)) else 0)
 
             if not haveErro:
                 self.callback(values)
@@ -101,7 +117,8 @@ class Member:
     def read(self, pin):
         if pin < 0:
             return (CNC.vars["inputs"] & (2 ** (-pin - 1))) > 0
-        return wp.digitalRead(pin)
+        return GPIO.input(pin)
+
 
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
     values = []
@@ -115,11 +132,13 @@ def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
         index += 1
     return values
 
+
 def getArrayFromUtils(section, array, method=Utils.getInt, default=-20):
     values = []
     for w in array:
         values += [method(section, w, default)]
     return values
+
 
 class MemberImpl(Member):
     def __init__(self, app, pins, inversion, debounce, callback, active):
@@ -129,18 +148,21 @@ class MemberImpl(Member):
     @abc.abstractmethod
     def load_pins(self):
         pass
+
     @abc.abstractmethod
     def callback(self):
         pass
 
+
 class Jog(MemberImpl):
     JOGMOTION = 0
     JOGSTOP = 1
+
     def __init__(self, app):
         self.active = Utils.getBool("Jog", "panel", False)
 
         self.type = Utils.getBool("Jog", "directionMode", True)
-        #directionMode:
+        # directionMode:
         # pin0: axis
         # pin1: direction
         #
@@ -153,11 +175,11 @@ class Jog(MemberImpl):
 
         self.directMappings = []
         for w in self.axisMap:
-            self.directMappings += [w+"Up",w+"Down"]
+            self.directMappings += [w+"Up", w+"Down"]
 
         self.jogLastAction = self.JOGMOTION
         debounce = Utils.getFloat("Jog", "debounce", 0.05)
-        self.plannerLimit = Utils.getInt("Jog","planner", 90)
+        self.plannerLimit = Utils.getInt("Jog", "planner", 90)
 
         pins, inversion = self.load_pins()
         self.lastPinValues = []
@@ -181,22 +203,24 @@ class Jog(MemberImpl):
     def directionMode(self, pinValues):
         axis = []
         direction = []
-        for i in range(0,len(pinValues)):
-            if i % 2 == 0: axis += [pinValues[i]]
-            else: direction += [pinValues[i]]
-        for id, (axe,dire) in enumerate(zip(axis,direction)):
+        for i in range(0, len(pinValues)):
+            if i % 2 == 0:
+                axis += [pinValues[i]]
+            else:
+                direction += [pinValues[i]]
+        for id, (axe, dire) in enumerate(zip(axis, direction)):
             if axe == 1:
                 con = self.axisMap[id] + self.directionMap[dire]
                 code = self.app.jogController.mapKeyToCode[con][0]
                 codeWrapper = tkinter.EventType.KeyPress, code
-                self.app.jogController.jogEvent(simulatedData = codeWrapper)
-                #self.app.jogController
-                #self.app.jogMutex.acquire()
-                #self.app.focus_set()
-                #self.app.event_generate("<<"+con+">>", when="tail")
-                #self.jogLastAction = self.JOGMOTION
-                #self.app.jogMutex.acquire(blocking=True)
-                #self.app.jogMutex.release()
+                self.app.jogController.jogEvent(simulatedData=codeWrapper)
+                # self.app.jogController
+                # self.app.jogMutex.acquire()
+                # self.app.focus_set()
+                # self.app.event_generate("<<"+con+">>", when="tail")
+                # self.jogLastAction = self.JOGMOTION
+                # self.app.jogMutex.acquire(blocking=True)
+                # self.app.jogMutex.release()
                 return
 
     def directMode(self, pinValues):
@@ -204,36 +228,36 @@ class Jog(MemberImpl):
         for id, val in enumerate(pinValues):
             if val == 1:
                 con = self.directMappings[id]
-                if len(data)>2:
-                    if data[-2]==con[0]:
+                if len(data) > 2:
+                    if data[-2] == con[0]:
                         continue
                 data += con[0]
                 data += '+' if con[1:] == "Up" else '-'
         if len(data) == 0:
             return
-        for i in range(0, len(data),2):
+        for i in range(0, len(data), 2):
             key = data[i:i+2]
             code = self.app.jogController.mapKeyToCode[key][0]
             codeWrapper = tkinter.EventType.KeyPress, code
-            self.app.jogController.jogEvent(simulatedData = codeWrapper)
-        #self.app.jogMutex.acquire()
-        #self.app.focus_set()
-        #self.app.jogData = data
-        #self.app.event_generate("<<JOG>>", when="tail")
-        #self.jogLastAction = self.JOGMOTION
-        #self.app.jogMutex.acquire(blocking=True)
-        #self.app.jogMutex.release()
+            self.app.jogController.jogEvent(simulatedData=codeWrapper)
+        # self.app.jogMutex.acquire()
+        # self.app.focus_set()
+        # self.app.jogData = data
+        # self.app.event_generate("<<JOG>>", when="tail")
+        # self.jogLastAction = self.JOGMOTION
+        # self.app.jogMutex.acquire(blocking=True)
+        # self.app.jogMutex.release()
 
     def callback(self, pinValues):
         shouldStop = False
         if len(self.lastPinValues) == len(pinValues):
-            for (a,b) in zip(self.lastPinValues, pinValues):
-                if a!=b:
+            for (a, b) in zip(self.lastPinValues, pinValues):
+                if a != b:
                     shouldStop = True
         self.lastPinValues = pinValues
         if shouldStop:
             return
-        #if shouldStop and self.jogLastAction != self.JOGSTOP:
+        # if shouldStop and self.jogLastAction != self.JOGSTOP:
         #    self.app.jogMutex.acquire()
         #    self.app.focus_set()
         #    self.app.event_generate("<<JogStop>>", when="tail")
@@ -246,6 +270,7 @@ class Jog(MemberImpl):
         else:
             self.directMode(pinValues)
 
+
 class Selector(MemberImpl):
     def __init__(self, app, index, onChange) -> None:
         self.onChange = onChange
@@ -253,24 +278,27 @@ class Selector(MemberImpl):
         self.selectorName = "Selector{}".format(index)
         self.active = Utils.getBool(self.selectorName, "panel", False)
         debounce = Utils.getFloat(self.selectorName, "debounce", 0.1)
-        self.selectorBinaryType = Utils.getBool(self.selectorName, "binary", False)
+        self.selectorBinaryType = Utils.getBool(
+            self.selectorName, "binary", False)
         self.grayCodeActive = Utils.getBool(self.selectorName, "gray", False)
 
-        binary =  lambda index, id: index + (2**id)
-        direct = lambda index, id: id
+        def binary(index, id): return index + (2**id)
+        def direct(index, id): return id
         self.typeFunction = binary if self.selectorBinaryType else direct
 
         self.variableBegin = Utils.getFloat(self.selectorName, "begin", -1)
         self.variableEnd = Utils.getFloat(self.selectorName, "end", -1)
-        self.variableOptions = getArrayWhileExists(self.selectorName, "v", Utils.getFloat, 0)
+        self.variableOptions = getArrayWhileExists(
+            self.selectorName, "v", Utils.getFloat, 0)
 
         pins, inversion = self.load_pins()
 
-        self.useBeginEnd = self.variableBegin!=-1
+        self.useBeginEnd = self.variableBegin != -1
         self.resolution = len(pins)
         if self.selectorBinaryType:
             self.resolution = 2**self.resolution-1
-        self.resolution = Utils.getInt(self.selectorName, "resolution", self.resolution)
+        self.resolution = Utils.getInt(
+            self.selectorName, "resolution", self.resolution)
 
         logPanel.info(self.selectorName + " Member: ")
         if self.useBeginEnd:
@@ -314,37 +342,42 @@ class Selector(MemberImpl):
             self.currentVar = var
             self.onChange()
 
+
 class StepSelector(Selector):
     def __init__(self, app, index) -> None:
-         super().__init__(app, index, self.onChange)
+        super().__init__(app, index, self.onChange)
+
     def onChange(self):
         self.app.control.setStep(self.currentVar)
 
+
 class FeedSelector(Selector):
-    def __init__(self, app, index, names = ["Feed"]) -> None:
-         super().__init__(app, index, self.onChange)
-         self.names = names
+    def __init__(self, app, index, names=["Feed"]) -> None:
+        super().__init__(app, index, self.onChange)
+        self.names = names
 
     def change(self, name, var):
-        self.app.gstate.setOverride(name,var)
+        self.app.gstate.setOverride(name, var)
 
     def onChange(self):
         for w in self.names:
             self.change(w, self.currentVar)
         self.app.mcontrol.overrideSet()
+
 
 class RapidSelector(Selector):
-    def __init__(self, app, index, names = ["Rapid"]) -> None:
-         super().__init__(app, index, self.onChange)
-         self.names = names
+    def __init__(self, app, index, names=["Rapid"]) -> None:
+        super().__init__(app, index, self.onChange)
+        self.names = names
 
     def change(self, name, var):
-        self.app.gstate.setOverride(name,var)
+        self.app.gstate.setOverride(name, var)
 
     def onChange(self):
         for w in self.names:
             self.change(w, self.currentVar)
         self.app.mcontrol.overrideSet()
+
 
 class ButtonPanel(MemberImpl):
     def __init__(self, app, index) -> None:
@@ -357,7 +390,7 @@ class ButtonPanel(MemberImpl):
         self.lastState = [0]
         self.onOnExecute = Utils.getStr(self.panelName, "on", "")
         self.onOffExecute = Utils.getStr(self.panelName, "off", "")
-        super().__init__(app,pins, inversion, debounce, self.callback, self.active)
+        super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
         pins = [Utils.getInt(self.panelName, "pin", -20)]
@@ -375,15 +408,18 @@ class ButtonPanel(MemberImpl):
             self.off()
             return
         self.on()
+
     def on(self):
         self.app.execute(self.onOnExecute)
+
     def off(self):
         self.app.execute(self.onOffExecute)
 
 
 class StartButton(ButtonPanel):
     def __init__(self, app, index) -> None:
-         super().__init__(app, index)
+        super().__init__(app, index)
+
     def on(self):
         if CNC.vars["state"] == "Idle" and not self.app.running.value and CNC.vars["execution"]:
             self.app.focus_set()
@@ -391,16 +427,20 @@ class StartButton(ButtonPanel):
         elif "hold" in CNC.vars["state"].lower():
             self.app.resume()
 
+
 class PauseButton(ButtonPanel):
     def __init__(self, app, index) -> None:
-         super().__init__(app, index)
-         self.lastState = 0
+        super().__init__(app, index)
+        self.lastState = 0
+
     def on(self):
         self.app.feedHold()
 
+
 class StartPauseButton(ButtonPanel):
     def __init__(self, app, index) -> None:
-         super().__init__(app, index)
+        super().__init__(app, index)
+
     def on(self):
         if CNC.vars["state"] == "Idle" and not self.app.running.value and CNC.vars["execution"]:
             self.app.focus_set()
@@ -409,9 +449,11 @@ class StartPauseButton(ButtonPanel):
             self.app.focus_set()
             self.app.pause()
 
+
 class ResetButton(ButtonPanel):
     def __init__(self, app, index) -> None:
         super().__init__(app, index)
+
     def on(self):
         self.app.focus_set()
         self.app.softReset()
@@ -422,15 +464,16 @@ class Panel:
     def __init__(self, app):
         self.app = app
         self.period = Utils.getFloat("Panel", "period", 0.1)
-        self.mapper = {"stepselector":StepSelector, "rapidselector":RapidSelector,
-                "feedselector":FeedSelector, "startbutton":StartButton,
-                "pausebutton":PauseButton, "startpausebutton":StartPauseButton,
-                "resetbutton": ResetButton, "button":ButtonPanel}
+        self.mapper = {"stepselector": StepSelector, "rapidselector": RapidSelector,
+                       "feedselector": FeedSelector, "startbutton": StartButton,
+                       "pausebutton": PauseButton, "startpausebutton": StartPauseButton,
+                       "resetbutton": ResetButton, "button": ButtonPanel}
         self.members = []
         self.members += [Jog(app)]
         index = 0
         while 1:
-            name = Utils.getStr("Panel", "selector{}".format(index), "").lower()
+            name = Utils.getStr(
+                "Panel", "selector{}".format(index), "").lower()
             if name not in self.mapper.keys():
                 break
             self.members += [self.mapper[name](self.app, index)]
@@ -454,4 +497,3 @@ class Panel:
     def stopTask(self):
         for m in self.members:
             m.stop()
-
