@@ -32,6 +32,8 @@ class gpio:
         self.obj = {}
 
     def setup(self, pin):
+        if pin in self.obj.keys():
+            return
         self.obj[pin] = gpiozero.Button(pin, pull_up=False)
 
     def read(self, pin):
