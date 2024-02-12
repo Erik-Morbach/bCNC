@@ -9,6 +9,7 @@ from CNC import CNC
 
 import tkinter
 import gpiozero
+import smbus2
 
 from mttkinter import *
 
@@ -42,7 +43,69 @@ class gpio:
         return self.obj[pin].is_pressed
 
 
-GPIO = gpio()
+class i2c:
+    def __init__(self) -> None:
+        self.obj = {}
+        self.bus = smbus2.SMBus(1)
+        self.pollPeriod = {}
+        self.lastTime = {}
+
+    def setup(self, device, address, pollPeriod):
+        if pollPeriod != -1:
+            self.pollPeriod[device][address] = pollPeriod
+        self.lastTime[device][address] = 0
+
+    def read(self, dev, addr):
+        last = self.lastTime[dev][addr]
+        if time.time() - last < self.pollPeriod[dev][addr]:
+            return self.obj[dev][addr]
+        self.lastTime[dev][addr] = time.time()
+        self.obj[dev][addr] = self.bus.read_byte_data(dev, addr)
+        return self.obj[dev][addr]
+
+
+class Pins:
+    def __init__(self) -> None:
+        self.gpio = gpio()
+        self.i2c = i2c()
+        self.counter = 0
+        self.mapper = {}
+
+    def setupGpio(self, pin):
+        id = self.counter
+        self.counter += 1
+        self.gpio.setup(pin)
+        self.mapper[id] = (0, pin)
+        return id
+
+    def setupI2c(self, device, address, bit, pollPeriod=-1):
+        id = self.counter
+        self.counter += 1
+        self.i2c.setup(device, address, pollPeriod)
+        self.mapper[id] = (1, device, address, bit)
+        return id
+
+    def setupExternal(self, pin):
+        id = self.counter
+        self.counter += 1
+        self.mapper[id] = (2, pin)
+        return id
+
+    def read(self, id):
+        st = self.mapper[id]
+        if st[0] == 0:
+            return self.gpio.read(st[1])
+        if st[0] == 1:
+            value = self.i2c.read(st[1], st[2])
+            if st[3] > -1:
+                value = value & (1 << st[3])
+            return 1 if value else 0
+        if st[0] == 2:
+            value = CNC.vars["pins"] & (1 << st[1])
+            return 1 if value else 0
+
+
+PINS = Pins()
 
 if is_raspberrypi():
     logPanel.info("Is running on a Pi")
@@ -58,12 +121,32 @@ class Member:
         self.callback = callback
         self.mutex = threading.Lock()
         self.active = active
-        for pin in pins:
+        for (index, pin) in enumerate(pins):
             infoStr += " " + str(pin)
             if pin < 0:
                 continue
-            GPIO.setup(pin)
+            id = 0
+            if pin[0] == "g":
+                pinValue = int(pin[1:])
+                id = PINS.setupGpio(pinValue)
+            if pin[0] == "e":
+                pinValue = int(pin[1:])
+                id = PINS.setupExternal(pinValue)
+            if pin[1] == "i":
+                pollPeriod = -1
+                if '(' in pin:
+                    idxB = pin.find('(')+1
+                    idxE = pin.find(')')
+                    pollPeriod = int(pin[idxB:idxE])
+                    pin = pin[:idxB-1]
 
+                d, a = pin[1:].split(":")
+                a, b = a.split('.')
+                dev = int(d)
+                addr = int(a)
+                bit = int(b)
+                id = PINS.setupI2c(dev, addr, bit, pollPeriod)
+            self.pins[index] = id
         logPanel.info(infoStr)
 
         self.inversion = inversion
@@ -91,7 +174,7 @@ class Member:
         current_sum = [0]*len(self.pins)
         while self.th_mtx.locked():
             time.sleep(debouncer_period)
-            pinValues = [GPIO.read(pin) for pin in self.pins]
+            pinValues = [PINS.read(pin) for pin in self.pins]
             current_sum = [(a - b)
                            for (a, b) in zip(current_sum, window[index])]
             window[index] = pinValues
@@ -113,9 +196,7 @@ class Member:
                 self.callback(values)
 
     def read(self, pin):
-        if pin < 0:
-            return (CNC.vars["inputs"] & (2 ** (-pin - 1))) > 0
-        return GPIO.read(pin)
+        return PINS.read(pin)
 
 
 def getArrayWhileExists(section, preffix, method=Utils.getInt, default=-20):
@@ -194,7 +275,7 @@ class Jog(MemberImpl):
                 arr += [w, w+"dir"]
         else:
             arr = self.directMappings
-        pins = getArrayFromUtils("Jog", arr, Utils.getInt, -20)
+        pins = getArrayFromUtils("Jog", arr, Utils.getStr, "e20")
         inversion = Utils.getInt("Jog", "inversion", 0)
         return pins, inversion
 
@@ -263,7 +344,7 @@ class Jog(MemberImpl):
         #    self.app.jogMutex.acquire(blocking=True)
         #    self.app.jogMutex.release()
         #    return
-        if self.type == True:
+        if self.type:
             self.directionMode(pinValues)
         else:
             self.directMode(pinValues)
@@ -306,7 +387,7 @@ class Selector(MemberImpl):
         super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
-        pins = getArrayWhileExists(self.selectorName, "pin", Utils.getInt, -20)
+        pins = getArrayWhileExists(self.selectorName, "pin", Utils.getStr, "e20")
         inversion = Utils.getInt(self.selectorName, "inversion", 0)
         return pins, inversion
 
@@ -391,7 +472,7 @@ class ButtonPanel(MemberImpl):
         super().__init__(app, pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
-        pins = [Utils.getInt(self.panelName, "pin", -20)]
+        pins = [Utils.getStr(self.panelName, "pin", "e20")]
         inversion = Utils.getInt(self.panelName, "inversion", 0)
         return pins, inversion
 
