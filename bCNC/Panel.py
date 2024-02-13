@@ -55,7 +55,11 @@ class i2c:
 
     def setup(self, device, address, pollPeriod):
         if pollPeriod != -1:
+            self.pollPeriod[device] = {}
             self.pollPeriod[device][address] = pollPeriod
+        self.obj[device] = {}
+        self.obj[device][address] = 0
+        self.lastTime[device] = {}
         self.lastTime[device][address] = 0
 
     def read(self, dev, addr):
@@ -144,12 +148,12 @@ class Member:
             if pin[0] == "e":
                 pinValue = int(pin[1:])
                 id = PINS.setupExternal(pinValue)
-            if pin[1] == "i":
+            if pin[0] == "i":
                 pollPeriod = -1
                 if '(' in pin:
                     idxB = pin.find('(')+1
                     idxE = pin.find(')')
-                    pollPeriod = int(pin[idxB:idxE])
+                    pollPeriod = float(pin[idxB:idxE])
                     pin = pin[:idxB-1]
 
                 d, a = pin[1:].split(":")
