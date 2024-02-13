@@ -15,6 +15,7 @@ import Sender
 import Ribbon
 import Utils
 import functools
+import threading
 from CNC import CNC
 import math
 import tkinter.ttk as ttk
@@ -467,6 +468,56 @@ class ZeroGroup(CNCRibbon.ButtonGroup):
 
     def onCompensationClick(self, *args):
         SetCompensationDialog(self.app, "Set Compensation", self.app)
+
+
+class ViewInputDialog(Dialog):
+    def __init__(self, parent, title, app):
+        self.app = app
+        self.parent = parent
+        self.updateList = []
+        self.th = threading.Thread(target=self.updateVars)
+        self.mtx = threading.Lock()
+        Dialog.__init__(self, parent, title)
+
+    def updateVars(self):
+        while not self.mtx.locked():
+            for (var, values, index) in self.updateList:
+                var.set(values[index])
+
+    def body(self, frame):
+        def makeMember(frame, memberName, memberVariable, *args, **kwargs):
+            f = Frame(frame)
+            Label(f, text=memberName, font=DROFrame.dro_mpos).pack(
+                side=LEFT, fill=X)
+            f2 = Frame(f)
+            for i in range(0, len(memberVariable.pins)):
+                var = IntVar(value=0)
+                f3 = Frame(f2)
+                Label(f3, textvariable=var).pack(side=LEFT, fill=Y, expand=TRUE)
+                f3.pack(side=LEFT, fill=Y, expand=TRUE)
+                self.updateList += [(var, memberVariable.lastValues, i)]
+            f2.pack(side=RIGHT, fill=Y, expand=TRUE)
+            f.pack(*args, **kwargs)  # side=TOP, fill=X, expand=TRUE)
+
+        for member in self.app.panel.members:
+            makeMember(frame, member.memberName, member, side=TOP, fill=X, expand=TRUE)
+        self.th.start()
+
+    def onExit(self):
+        self.mtx.acquire()
+        self.destroy()
+
+    def buttonbox(self, *args):
+        Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+    def valid(self, future_value):
+        if len(future_value) == 0:
+            return True
+        try:
+            float(future_value)
+            return True
+        except ValueError:
+            return False
 
 
 class StartLineDialog(Dialog):

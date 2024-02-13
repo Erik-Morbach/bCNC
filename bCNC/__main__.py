@@ -38,7 +38,7 @@ from ThreadConfigurator import ThreadConfigurator
 from EditorPage import EditorPage
 from ProbePage import ProbePage
 from TerminalPage import TerminalPage
-from ControlPage import ExecutionPage, JogPage
+from ControlPage import ExecutionPage, JogPage, ViewInputDialog
 from FilePage import FilePage
 from ToolsPage import Tools, ToolsPage
 from CNCRibbon import Page
@@ -1358,6 +1358,9 @@ class Application(Toplevel, Sender):
         # EDITOR: switch to Editor tab
         elif cmd == "EDITOR":
             self.ribbon.changePage("Editor")
+
+        elif cmd == "VIEW":
+            ViewInputDialog(self, "View inputs", self)
 
         # CUT [depth] [pass-per-depth] [z-surface] [feed] [feedz]: replicate selected blocks to cut-height
         # default values are taken from the active material

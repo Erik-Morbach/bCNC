@@ -35,10 +35,13 @@ class gpio:
     def setup(self, pin):
         if pin in self.obj.keys():
             return
-        self.obj[pin] = gpiozero.Button(pin, pull_up=False)
+        try:
+            self.obj[pin] = gpiozero.Button(pin, pull_up=False)
+        except BaseException:
+            self.obj[pin] = None
 
     def read(self, pin):
-        if pin not in self.obj.keys():
+        if pin not in self.obj.keys() or self.obj[pin] is None:
             return 0
         return self.obj[pin].is_pressed
 
@@ -114,12 +117,23 @@ else:
 
 
 class Member:
-    def __init__(self, pins, inversion, debounce, callback, active):
+    def __init__(self):
+        self.memberName = "Member"
+        self.mutex = threading.Lock()
+        self.lastTime = time.time()
+        self.lastValues = []
+        self.th_mtx = threading.Lock()
+        self.th = threading.Thread(target=self.threadMethod)
+        self.pins = []
+        self.debounce = 0
+        self.active = False
+
+    def setup(self, pins, inversion, debounce, callback, active):
         infoStr = "Member: "
         self.pins = pins
+        self.lastValues = [0]*len(pins)
         self.debounce = debounce
         self.callback = callback
-        self.mutex = threading.Lock()
         self.active = active
         for (index, pin) in enumerate(pins):
             infoStr += " " + str(pin)
@@ -148,10 +162,6 @@ class Member:
         logPanel.info(infoStr)
 
         self.inversion = inversion
-        self.lastTime = time.time()
-
-        self.th_mtx = threading.Lock()
-        self.th = threading.Thread(target=self.threadMethod)
 
     def start(self):
         if self.th_mtx.locked():
@@ -191,7 +201,11 @@ class Member:
                 values[-1] ^= (1 if (self.inversion & (1 << id)) else 0)
 
             if not haveErro:
+                self.lastValues[:] = values[:]
                 self.callback(values)
+
+    def callback(self, pinValues):
+        return
 
     def read(self, pin):
         return PINS.read(pin)
@@ -218,17 +232,14 @@ def getArrayFromUtils(section, array, method=Utils.getInt, default=-20):
 
 
 class MemberImpl(Member):
-    def __init__(self, app, pins, inversion, debounce, callback, active):
-        super().__init__(pins, inversion, debounce, callback, active)
+    def __init__(self, app):
+        super().__init__()
         self.app = app
 
     @abc.abstractmethod
     def load_pins(self):
-        pass
+        return [], 0
 
-    @abc.abstractmethod
-    def callback(self):
-        pass
 
 
 class Jog(MemberImpl):
@@ -236,6 +247,8 @@ class Jog(MemberImpl):
     JOGSTOP = 1
 
     def __init__(self, app):
+        super().__init__(app)
+        self.memberName = "Jog"
         self.active = Utils.getBool("Jog", "panel", False)
 
         self.type = Utils.getBool("Jog", "directionMode", True)
@@ -262,7 +275,7 @@ class Jog(MemberImpl):
         self.lastPinValues = []
 
         logPanel.info("Jog Member: ")
-        super().__init__(app, pins, inversion, debounce, self.callback, self.active)
+        self.setup(pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
         pins = []
@@ -291,13 +304,6 @@ class Jog(MemberImpl):
                 code = self.app.jogController.mapKeyToCode[con][0]
                 codeWrapper = tkinter.EventType.KeyPress, code
                 self.app.jogController.jogEvent(simulatedData=codeWrapper)
-                # self.app.jogController
-                # self.app.jogMutex.acquire()
-                # self.app.focus_set()
-                # self.app.event_generate("<<"+con+">>", when="tail")
-                # self.jogLastAction = self.JOGMOTION
-                # self.app.jogMutex.acquire(blocking=True)
-                # self.app.jogMutex.release()
                 return
 
     def directMode(self, pinValues):
@@ -317,13 +323,6 @@ class Jog(MemberImpl):
             code = self.app.jogController.mapKeyToCode[key][0]
             codeWrapper = tkinter.EventType.KeyPress, code
             self.app.jogController.jogEvent(simulatedData=codeWrapper)
-        # self.app.jogMutex.acquire()
-        # self.app.focus_set()
-        # self.app.jogData = data
-        # self.app.event_generate("<<JOG>>", when="tail")
-        # self.jogLastAction = self.JOGMOTION
-        # self.app.jogMutex.acquire(blocking=True)
-        # self.app.jogMutex.release()
 
     def callback(self, pinValues):
         shouldStop = False
@@ -334,14 +333,6 @@ class Jog(MemberImpl):
         self.lastPinValues = pinValues
         if shouldStop:
             return
-        # if shouldStop and self.jogLastAction != self.JOGSTOP:
-        #    self.app.jogMutex.acquire()
-        #    self.app.focus_set()
-        #    self.app.event_generate("<<JogStop>>", when="tail")
-        #    self.jogLastAction = self.JOGSTOP
-        #    self.app.jogMutex.acquire(blocking=True)
-        #    self.app.jogMutex.release()
-        #    return
         if self.type:
             self.directionMode(pinValues)
         else:
@@ -350,23 +341,25 @@ class Jog(MemberImpl):
 
 class Selector(MemberImpl):
     def __init__(self, app, index, onChange) -> None:
+        super().__init__(app)
         self.onChange = onChange
         self.selectorIndex = index
-        self.selectorName = "Selector{}".format(index)
-        self.active = Utils.getBool(self.selectorName, "panel", False)
-        debounce = Utils.getFloat(self.selectorName, "debounce", 0.1)
+        self.memberName = "Selector{}".format(index)
+        self.utilsName = self.memberName
+        self.active = Utils.getBool(self.utilsName, "panel", False)
+        debounce = Utils.getFloat(self.utilsName, "debounce", 0.1)
         self.selectorBinaryType = Utils.getBool(
-            self.selectorName, "binary", False)
-        self.grayCodeActive = Utils.getBool(self.selectorName, "gray", False)
+            self.utilsName, "binary", False)
+        self.grayCodeActive = Utils.getBool(self.utilsName, "gray", False)
 
         def binary(index, id): return index + (2**id)
         def direct(index, id): return id
         self.typeFunction = binary if self.selectorBinaryType else direct
 
-        self.variableBegin = Utils.getFloat(self.selectorName, "begin", -1)
-        self.variableEnd = Utils.getFloat(self.selectorName, "end", -1)
+        self.variableBegin = Utils.getFloat(self.utilsName, "begin", -1)
+        self.variableEnd = Utils.getFloat(self.utilsName, "end", -1)
         self.variableOptions = getArrayWhileExists(
-            self.selectorName, "v", Utils.getFloat, 0)
+            self.utilsName, "v", Utils.getFloat, 0)
 
         pins, inversion = self.load_pins()
 
@@ -375,18 +368,18 @@ class Selector(MemberImpl):
         if self.selectorBinaryType:
             self.resolution = 2**self.resolution-1
         self.resolution = Utils.getInt(
-            self.selectorName, "resolution", self.resolution)
+            self.utilsName, "resolution", self.resolution)
 
-        logPanel.info(self.selectorName + " Member: ")
+        logPanel.info(self.memberName + " Member: ")
         if self.useBeginEnd:
             self.currentVar = self.variableBegin
         else:
             self.currentVar = self.variableOptions[0]
-        super().__init__(app, pins, inversion, debounce, self.callback, self.active)
+        self.setup(pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
-        pins = getArrayWhileExists(self.selectorName, "pin", Utils.getStr, "e20")
-        inversion = Utils.getInt(self.selectorName, "inversion", 0)
+        pins = getArrayWhileExists(self.utilsName, "pin", Utils.getStr, "e20")
+        inversion = Utils.getInt(self.utilsName, "inversion", 0)
         return pins, inversion
 
     @staticmethod
@@ -407,8 +400,8 @@ class Selector(MemberImpl):
             index = Selector.grayToBinary(index)
         return index
 
-    def callback(self, selector: list):
-        index = self.calculateIndex(selector)
+    def callback(self, pinValues: list):
+        index = self.calculateIndex(pinValues)
         var = 0
         if self.useBeginEnd:
             var = (self.variableEnd - self.variableBegin)/self.resolution
@@ -418,10 +411,12 @@ class Selector(MemberImpl):
         if var != self.currentVar:
             self.currentVar = var
             self.onChange()
+        return
 
 
 class StepSelector(Selector):
     def __init__(self, app, index) -> None:
+        self.memberName = "Step Selector"
         super().__init__(app, index, self.onChange)
 
     def onChange(self):
@@ -432,6 +427,7 @@ class FeedSelector(Selector):
     def __init__(self, app, index, names=["Feed"]) -> None:
         super().__init__(app, index, self.onChange)
         self.names = names
+        self.memberName = "Feed Selector"
 
     def change(self, name, var):
         self.app.gstate.setOverride(name, var)
@@ -445,6 +441,7 @@ class FeedSelector(Selector):
 class RapidSelector(Selector):
     def __init__(self, app, index, names=["Rapid"]) -> None:
         super().__init__(app, index, self.onChange)
+        self.memberName = "Rapid Selector"
         self.names = names
 
     def change(self, name, var):
@@ -458,26 +455,28 @@ class RapidSelector(Selector):
 
 class ButtonPanel(MemberImpl):
     def __init__(self, app, index) -> None:
-        self.panelName = "Button{}".format(index)
-        self.description = Utils.getStr(self.panelName, "name", self.panelName)
-        self.active = Utils.getBool(self.panelName, "panel", False)
-        debounce = Utils.getFloat(self.panelName, "debounce", 0.5)
+        super().__init__(app)
+        self.memberName = "Button{}".format(index)
+        self.utilsName = self.memberName
+        self.description = Utils.getStr(self.utilsName, "name", self.utilsName)
+        self.active = Utils.getBool(self.utilsName, "panel", False)
+        debounce = Utils.getFloat(self.utilsName, "debounce", 0.5)
         pins, inversion = self.load_pins()
         logPanel.info("Button%d Member:" % (index))
         self.lastState = [0]
-        self.onOnExecute = Utils.getStr(self.panelName, "on", "")
-        self.onOffExecute = Utils.getStr(self.panelName, "off", "")
-        super().__init__(app, pins, inversion, debounce, self.callback, self.active)
+        self.onOnExecute = Utils.getStr(self.utilsName, "on", "")
+        self.onOffExecute = Utils.getStr(self.utilsName, "off", "")
+        self.setup(pins, inversion, debounce, self.callback, self.active)
 
     def load_pins(self):
-        pins = [Utils.getStr(self.panelName, "pin", "e20")]
-        inversion = Utils.getInt(self.panelName, "inversion", 0)
+        pins = [Utils.getStr(self.utilsName, "pin", "e20")]
+        inversion = Utils.getInt(self.utilsName, "inversion", 0)
         return pins, inversion
 
-    def callback(self, buttons: list):
+    def callback(self, pinValues: list):
         state = 0
-        if len(buttons):
-            state = buttons[0]
+        if len(pinValues):
+            state = pinValues[0]
         if state == self.lastState:
             return
         self.lastState = state
@@ -496,6 +495,7 @@ class ButtonPanel(MemberImpl):
 class StartButton(ButtonPanel):
     def __init__(self, app, index) -> None:
         super().__init__(app, index)
+        self.memberName = "Start Button"
 
     def on(self):
         if CNC.vars["state"] == "Idle" and not self.app.running.value and CNC.vars["execution"]:
@@ -508,6 +508,7 @@ class StartButton(ButtonPanel):
 class PauseButton(ButtonPanel):
     def __init__(self, app, index) -> None:
         super().__init__(app, index)
+        self.memberName = "Pause Button"
         self.lastState = 0
 
     def on(self):
@@ -517,6 +518,7 @@ class PauseButton(ButtonPanel):
 class StartPauseButton(ButtonPanel):
     def __init__(self, app, index) -> None:
         super().__init__(app, index)
+        self.memberName = "Start Pause Button"
 
     def on(self):
         if CNC.vars["state"] == "Idle" and not self.app.running.value and CNC.vars["execution"]:
@@ -530,6 +532,7 @@ class StartPauseButton(ButtonPanel):
 class ResetButton(ButtonPanel):
     def __init__(self, app, index) -> None:
         super().__init__(app, index)
+        self.memberName = "Reset Button"
 
     def on(self):
         self.app.focus_set()
