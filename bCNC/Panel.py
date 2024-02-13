@@ -123,8 +123,6 @@ class Member:
         self.active = active
         for (index, pin) in enumerate(pins):
             infoStr += " " + str(pin)
-            if pin < 0:
-                continue
             id = 0
             if pin[0] == "g":
                 pinValue = int(pin[1:])
@@ -142,8 +140,8 @@ class Member:
 
                 d, a = pin[1:].split(":")
                 a, b = a.split('.')
-                dev = int(d)
-                addr = int(a)
+                dev = int(d, 16)
+                addr = int(a, 16)
                 bit = int(b)
                 id = PINS.setupI2c(dev, addr, bit, pollPeriod)
             self.pins[index] = id
