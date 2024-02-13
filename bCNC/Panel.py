@@ -33,8 +33,6 @@ class gpio:
         self.obj = {}
 
     def setup(self, pin):
-        if pin in self.obj.keys():
-            return
         try:
             self.obj[pin] = gpiozero.Button(pin, pull_up=False)
         except BaseException:
@@ -53,24 +51,47 @@ class i2c:
         self.pollPeriod = {}
         self.lastTime = {}
 
+    @staticmethod
+    def getId(device, address):
+        return str(device) + str(address)
+
+    def register(self, devId):
+        if devId not in self.obj.keys():
+            self.obj[devId] = 0
+        if devId not in self.lastTime.keys():
+            self.lastTime[devId] = 0
+        if devId not in self.pollPeriod.keys():
+            self.pollPeriod[devId] = 0
+
+    def isRegistered(self, devId):
+        return devId in self.obj.keys()
+
+    def get(self, devId):
+        return (self.obj[devId], self.lastTime[devId], self.pollPeriod[devId])
+
+    def set(self, devId, value, lastTime):
+        self.obj[devId] = value
+        self.lastTime[devId] = lastTime
+
     def setup(self, device, address, pollPeriod):
-        if device not in self.obj.keys():  # is a new device
-            self.obj[device] = {}
-            self.pollPeriod[device] = {}
-            self.lastTime[device] = {}
+        devId = i2c.getId(device, address)
+        self.register(devId)
 
         if pollPeriod != -1:
-            self.pollPeriod[device][address] = pollPeriod
-        self.obj[device][address] = 0
-        self.lastTime[device][address] = 0
+            self.pollPeriod[i2c.getId(device, address)] = pollPeriod
 
     def read(self, dev, addr):
-        last = self.lastTime[dev][addr]
-        if time.time() - last < self.pollPeriod[dev][addr]:
-            return self.obj[dev][addr]
-        self.lastTime[dev][addr] = time.time()
-        self.obj[dev][addr] = self.bus.read_byte_data(dev, addr)
-        return self.obj[dev][addr]
+        devId = i2c.getId(dev, addr)
+        if not self.isRegistered(devId):
+            self.register(devId)
+
+        lastValue, lastTime, pollPeriod = self.get(devId)
+
+        if time.time() - lastTime < pollPeriod:
+            return lastValue
+        value = self.bus.read_byte_data(dev, addr)
+        self.set(devId, value, time.time())
+        return value
 
 
 class Pins:
