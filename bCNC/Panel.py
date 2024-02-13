@@ -101,7 +101,7 @@ class Pins:
                 value = value & (1 << st[3])
             return 1 if value else 0
         if st[0] == 2:
-            value = CNC.vars["pins"] & (1 << st[1])
+            value = CNC.vars["inputs"] & (1 << st[1])
             return 1 if value else 0
 
 
