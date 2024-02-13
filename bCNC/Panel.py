@@ -54,12 +54,14 @@ class i2c:
         self.lastTime = {}
 
     def setup(self, device, address, pollPeriod):
-        if pollPeriod != -1:
+        if device not in self.obj.keys():  # is a new device
+            self.obj[device] = {}
             self.pollPeriod[device] = {}
+            self.lastTime[device] = {}
+
+        if pollPeriod != -1:
             self.pollPeriod[device][address] = pollPeriod
-        self.obj[device] = {}
         self.obj[device][address] = 0
-        self.lastTime[device] = {}
         self.lastTime[device][address] = 0
 
     def read(self, dev, addr):
