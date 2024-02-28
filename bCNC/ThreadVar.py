@@ -1,5 +1,5 @@
 import threading
-import traceback
+
 
 class ThreadVar:
     def __init__(self, val):
@@ -28,13 +28,12 @@ class ThreadVar:
     def assign(self, func):
         self.lock()
         self.val = func(self.val)
+        value = self.val
         self.unlock()
-        return self.val
+        return value
 
     def execute(self, func):
         self.lock()
         value = func(self.val)
         self.unlock()
         return value
-
-

@@ -33,6 +33,24 @@ global lastTime
 lastTime = time.time()
 
 
+def pollExpectedResets(que):
+    now = time.time()
+    timeout = 2
+    while len(que) > 0 and now - que[0] > timeout:
+        del que[0]
+
+
+def removeOneExpectedReset(que):
+    if len(que) == 0:
+        return False
+    del que[0]
+    return True
+
+
+def addExpectedReset(que):
+    que += [time.time()]
+
+
 class _GenericController:
     def test(self):
         print("test supergen")
@@ -66,11 +84,10 @@ class _GenericController:
         while len(self.runOnceOnResetFunctions):
             self.runOnceOnResetFunctions[0]()
             del self.runOnceOnResetFunctions[0]
-        if not self.expectingReset:
+        self.expectingReset.execute(pollExpectedResets)
+        if not self.expectingReset.execute(removeOneExpectedReset):
             tkinter.messagebox.showerror(
                 "Erro", "Controlador foi resetado sem a devida instrução")
-            pass
-        self.expectingReset = False
 
     def hardResetPre(self):
         pass
@@ -119,7 +136,7 @@ class _GenericController:
     def softReset(self, clearAlarm=True):
         if not self.master.serial:
             return
-        self.expectingReset = True
+        self.expectingReset.execute(addExpectedReset)
         self.master.serial_write(b"\x18")
         self.master.serial.flush()
 

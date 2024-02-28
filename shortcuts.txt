@@ -1,4 +1,3 @@
-<Tab>=Blabla
 <KP_Divide>=OverMinus
 <KP_Multiply>=OverPlus
 <KeyPress-Shift_L>=JogRapid

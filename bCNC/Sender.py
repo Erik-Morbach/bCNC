@@ -831,7 +831,7 @@ class Sender:
                 self.mcontrol.viewState()
                 self._updateChangedState = time.time()
 
-        if self.cleanAfter == True and self.running.value == False and state in ("Idle"):
+        if self.cleanAfter and not self.running.value and state in ("Idle"):
             self.cleanAfter = False
             self.jobDone()
 

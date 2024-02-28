@@ -3,11 +3,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 from _GenericGRBL import _GenericGRBL
-from _GenericController import SPLITPAT, TOOLSPLITPAT
+from _GenericController import SPLITPAT, TOOLSPLITPAT, addExpectedReset
 from CNC import CNC, WCS
 from CNCRibbon import Page
 import time
 import Utils
+from ThreadVar import ThreadVar
 
 OV_FEED_100 = b'\x90'       # Extended override commands
 OV_FEED_i10 = b'\x91'
@@ -38,7 +39,7 @@ class Controller(_GenericGRBL):
         self.has_override = True
         self.master = master
         self.reseted = False
-        self.expectingReset = False
+        self.expectingReset = ThreadVar([])
         self.hasSD = False
         self.pidSP = 0
         self.pidTS = 0
@@ -339,4 +340,4 @@ class Controller(_GenericGRBL):
         else:
             CNC.vars[word[0]] = word[1:]
             if word[0] == "MSG" and word[1] == "Disabled":
-                self.expectingReset = True
+                self.expectingReset.execute(addExpectedReset)
