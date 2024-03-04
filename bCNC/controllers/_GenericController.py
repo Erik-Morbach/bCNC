@@ -27,7 +27,7 @@ TLOPAT = re.compile(r"^\[(...):([+\-]?\d*\.\d*)\]$")
 DOLLARPAT = re.compile(r"^\[G\d* .*\]$")
 
 # Only used in this file
-VARPAT = re.compile(r"^\$(\d+) *= *(\d*\.?\d*) *\(?.*")
+VARPAT = re.compile(r"^\$(\d+) *= *([+\-]?\d*\.?\d*) *\(?.*")
 
 global lastTime
 lastTime = time.time()
