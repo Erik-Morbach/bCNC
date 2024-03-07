@@ -197,7 +197,7 @@ class SetToolZeroDialog(Dialog):  # TODO: Show all tools on the table
     def __init__(self, parent, title, app):
         self.app = app
         self.tool = self.app.toolTable
-        self.toolTable = self.app.toolTable.getTable()
+        self.toolTable = self.app.toolTable
         self.workTable = self.app.workTable
         self.wcs = 1
         self.toolNumber = StringVar(value="1")
@@ -265,13 +265,9 @@ class SetToolZeroDialog(Dialog):  # TODO: Show all tools on the table
         return self.toolTable[id]
 
     def onLoadTable(self, *args):
-        index = int(self.toolNumber.get())
-        tlo = self.getTool(index)
-        wcs, id = self.workTable.getRow(self.wcs)
         for (id, w) in enumerate(self.axes):
-            # self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w]) - float(wcs[w])))
             self.var[id].set("%.03f" % float(
-                float(CNC.vars["m"+w]) - float(tlo[w])))
+                float(CNC.vars["w"+w])))
 
     def valid(self, future_value):
         if len(future_value) == 0:
@@ -295,12 +291,21 @@ class SetToolZeroDialog(Dialog):  # TODO: Show all tools on the table
 
     def onOk(self):
         index = int(self.toolNumber.get())
-        tlo = self.getTlo()
-        wcs, id = self.workTable.getRow(self.wcs)
+        tloEntry = self.getTlo()
+        currentTlo, row = self.toolTable.getRow(index)
+        if row == -1:
+            return
+
+        def dictStrToFloat(x):
+            return (x[0], float(x[1]))
+
+        controlerTlo = dict(map(dictStrToFloat, currentTlo.items()))
         for axe in self.axes:
-            #      tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe] - float(wcs[axe])
-            tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe]
-        self.app.mcontrol._tloSet(index, **tlo)
+            off = float(tloEntry[axe]) - float(CNC.vars['w'+axe])
+            controlerTlo[axe] -= off
+        controlerTlo.pop('index')
+
+        self.app.mcontrol._tloSet(index, **controlerTlo)
         self.app.unlock()
 
     def onExit(self):
