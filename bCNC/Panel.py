@@ -207,6 +207,7 @@ class Member:
         window = [[0]*len(self.pins) for _ in range(debouncer_qnt)]
         index = 0
         current_sum = [0]*len(self.pins)
+        logPanel.info(self.memberName + " thread begin")
         while self.th_mtx.locked():
             time.sleep(debouncer_period)
             pinValues = [PINS.read(pin) for pin in self.pins]
@@ -230,6 +231,7 @@ class Member:
             if not haveErro:
                 self.lastValues[:] = values[:]
                 self.callback(values)
+        logPanel.info(self.memberName + " thread end")
 
     def callback(self, pinValues):
         return
@@ -266,7 +268,6 @@ class MemberImpl(Member):
     @abc.abstractmethod
     def load_pins(self):
         return [], 0
-
 
 
 class Jog(MemberImpl):
