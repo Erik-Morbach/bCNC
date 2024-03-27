@@ -368,11 +368,11 @@ class Jog(MemberImpl):
 
 
 class Selector(MemberImpl):
-    def __init__(self, memberName, app, index, onChange) -> None:
+    def __init__(self, app, index, onChange) -> None:
         super().__init__(app)
         self.onChange = onChange
         self.selectorIndex = index
-        self.memberName = memberName  # "Selector{}".format(index)
+        self.memberName = "Selector{}".format(index)
         self.utilsName = self.memberName
         self.active = Utils.getBool(self.utilsName, "panel", False)
         debounce = Utils.getFloat(self.utilsName, "debounce", 0.1)
@@ -444,8 +444,7 @@ class Selector(MemberImpl):
 
 class StepSelector(Selector):
     def __init__(self, app, index) -> None:
-        self.memberName = "Step Selector"
-        super().__init__(self.memberName, app, index, self.onChange)
+        super().__init__(app, index, self.onChange)
 
     def onChange(self):
         self.app.control.setStep(self.currentVar)
@@ -453,8 +452,7 @@ class StepSelector(Selector):
 
 class FeedSelector(Selector):
     def __init__(self, app, index, names=["Feed"]) -> None:
-        self.memberName = "Feed Selector"
-        super().__init__(self.memberName, app, index, self.onChange)
+        super().__init__(app, index, self.onChange)
         self.names = names
 
     def change(self, name, var):
@@ -468,8 +466,7 @@ class FeedSelector(Selector):
 
 class RapidSelector(Selector):
     def __init__(self, app, index, names=["Rapid"]) -> None:
-        self.memberName = "Rapid Selector"
-        super().__init__(self.memberName, app, index, self.onChange)
+        super().__init__(app, index, self.onChange)
         self.names = names
 
     def change(self, name, var):
