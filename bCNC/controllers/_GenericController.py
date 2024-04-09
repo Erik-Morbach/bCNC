@@ -35,7 +35,7 @@ lastTime = time.time()
 
 def pollExpectedResets(que):
     now = time.time()
-    timeout = 2
+    timeout = Utils.getInt("CNC", "reset_timeout", 4)
     while len(que) > 0 and now - que[0] > timeout:
         del que[0]
 
