@@ -6,6 +6,7 @@
 #   Date: 16-Apr-2015
 from __future__ import absolute_import
 from __future__ import print_function
+
 __author__ = "Vasilis Vlachoudis"
 __email__  = "vvlachoudis@gmail.com"
 __version__ = "0.9.14-dev"
@@ -18,6 +19,11 @@ import sys
 import glob
 import traceback
 import gettext
+import pathlib
+import queue
+import threading
+
+import MacroEngine as macros
 
 __platform_fingerprint__ = "(%s py%s.%s.%s)"%(
 		sys.platform, sys.version_info.major,
@@ -238,6 +244,38 @@ def loadConfiguration(systemOnly=False):
 			__builtin__._ = gettext.translation('bCNC', os.path.join(prgpath,'locale'),
 					fallback=True, languages=[language]).gettext
 
+#------------------------------------------------------------------------------
+# Load Macros
+#------------------------------------------------------------------------------
+def loadMacros():
+    global macrosCache
+    macrosCache = {}
+    entries = pathlib.Path('macros/')
+    for file in entries.iterdir():
+        macro = macros.Macro(file.name)
+        if macro.mCode == -1: continue
+        macrosCache[macro.mCode] = macro
+        print("Macro {} found".format(macro.mCode))
+
+#------------------------------------------------------------------------------
+# Load Macros
+#------------------------------------------------------------------------------
+def getLoadedMacros():
+    global macrosCache
+    return macrosCache.values()
+
+#------------------------------------------------------------------------------
+# Macros Exists
+#------------------------------------------------------------------------------
+def macroExists(id):
+    global macrosCache
+    return int(id) in macrosCache.keys()
+
+
+def macroExecutor(id, app, CNCRef):
+    global macrosCache
+    executor = macros.Executor(macrosCache[id], app, CNCRef)
+    return executor
 
 #------------------------------------------------------------------------------
 # Save configuration file

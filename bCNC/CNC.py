@@ -42,6 +42,12 @@ ASK    = 2
 MSG    = 3
 WAIT   = 4
 UPDATE = 5
+RUN_MACRO = 6
+END_RUN_MACRO = 7
+SLEEP = 8
+BEGIN_REPEAT_M30 = 9
+END_REPEAT_M30 = 10
+END_REPEAT = 11
 
 XY   = 0
 XZ   = 1
@@ -50,7 +56,7 @@ YZ   = 2
 CW   = 2
 CCW  = 3
 
-WCS  = ["G54", "G55", "G56", "G57", "G58", "G59"]
+WCS  = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
 
 DISTANCE_MODE = { "G90" : "Absolute",
 		  "G91" : "Incremental" }
@@ -83,6 +89,9 @@ MODAL_MODES = {
 	"G57"   : "WCS",
 	"G58"   : "WCS",
 	"G59"   : "WCS",
+	"G59.1"   : "WCS",
+	"G59.2"   : "WCS",
+	"G59.3"   : "WCS",
 
 	"G17"   : "plane",
 	"G18"   : "plane",
@@ -733,17 +742,23 @@ class CNC:
 			"beginLine"  : 0,
 			"pgmEnd"     : False,
 			"inputs"     : 0,
-			"barEnd"     : 1,
+			"barEnd"     : 0,
 			"SafeDoor"   : 0,
+			"pitch"      : -1,
 
+			"workTable": {},
+			"toolTable": {},
 			"tool"       : 0,
 			"feed"       : 0.0,
 			"rpm"        : 0.0,
 			"realRpm"    : 0.0,
 			"JogSpeed"   : 3000.0,
-			"jogActive"  : True,
+			"jogOldStep" : -1,
+			"JogActive"  : False,
+			"execution"  : False,
+			"debug"      : False,
 
-			"planner"    : 0,
+			"planner"    : -1,
 			"rxbytes"    : 0,
 
 			"OvFeed"     : 100,	# Override status
@@ -775,6 +790,7 @@ class CNC:
 			"motor1Low"  : 50,
 			"motor0High"  : 90,
 			"motor1High"  : 80,
+			"endType"     : 1,
 
 			"Sending"	 : False,
 			"version"    : "",
@@ -786,7 +802,7 @@ class CNC:
 		}
 
 	drillPolicy    = 1		# Expand Canned cycles
-	toolPolicy     = 1		# Should be in sync with ProbePage
+	toolPolicy     = 0		# Should be in sync with ProbePage
 					# 0 - send to grbl
 					# 1 - skip those lines
 					# 2 - manual tool change (WCS)
@@ -1029,22 +1045,22 @@ class CNC:
 	#----------------------------------------------------------------------
 	@staticmethod
 	def _gotoABC(g, x=None, y=None, z=None, a=None, b=None, c=None, **args):
-		s = "g%d"%(g)
-		if x is not None: s += ' '+CNC.fmt('x',x)
-		if y is not None: s += ' '+CNC.fmt('y',y)
-		if z is not None: s += ' '+CNC.fmt('z',z)
-		if a is not None: s += ' '+CNC.fmt('a',a)
-		if b is not None: s += ' '+CNC.fmt('b',b)
-		if c is not None: s += ' '+CNC.fmt('c',c)
+		s = "G%d"%(g)
+		if x is not None: s += ' '+CNC.fmt('X',x)
+		if y is not None: s += ' '+CNC.fmt('Y',y)
+		if z is not None: s += ' '+CNC.fmt('Z',z)
+		if a is not None: s += ' '+CNC.fmt('A',a)
+		if b is not None: s += ' '+CNC.fmt('B',b)
+		if c is not None: s += ' '+CNC.fmt('C',c)
 		for n,v in args.items():
 			s += ' ' + CNC.fmt(n,v)
 		return s
 	@staticmethod
 	def _goto(g, x=None, y=None, z=None, **args):
-		s = "g%d"%(g)
-		if x is not None: s += ' '+CNC.fmt('x',x)
-		if y is not None: s += ' '+CNC.fmt('y',y)
-		if z is not None: s += ' '+CNC.fmt('z',z)
+		s = "G%d"%(g)
+		if x is not None: s += ' '+CNC.fmt('X',x)
+		if y is not None: s += ' '+CNC.fmt('Y',y)
+		if z is not None: s += ' '+CNC.fmt('Z',z)
 		for n,v in args.items():
 			s += ' ' + CNC.fmt(n,v)
 		return s
@@ -1188,7 +1204,7 @@ class CNC:
 		# most probably an assignment like  #nnn = expr
 		if line[0]=='_':
 			try:
-				return compile(line,"","exec")
+				return compile(line[1:],"","exec")
 			except:
 				# FIXME show the error!!!!
 				return None
@@ -1774,6 +1790,7 @@ class CNC:
 			lines.append("".join(newcmd))
 		return lines
 
+
 	#----------------------------------------------------------------------
 	# code to change manually tool
 	#----------------------------------------------------------------------
@@ -2291,7 +2308,6 @@ class GCode:
 			v['os'] = os
 			v['app'] = app
 			return eval(line,CNC.vars,self.vars)
-
 		else:
 			return line
 
@@ -2331,19 +2347,7 @@ class GCode:
 			return
 
 		self.cnc.motionStart(cmds)
-
-		# rapid move up = end of block
-		if self._blocksExist:
-			self.blocks[-1].append(line)
-		elif self.cnc.gcode == 0 and self.cnc.dz > 0.0:
-			self.blocks[-1].append(line)
-			self.blocks.append(Block())
-		elif self.cnc.gcode == 0 and len(self.blocks)==1:
-			self.blocks.append(Block())
-			self.blocks[-1].append(line)
-		else:
-			self.blocks[-1].append(line)
-
+		self.blocks[-1].append(line)
 		self.cnc.motionEnd()
 
 	#----------------------------------------------------------------------
@@ -2358,7 +2362,7 @@ class GCode:
 		self._lastModified = os.stat(self.filename).st_mtime
 		self.cnc.initPath()
 		self.cnc.resetAllMargins()
-		self._blocksExist = False
+		self._blocksExist = True
 		self.repeatEngine.cleanState()
 		for line in f:
 			self._addLine(line[:-1].replace("\x0d",""))
@@ -4653,27 +4657,65 @@ class GCode:
 			best[i], best[ptr] = best[ptr], best[i]
 		self.addUndo(undoinfo, "Optimize")
 
+	def haveLineNumber(self, cmd):
+		expressionCount = 0
+		if len(cmd)==0: return False
+		for w in "#_%":
+			if w in cmd[0]:
+				return False
+		for c in cmd:
+			if c=='(' or c=='[':
+				expressionCount+=1
+				continue
+			if c==')' or c==']':
+				expressionCount+=1
+				continue
+			if expressionCount!=0:
+				continue
+			if c=='N':
+				return True
+		return False
+	def removeLineNumber(self, cmd):
+		expressionCount = 0
+		nIndex = 0
+		if len(cmd)==0: return False
+		for w in "#_%":
+			if w in cmd[0]:
+				return 
+		for (id,c) in enumerate(cmd):
+			if c=='(' or c=='[':
+				expressionCount+=1
+				continue
+			if c==')' or c==']':
+				expressionCount+=1
+				continue
+			if expressionCount!=0:
+				continue
+			if c=='N':
+				nIndex = id
+				break
+		line = [w for w in cmd]
+		line[nIndex] = '$'
+		nIndex += 1
+		while line[nIndex].isdecimal():
+			line[nIndex] = '$'
+			nIndex += 1
+		response = [w if w!='$' else "" for w in line]
+		return "".join(response)
+
 	#----------------------------------------------------------------------
 	# Use probe information to modify the g-code to autolevel
 	#----------------------------------------------------------------------
-	def compile(self, queue, stopFunc=None,doNotUploadQueue:bool=False, fromSD:bool=False):
+	def compile(self, container, stopFunc=None):
 		#lines  = [self.cnc.startup]
 		paths   = []
-		self.repeatEngine.fromSD = fromSD
 
-		if fromSD and doNotUploadQueue:
-			fileName = "TmpFile.nc"
-			if Utils.getStr('CNC', 'firmware') == 'Grbl_HAL':
-				queue.put("$F="+fileName+"\n")
-			else:
-				queue.put("$SD/run=/{}\n".format(fileName))
-			
 		def add(line, path):
-			if line is not None and not doNotUploadQueue:
+			if line is not None:
 				if isinstance(line,str):
-					queue.put(line+"\n")
+					container.append(line+"\n")
 				else:
-					queue.put(line)
+					container.append(line)
 			paths.append(path)
 		autolevel = not self.probe.isEmpty()
 		self.initPath()
@@ -4699,12 +4741,8 @@ class GCode:
 					break
 				newcmd = []
 				line = str(line).strip()
-				if line.find('N')!=-1:
-					beginLineNumber = line.find('N')+1
-					endLineNumber = beginLineNumber
-					while line[beginLineNumber:endLineNumber+1].isdecimal():
-						endLineNumber += 1
-					line = line[:beginLineNumber-1] + line[endLineNumber:]
+				if self.haveLineNumber(line):
+					line = self.removeLineNumber(line)
 
 				if "M30" in line.strip().replace(' ','').upper():
 					stopNext = True
@@ -4726,7 +4764,7 @@ class GCode:
 						add(cmds, (i,j))
 					continue
 
-				skip   = skip or self.repeatEngine.isRepeatCommand(line)
+				skip   = skip or self.repeatEngine.updateEngine(line)
 				expand = None
 				self.cnc.motionStart(cmds)
 			
@@ -4771,13 +4809,7 @@ class GCode:
 					self.cnc.motionEnd()
 					continue
 				else:
-					# FIXME expansion policy here variable needed
-					# Canned cycles
-					if CNC.drillPolicy==1 and \
-					   self.cnc.gcode in (81,82,83,85,86,89):
-						expand = self.cnc.macroGroupG8X()
-					# Tool change
-					elif self.cnc.mval == 6:
+					if self.cnc.mval == 6:
 						if CNC.toolPolicy == 0:
 							pass	# send to grbl
 						elif CNC.toolPolicy == 1:
@@ -4785,6 +4817,7 @@ class GCode:
 						elif CNC.toolPolicy >= 2:
 							expand = CNC.compile(self.cnc.toolChange())
 					self.cnc.motionEnd()
+
 
 				if expand is not None:
 					for line in expand:

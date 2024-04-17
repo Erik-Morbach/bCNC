@@ -27,6 +27,8 @@ import re
 import json
 #import tkDialogs
 
+from mttkinter import *
+
 BLOCK_COLOR   = "LightYellow"
 COMMENT_COLOR = "Blue"
 DISABLE_COLOR = "Gray"

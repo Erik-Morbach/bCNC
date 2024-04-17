@@ -29,7 +29,9 @@ except:
 	print("Using fallback Utils.comports()!")
 	from Utils import comports
 
-BAUDS = [2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400]
+from mttkinter import *
+
+BAUDS = [2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 576000, 921600]
 
 #===============================================================================
 # Recent Menu button
@@ -105,7 +107,7 @@ class FileGroup(CNCRibbon.ButtonGroup):
 
 		# ---
 		col,row=3,0
-		b = Ribbon.LabelButton(self.frame, self, "<<Save>>",
+		b = Ribbon.LabelButton(self.frame, self, "<<SaveAs>>",
 				image=Utils.icons["save32"],
 				command=app.save,
 				background=Ribbon._BACKGROUND)
@@ -121,26 +123,6 @@ class FileGroup(CNCRibbon.ButtonGroup):
 				background=Ribbon._BACKGROUND)
 		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
 		tkExtra.Balloon.set(b, _("Save gcode/dxf AS"))
-		self.addWidget(b)
-
-		col,row=4,0
-		b = Ribbon.LabelButton(self.frame, self, "<<SaveToSD>>",
-				text=_("Save to SD"),
-				image=Utils.icons["save32"],
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Save File to SD Card"))
-		self.addWidget(b)
-
-		col,row=5,0
-		b = Ribbon.LabelButton(self.frame, self, "<<DeleteFromSD>>",
-				image=Utils.icons["clean32"],
-				text=_("DeleteFile"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, rowspan=2, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Delete File from sd"))
 		self.addWidget(b)
 
 #===============================================================================
@@ -390,11 +372,30 @@ class SerialFrame(CNCRibbon.PageLabelFrame):
 	#-----------------------------------------------------------------------
 	def saveConfig(self):
 		# Connection
-		Utils.setStr("Connection", "controller",  self.app.controller)
-		Utils.setStr("Connection", "port",        self.portCombo.get().split("\t")[0])
-		Utils.setStr("Connection", "baud",        self.baudCombo.get())
-		Utils.setBool("Connection", "openserial", self.autostart.get())
+		pass
 
+
+#===============================================================================
+# Startup Frame
+#===============================================================================
+class StartupFrame(CNCRibbon.PageLabelFrame):
+	def __init__(self, master, app):
+		CNCRibbon.PageLabelFrame.__init__(self, master, "Startup", _("Startup"), app)
+		self.app = app
+		f = Frame(self)
+		Label(f, text="Startup").pack(side=TOP)
+
+		b = Ribbon.LabelButton(f,
+				image=Utils.icons["config32"],
+				text=_("Reference"),
+				compound=TOP,
+				command=lambda s=self : s.reference(),
+				background=Ribbon._BACKGROUND)
+		b.pack(side=TOP,fill=BOTH, expand=TRUE)
+		f.pack(side=TOP)
+	def reference(self):
+		self.app.mcontrol.registerRunOnceOnReset(self.app.mcontrol.home)
+		self.app.mcontrol.softReset()
 
 #===============================================================================
 # File Page
@@ -412,4 +413,4 @@ class FilePage(CNCRibbon.Page):
 				PendantGroup,
 				OptionsGroup,
 				CloseGroup),
-				(SerialFrame,))
+				(SerialFrame, StartupFrame))

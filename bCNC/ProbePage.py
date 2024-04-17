@@ -31,6 +31,8 @@ import tkExtra
 
 import CNCRibbon
 
+from mttkinter import *
+
 PROBE_CMD = [	_("G38.2 stop on contact else error"),
 		_("G38.3 stop on contact"),
 		_("G38.4 stop on loss contact else error"),
@@ -304,8 +306,8 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 	def tloSet(self, event=None):
 		try:
 			CNC.vars["TLO"] = float(ProbeCommonFrame.tlo.get())
-			cmd = "G43.1Z%s"%(ProbeCommonFrame.tlo.get())
-			self.sendGCode(cmd)
+			#cmd = "G43.1Z%s"%(ProbeCommonFrame.tlo.get())
+			#self.sendGCode(cmd)
 		except:
 			pass
 		self.app.mcontrol.viewParameters()
@@ -1512,6 +1514,7 @@ class CameraFrame(CNCRibbon.PageFrame):
 	# Update canvas with values
 	#-----------------------------------------------------------------------
 	def updateValues(self, *args):
+		if not self.app.canvas: return
 		self.app.canvas.cameraAnchor = self.cameraAnchor()
 		try: self.app.canvas.cameraRotation = float(self.rotation.get())
 		except ValueError: pass
@@ -1879,7 +1882,7 @@ class ToolFrame(CNCRibbon.PageFrame):
 	def policyChange(self):
 #		CNC.toolPolicy = int(TOOL_POLICY.index(self.toolPolicy.get()))
 		b = to_unicode(self.toolPolicy.get())
-		CNC.toolPolicy = int(TOOL_POLICY.index(b))
+		#CNC.toolPolicy = int(TOOL_POLICY.index(b))
 
 	#-----------------------------------------------------------------------
 	def waitChange(self):
@@ -2008,7 +2011,8 @@ class ProbePage(CNCRibbon.Page):
 
 		# Remove all page tabs with ":" and add the new ones
 		self.ribbons = [ x for x in self.ribbons if ":" not in x[0].name ]
-		self.frames  = [ x for x in self.frames  if ":" not in x[0].name ]
+		self.lframes  = [ x for x in self.lframes  if ":" not in x[0].name ]
+		self.rframes  = [ x for x in self.rframes  if ":" not in x[0].name ]
 
 		try:
 			self.addRibbonGroup("Probe:%s"%(tab))

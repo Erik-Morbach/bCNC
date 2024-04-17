@@ -17,6 +17,7 @@ except ImportError:
 import Ribbon
 import tkExtra
 
+from mttkinter import *
 
 #===============================================================================
 # Link to main app
@@ -107,7 +108,8 @@ class PageExLabelFrame(tkExtra.ExLabelFrame, _LinkApp):
 #===============================================================================
 class Page(Ribbon.Page):
 	groups = {}
-	frames = {}
+	lframes = {}
+	rframes = {}
 
 	def __init__(self, master, app, **kw):
 		self.app = app
@@ -131,8 +133,10 @@ class Page(Ribbon.Page):
 
 		if frames:
 			for f in frames:
-				w = f(self.master._pageFrame, self.app)
-				Page.frames[w.name] = w
+				w = f(self.master._lPageFrame, self.app)
+				Page.lframes[w.name] = w
+				u = f(self.master._rPageFrame, self.app)
+				Page.rframes[w.name] = u
 
 	#----------------------------------------------------------------------
 	# Add a widget in the widgets list to enable disable during the run
@@ -154,19 +158,30 @@ class Page(Ribbon.Page):
 	#----------------------------------------------------------------------
 	def addPageFrame(self, name, **args):
 		if not args: args = {"side":TOP, "fill":BOTH}
+		side = name[-1]=='>'
+		if name[-1] in "<>": name = name[:-1]
+		fArray = self.rframes if side else self.lframes
+		fName = Page.rframes[name] if side else Page.lframes[name]
 		if isinstance(name,str):
-			self.frames.append((Page.frames[name], args))
+			fArray.append((fName, args))
 		else:
-			self.frames.append((name, args))
+			fArray.append((name, args))
 
 	#----------------------------------------------------------------------
 	@staticmethod
 	def saveConfig():
-		for frame in Page.frames.values():
+		for frame in Page.rframes.values():
 			frame.saveConfig()
+		for frame in Page.lframes.values():
+			frame.saveConfig()
+			#FIXME: Bug
+			# normally widgets are used in the left portion
+			# when setting the right porting this could overwritte the config
 
 	#----------------------------------------------------------------------
 	@staticmethod
 	def loadConfig():
-		for frame in Page.frames.values():
-			frame.loadConfig()
+		for frame in Page.lframes.values():
+			frame.saveConfig()
+		for frame in Page.rframes.values():
+			frame.saveConfig()

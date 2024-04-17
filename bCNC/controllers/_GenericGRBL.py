@@ -162,6 +162,9 @@ class _GenericGRBL(_GenericController):
 	def viewStartup(self):
 		self.master.sendGCode("$N")
 
+	def viewGState(self):
+		self.master.sendHex('0x83')
+
 	def checkGcode(self):
 		self.master.sendGCode("$C")
 
@@ -178,5 +181,4 @@ class _GenericGRBL(_GenericController):
 		self.master.sendGCode("$RST=#")
 
 	def purgeControllerExtra(self):
-		time.sleep(1)
-		self.master.unlock(False)
+		pass

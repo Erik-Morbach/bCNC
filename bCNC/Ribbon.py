@@ -16,6 +16,8 @@ except ImportError:
 import Utils
 import tkExtra
 
+from mttkinter import *
+
 _TABFONT    = ("Sans","-14","bold")
 _FONT       = ("Sans","-11")
 
@@ -347,7 +349,8 @@ class Page:		# <--- should be possible to be a toplevel as well
 		self._icon  = Utils.icons[self._icon_]
 		self._tab   = None	# Tab button
 		self.ribbons = []
-		self.frames  = []
+		self.lframes  = []
+		self.rframes  = []
 		self.init()
 		self.create()
 
@@ -371,13 +374,19 @@ class Page:		# <--- should be possible to be a toplevel as well
 	# FIXME XXX SHOULD BE REMOVED
 	#-----------------------------------------------------------------------
 	def createPage(self):
-		self.page = Frame(self.master._pageFrame)
+		self.page = Frame(self.master._lPageFrame)
 		return self.page
 
 	#-----------------------------------------------------------------------
 	# Called when a page is activated
 	#-----------------------------------------------------------------------
 	def activate(self):
+		pass
+
+	#-----------------------------------------------------------------------
+	# Called when a page is Forgeted
+	#-----------------------------------------------------------------------
+	def release(self):
 		pass
 
 	#-----------------------------------------------------------------------
@@ -577,11 +586,12 @@ class TabRibbonFrame(Frame):
 						relief=RAISED)
 		self._ribbonFrame.pack(fill=BOTH, expand=YES, padx=0, pady=0)
 
-		self.setPageFrame(None)
+		self.setPageFrame(None, None)
 
 	#-----------------------------------------------------------------------
-	def setPageFrame(self, frame):
-		self._pageFrame = frame
+	def setPageFrame(self, leftFrame, rightFrame):
+		self._lPageFrame = leftFrame
+		self._rPageFrame = rightFrame
 
 	#-----------------------------------------------------------------------
 	def undolist(self, event=None): self.event_generate("<<UndoList>>")
@@ -611,9 +621,12 @@ class TabRibbonFrame(Frame):
 	# ----------------------------------------------------------------------
 	def _forgetPage(self):
 		if self.oldActive:
+			self.oldActive.release()
 			for frame,args in self.oldActive.ribbons:
 				frame.pack_forget()
-			for frame,args in self.oldActive.frames:
+			for frame,args in self.oldActive.lframes:
+				frame.pack_forget()
+			for frame,args in self.oldActive.rframes:
 				frame.pack_forget()
 			self.oldActive = None
 
@@ -644,8 +657,11 @@ class TabRibbonFrame(Frame):
 		for frame,args in page.ribbons:
 			frame.pack(in_=self._ribbonFrame, **args)
 
-		for frame,args in page.frames:
-			frame.pack(in_=self._pageFrame, **args)
+		for frame,args in page.lframes:
+			frame.pack(in_=self._lPageFrame, **args)
+
+		for frame,args in page.rframes:
+			frame.pack(in_=self._rPageFrame, **args)
 
 		self.oldActive = page
 		page.activate()

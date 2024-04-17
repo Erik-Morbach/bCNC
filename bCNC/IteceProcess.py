@@ -102,6 +102,13 @@ class IteceProcess:
         self.angularVelocity = Utils.getFloat("Itece", "defaultAngularVelocity", 125.66) # rad/s
         self.iterationDistance = Utils.getFloat("Itece", "iterationDistance", 0.2) # mm
         self.iterationFeed = Utils.getFloat("Itece", "iterationFeed", 20) # mm/min
+        
+        self.bufferedIoMaxBlock = Utils.getFloat("Itece", "ioBufferMaxBlock", 0.1)
+        self.bufferedIoDelay = Utils.getFloat("Itece", "ioBufferDelay", 0.03)
+        self.bufferedIoSize = Utils.getInt("Itece", "ioBufferSize", 10)
+        self.bufferedIoSum = [0,0]
+        self.bufferedIoIndex = 0
+        self.bufferedIo = [(0,0)]*self.bufferedIoSize
 
         self.updateVelocityMethod = self._updateToHighSpeed
 
@@ -119,6 +126,12 @@ class IteceProcess:
                                   CNC.vars["motor1High"]/100 * self.pwmResolution,
                                   functools.partial(sendVelocity, 1))
 
+    def isRunning(self) -> bool:
+        return self.mutex.locked()
+
+    def isPositionValid(self, position) -> bool:
+        return 0 <= position and position <= self.processLimitPosition
+
     def start(self, *args) -> None:
         if self.mutex.locked():
             return
@@ -134,18 +147,42 @@ class IteceProcess:
     def setNewRpm(self, rpm) -> None:
         self._updateAngular(rpm)
 
+    def bufferedIoUpdate(self) -> None:
+        inps = CNC.vars['inputs']
+        value = []
+        for i in range(0,1):
+            value += [1 if inps&i else 0]
+            self.bufferedIoSum[i] += value[i]
+            self.bufferedIoSum[i] -= self.bufferedIo[self.bufferedIoIndex][i]
+        self.bufferedIo[self.bufferedIoIndex] = tuple(value)
+        self.bufferedIoIndex += 1
+        self.bufferedIoIndex %= self.bufferedIoSize
+
+    def getBufferedIo(self) -> int:
+        value = 0
+        for i in range(0,1):
+            value += (1<<i)*(1 if self.bufferedIoSum[i] >= self.bufferedIoSize else 0)
+        return 0;
+
     def _process(self) -> None:
         self._startupProcess()
         while self.mutex.locked():
-            time.sleep(0.1)
+            to = time.time()
+            while time.time() - to <= self.bufferedIoMaxBlock:
+                self.bufferedIoUpdate()
+                time.sleep(self.bufferedIoDelay)
             self._rpmCompensation()
             self._stateChange()
             self.updateVelocityMethod()
             self.state.executeUpdateMethods()
 
-            if not self._isPositionValid():
-                self.mutex.release()
-                break
+            if CNC.vars['mx']==self.getMaxPosition():
+                if CNC.vars['endType']==1: # wait till end current cycle
+                    if self.currentState == states.Waiting:
+                        self.mutex.release()
+                        break
+                continue # don't continue iterations
+
             if CNC.vars["state"] == "Idle":
                 self._iteration()
         self._endProcess()
@@ -155,32 +192,41 @@ class IteceProcess:
         self.app.configWidgets("state", tkinter.DISABLED)
         CNC.vars["jogActive"] = False
         self.app.sendGCode("G54")
-        self.app.mcontrol._wcsSet("0",None,None,None,None,None)
+        self.app.sendGCode("G10L2P1X0")
+        #self.app.mcontrol._wcsSet("0",None,None,None,None,None)
         self.app.sendGCode("M3S{}".format(self.beginRpm))
-        self._setHighSpeed()
-        self._activateMotors()
-        self.state.executeUpdateMethods()
         self.app.sendGCode("G4P{}".format(int(self.beginWaitTime))) # wait mainSpindle
         self.sleep(self.beginWaitTime)
 
-        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), 
+        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(),
                                                                self.beginRpm)
         self.app.sendGCode("M62P2") # presser
-        self.app.sendGCode("G4P1") #  wait Presser
+        self.app.sendGCode("G4P0.5") #  wait Presser
+        self._setHighSpeed()
+        self._activateMotors()
+        self.app.sendGCode("G4P0.5")
+        self.state.executeUpdateMethods()
+        self.app.sendGCode("M8")
+        self.app.sendGCode("G4P0.5")
         self.sleep(1)
 
     def _endProcess(self) -> None:
         self.app.sendGCode("M5")
+        self.app.sendGCode("M63P2") # presser
         self._setState(states.Waiting)
         self._deactivateMotors()
         self.app.sendGCode("G90 G55 G0 X0")
         self.app.sendGCode("G54")
         self.app.configWidgets("state", tkinter.NORMAL)
         CNC.vars["jogActive"] = True
+        self.app.sendGCode("M9")
         self.app.sendGCode("%")
 
+    def getMaxPosition(self) -> float:
+        return abs(self.processLimitPosition)
+
     def _isPositionValid(self) -> bool:
-        return CNC.vars["mx"] > self.processLimitPosition
+        return abs(CNC.vars["mx"]) < abs(self.processLimitPosition)
 
     def _activateMotors(self) -> None:
         self.app.sendGCode("M62P0") # activate Motor 0
@@ -189,7 +235,6 @@ class IteceProcess:
     def _deactivateMotors(self) -> None:
         self.app.sendGCode("M63P0") # activate Motor 0
         self.app.sendGCode("M63P1") # activate Motor 1
-        self.app.sendGCode("M63P3") # activate Motor 1
         self.state.setValue("motor0", 0)
         self.state.setValue("motor1", 0)
 
@@ -211,12 +256,10 @@ class IteceProcess:
 
     def _setLowSpeed(self) -> None:
         self._updateToLowSpeed()
-        self.app.sendGCode("M62P3")
         self.updateVelocityMethod = self._updateToLowSpeed
 
     def _setHighSpeed(self) -> None:
         self._updateToHighSpeed()
-        self.app.sendGCode("M63P3")
         self.updateVelocityMethod = self._updateToHighSpeed
 
     def _getDesiredRpm(self, radius, angularVelocity) -> float:
@@ -226,7 +269,7 @@ class IteceProcess:
         return rpm * 2 * np.pi * radius
 
     def _getCurrentRadius(self) -> float:
-        return CNC.vars["mx"] - self.radiusZeroPosition
+        return abs(CNC.vars["mx"] - self.radiusZeroPosition)
 
     def sleep(self, t) -> None:
         while t > 0:
@@ -247,31 +290,35 @@ class IteceProcess:
         self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), rpm)
 
     def _iteration(self) -> None:
-        if self.currentState == states.Waiting:
-            return
-        self.app.sendGCode("G91G1X{}F{}".format(self.iterationDistance, self.iterationFeed))
+        if self.currentState == states.Waiting: return
+        wantedPosition = CNC.vars['mx']+self.iterationDistance
+        wantedPosition = min(wantedPosition, self.getMaxPosition())
+        if not self.isPositionValid(wantedPosition): return
+        self.app.sendGCode("G90G53G1X{}F{}".format(wantedPosition, self.iterationFeed))
+
 
     def _setState(self, state):
         self.currentState = state
         CNC.vars["processState"] = state
-        if state == states.Rotating:
+        if state in [states.Rotating, states.Middle]:
             self.updateVelocityMethod = self._setLowSpeed
         else:
             self.updateVelocityMethod = self._setHighSpeed
 
     def _stateChange(self) -> None:
-        s1 = (CNC.vars["inputs"] & 1) > 0
-        s2 = (CNC.vars["inputs"] & 2) > 0
+        buffIo = self.getBufferedIo()
+        inps = CNC.vars['inputs']
+        s1 = (inps & 1) > 0
+        s2 = (inps & 2) > 0
 
         if self.currentState == states.Waiting:
             if s1 == 1: self._setState(states.Entering)
             return
         if self.currentState == states.Entering:
-            if (s1 == 1 and s2 == 1) or (s1==0 and s2==0): self._setState(states.Middle)
-            elif s1 == 0 and s2 == 1: self._setState(states.Rotating)
+            if s2 == 1: self._setState(states.Middle)
             return
         if self.currentState == states.Middle:
-            if s1 == 0 and s2 == 1: self._setState(states.Rotating)
+            if s2 == 0: self._setState(states.Rotating)
             return
         if self.currentState == states.Rotating:
             if s1 == 1: self._setState(states.ReEntering)
@@ -281,5 +328,5 @@ class IteceProcess:
             return
         if self.currentState == states.Exiting:
             if s2 == 0: self._setState(states.Waiting)
-
+            return
 

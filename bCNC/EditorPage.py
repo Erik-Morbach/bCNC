@@ -22,6 +22,7 @@ import CNCRibbon
 
 from CNCCanvas import ACTION_MOVE, ACTION_ORIGIN
 
+from mttkinter import *
 
 #===============================================================================
 # Clipboard Group
@@ -211,44 +212,7 @@ class EditGroup(CNCRibbon.ButtonMenuGroup):
 		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
 		tkExtra.Balloon.set(b, _("Delete selected lines or blocks [Del]"))
 		self.addWidget(b)
-
-		# ---
-		col,row=2,0
-		b = Ribbon.LabelButton(self.frame, self.app, "<<EnableToggle>>",
-				image=Utils.icons["toggle"],
-				#text=_("Toggle"),
-				#compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Toggle enable/disable block of g-code [Ctrl-L]"))
-		self.addWidget(b)
-
-		menulist = [	(_("Enable"),   "enable",
-				lambda a=self.app : a.event_generate("<<Enable>>")),
-				(_("Disable"),  "disable",
-				lambda a=self.app : a.event_generate("<<Disable>>"))]
-		b = Ribbon.MenuButton(self.frame, menulist,
-				text=_("Active"),
-				image=Utils.icons["triangle_down"],
-				compound=RIGHT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col+1, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Enable or disable blocks of gcode"))
-
-		# ---
-		row += 1
-		b = Ribbon.LabelButton(self.frame, self.app, "<<Expand>>",
-				image=Utils.icons["expand"],
-				text=_("Expand"),
-				compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Toggle expand/collapse blocks of gcode [Ctrl-E]"))
-		self.addWidget(b)
-
+		col, row = 2,0
 		# ---
 		row += 1
 		b = Ribbon.LabelButton(self.frame, self.app,  "<<Comment>>",
@@ -260,85 +224,6 @@ class EditGroup(CNCRibbon.ButtonMenuGroup):
 		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
 		tkExtra.Balloon.set(b, _("(Un)Comment selected lines"))
 		self.addWidget(b)
-		# ---
-		col += 2
-		row = 0
-		b = Ribbon.LabelButton(self.frame, self.app,  "<<Join>>",
-				image=Utils.icons["union"],
-				text=_("Join"),
-				compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Join selected blocks"))
-		self.addWidget(b)
-		# ---
-		row += 1
-		b = Ribbon.LabelButton(self.frame, self.app,  "<<Split>>",
-				image=Utils.icons["cut"],
-				text=_("Split"),
-				compound=LEFT,
-				anchor=W,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, columnspan=2, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Split selected blocks"))
-		self.addWidget(b)
-
-
-#===============================================================================
-# Move Group
-#===============================================================================
-class MoveGroup(CNCRibbon.ButtonMenuGroup):
-	def __init__(self, master, app):
-		CNCRibbon.ButtonMenuGroup.__init__(self, master, N_("Move"), app)
-		self.grid3rows()
-
-		# ===
-		col,row = 0,0
-		b = Ribbon.LabelRadiobutton(self.frame,
-				image=Utils.icons["move32"],
-				text=_("Move"),
-				compound=TOP,
-				anchor=W,
-				variable=app.canvas.actionVar,
-				value=ACTION_MOVE,
-				command=app.canvas.setActionMove,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, rowspan=3, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Move objects [M]"))
-		self.addWidget(b)
-
-		# ---
-		col += 1
-		b = Ribbon.LabelRadiobutton(self.frame,
-				image=Utils.icons["origin32"],
-				text=_("Origin"),
-				compound=TOP,
-				anchor=W,
-				variable=app.canvas.actionVar,
-				value=ACTION_ORIGIN,
-				command=app.canvas.setActionOrigin,
-				background=Ribbon._BACKGROUND)
-		b.grid(row=row, column=col, rowspan=3, padx=0, pady=0, sticky=NSEW)
-		tkExtra.Balloon.set(b, _("Move all gcode such as origin is on mouse location [O]"))
-		self.addWidget(b)
-
-	#----------------------------------------------------------------------
-	def createMenu(self):
-		menu = Menu(self, tearoff=0)
-		for i,n,c in (  ("tl",     _("Top-Left"),    "MOVE TL"),
-				("lc",     _("Left"),        "MOVE LC"),
-				("bl",     _("Bottom-Left"), "MOVE BL"),
-				("tc",     _("Top"),         "MOVE TC"),
-				("center", _("Center"),      "MOVE CENTER"),
-				("bc",     _("Bottom"),      "MOVE BC"),
-				("tr",     _("Top-Right"),   "MOVE TR"),
-				("rc",     _("Right"),       "MOVE RC"),
-				("br",     _("Bottom-Right"),"MOVE BR")):
-			menu.add_command(label=n,
-					image=Utils.icons[i], compound=LEFT,
-					command=lambda a=self.app,c=c:a.insertCommand(c,True))
-		return menu
 
 
 #===============================================================================
@@ -604,6 +489,6 @@ class EditorPage(CNCRibbon.Page):
 	# Add a widget in the widgets list to enable disable during the run
 	#----------------------------------------------------------------------
 	def register(self):
-		self._register((ClipboardGroup, SelectGroup, EditGroup, MoveGroup,
+		self._register((ClipboardGroup, SelectGroup, EditGroup,
 				OrderGroup, TransformGroup, RouteGroup, InfoGroup),
 			(EditorFrame,))

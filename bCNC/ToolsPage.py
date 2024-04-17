@@ -31,6 +31,8 @@ import CNCRibbon
 
 from CNC import CNC
 
+from mttkinter import *
+
 _EXE_FONT = ("Helvetica",12,"bold")
 
 
@@ -1827,20 +1829,20 @@ class ToolsPage(CNCRibbon.Page):
 
 	#----------------------------------------------------------------------
 	def edit(self, event=None):
-		CNCRibbon.Page.frames["CAM"].edit()
+		CNCRibbon.Page.lframes["CAM"].edit()
 
 	#----------------------------------------------------------------------
 	def add(self, event=None):
-		CNCRibbon.Page.frames["CAM"].add()
+		CNCRibbon.Page.lframes["CAM"].add()
 
 	#----------------------------------------------------------------------
 	def clone(self, event=None):
-		CNCRibbon.Page.frames["CAM"].clone()
+		CNCRibbon.Page.lframes["CAM"].clone()
 
 	#----------------------------------------------------------------------
 	def delete(self, event=None):
-		CNCRibbon.Page.frames["CAM"].delete()
+		CNCRibbon.Page.lframes["CAM"].delete()
 
 	#----------------------------------------------------------------------
 	def rename(self, event=None):
-		CNCRibbon.Page.frames["CAM"].rename()
+		CNCRibbon.Page.lframes["CAM"].rename()
