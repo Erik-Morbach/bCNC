@@ -16,6 +16,7 @@ import Ribbon
 import Utils
 import functools
 import threading
+from Panel import PINS
 from CNC import CNC
 import math
 import tkinter.ttk as ttk
@@ -506,6 +507,16 @@ class ViewInputDialog(Dialog):
 
         for member in self.app.panel.members:
             makeMember(frame, member.memberName, member, side=TOP, fill=X, expand=TRUE)
+        f = Frame(frame)
+        for devId in PINS.i2c.obj.keys():
+            var = IntVar(value=0)
+            self.updateList += [(var, PINS.i2c.obj, devId)]
+            f2 = Frame(f)
+            dev, add = list(map(lambda x: hex(int(x)), devId.split(':')))
+            Label(f2, text=dev+':'+add+'=', font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
+            Label(f2, textvariable=var).pack(side=LEFT)
+            f2.pack(side=TOP)
+        f.pack(side=TOP)
         self.th.start()
 
     def onExit(self):

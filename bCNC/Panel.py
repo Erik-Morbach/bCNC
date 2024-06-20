@@ -63,7 +63,7 @@ class i2c:
 
     @staticmethod
     def getId(device, address):
-        return str(device) + str(address)
+        return str(device) + ':' + str(address)
 
     def register(self, devId):
         if devId not in self.obj.keys():
