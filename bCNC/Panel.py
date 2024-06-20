@@ -9,7 +9,10 @@ from CNC import CNC
 
 import tkinter
 import gpiozero
-import smbus2
+try:
+    import smbus2
+except:
+    pass
 
 from mttkinter import *
 
@@ -51,7 +54,10 @@ class gpio:
 class i2c:
     def __init__(self) -> None:
         self.obj = {}
-        self.bus = smbus2.SMBus(1)
+        try:
+            self.bus = smbus2.SMBus(1)
+        except:
+            pass
         self.pollPeriod = {}
         self.lastTime = {}
 
