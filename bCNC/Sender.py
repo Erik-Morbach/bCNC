@@ -622,7 +622,7 @@ class Sender:
             baudrate,
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_TWO,
+            stopbits=serial.STOPBITS_ONE,
             xonxoff=False,
             rtscts=False,
             timeout=1)
