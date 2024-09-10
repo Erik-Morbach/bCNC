@@ -54,10 +54,14 @@ class gpio:
 class i2c:
     def __init__(self) -> None:
         self.obj = {}
-        try:
-            self.bus = smbus2.SMBus(1)
-        except:
-            pass
+        retries = 3
+        while retries > 0:
+            try:
+                self.bus = smbus2.SMBus(1)
+                break
+            except:
+                retries -= 1
+                time.sleep(0.01)
         self.pollPeriod = {}
         self.lastTime = {}
 
@@ -99,8 +103,16 @@ class i2c:
 
         if time.time() - lastTime < pollPeriod:
             return lastValue
-        value = self.bus.read_byte_data(dev, addr)
-        self.set(devId, value, time.time())
+        
+        retries = 3
+        while retries > 0:
+            try:
+                value = self.bus.read_byte_data(dev, addr)
+                self.set(devId, value, time.time())
+                break
+            except:
+                retries -= 1
+                time.sleep(0.01)
         return value
 
 
