@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:       vvlachoudis@gmail.com
 # Date: 24-Aug-2014
 

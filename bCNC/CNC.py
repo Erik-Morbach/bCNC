@@ -1,9 +1,3 @@
-# -*- coding: ascii -*-
-# $Id: CNC.py,v 1.8 2014/10/15 15:03:49 bnv Exp $
-#
-# Author: vvlachoudis@gmail.com
-# Date: 24-Aug-2014
-
 from __future__ import absolute_import
 from __future__ import print_function
 import os
@@ -56,7 +50,10 @@ YZ   = 2
 CW   = 2
 CCW  = 3
 
-WCS  = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
+WCS  = ["G54", "G55", "G56", "G57", "G58", "G59"]
+for i in range(1, 50):
+	name = "G59.%02d" % i
+	WCS += [name]
 
 DISTANCE_MODE = { "G90" : "Absolute",
 		  "G91" : "Incremental" }
@@ -89,9 +86,7 @@ MODAL_MODES = {
 	"G57"   : "WCS",
 	"G58"   : "WCS",
 	"G59"   : "WCS",
-	"G59.1"   : "WCS",
-	"G59.2"   : "WCS",
-	"G59.3"   : "WCS",
+	# others G59.x are added later
 
 	"G17"   : "plane",
 	"G18"   : "plane",
@@ -129,6 +124,9 @@ MODAL_MODES = {
 	"M8"    : "coolant",
 	"M9"    : "coolant",
 }
+for i in range(1,36):
+    ke = "G59.%02d" % i
+    MODAL_MODES[ke] = "WCS"
 
 ERROR_HANDLING = {}
 TOLERANCE = 1e-7
@@ -742,8 +740,6 @@ class CNC:
 			"beginLine"  : 0,
 			"pgmEnd"     : False,
 			"inputs"     : 0,
-			"barEnd"     : 0,
-			"SafeDoor"   : 0,
 			"pitch"      : -1,
 
 			"workTable": {},
@@ -2357,7 +2353,7 @@ class GCode:
 		if filename is None: filename = self.filename
 		self.init()
 		self.filename = filename
-		try: f = open(self.filename,"r")
+		try: f = open(self.filename, "r", encoding='latin-1', errors="backslashreplace")
 		except: return False
 		self._lastModified = os.stat(self.filename).st_mtime
 		self.cnc.initPath()

@@ -1,12 +1,11 @@
-clampToggleName = "ClampToggleCounter"
-if clampToggleName not in CNC.vars.keys():
-    CNC.vars[clampToggleName] = 0
-print(CNC.vars[clampToggleName])
-if self.serial is None or CNC.vars['state'].lower() not in ["idle"]: 
+clampToggleName = "clamp_toggle_counter"
+if not exist(clampToggleName):
+    set(clampToggleName, 0)
+print(get(clampToggleName))
+if self.serial is None or get('state').lower() not in ["idle"] or self.running.value:
     pass
 else:
-    if CNC.vars[clampToggleName] % 2 == 0: self.serial_write(chr(0xA5))
+    if get(clampToggleName) % 2 == 0: self.serial_write(chr(0xA5))
     else: self.serial_write(chr(0xA6))
     self.serial.flush()
-    CNC.vars[clampToggleName] += 1
-    
+    set(clampToggleName, get(clampToggleName) + 1)

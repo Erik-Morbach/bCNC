@@ -1,54 +1,49 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: vvlachoudis@gmail.com
 # Date: 18-Jun-2015
 
 from __future__ import absolute_import
 from __future__ import print_function
+import CNCCanvas
+import PidLog
+import GCodeViewer
+from CNC import WCS, DISTANCE_MODE, FEED_MODE, UNITS, PLANE
+from Sender import ERROR_CODES
+import CNCRibbon
+import Unicode
+import tkExtra
+import Sender
+import Ribbon
+import Utils
+import functools
+import threading
+from Panel import PINS
+from CNC import CNC
+import math
+import tkinter.ttk as ttk
 __author__ = "Vasilis Vlachoudis"
-__email__  = "vvlachoudis@gmail.com"
+__email__ = "vvlachoudis@gmail.com"
 
 try:
-	import Tkinter
-	from Tkinter import *
-	import tkMessageBox 
-	from Tkinter.simpledialog import Dialog, askfloat, askinteger
+    import Tkinter
+    from Tkinter import *
+    import tkMessageBox
+    from Tkinter.simpledialog import Dialog, askfloat, askinteger
 except ImportError:
-	import tkinter
-	from tkinter import *
-	import tkinter.messagebox as tkMessageBox
-	from tkinter.simpledialog import Dialog, askfloat, askinteger
+    import tkinter
+    from tkinter import *
+    import tkinter.messagebox as tkMessageBox
+    from tkinter.simpledialog import Dialog, askfloat, askinteger
 
-import tkinter.ttk as ttk
-from tkinter.ttk import Separator
-import math
-from math import * #Math in DRO
-
-from CNC import CNC
-import functools
-import Utils
-import Ribbon
-import Sender
-import tkExtra
-import Unicode
-import CNCRibbon
-from Sender import ERROR_CODES
-from CNC import WCS, DISTANCE_MODE, FEED_MODE, UNITS, PLANE
-
-import GCodeViewer
-import PidLog
-import CNCCanvas
+from math import *  # Math in DRO
+from mttkinter import *
 
 from IteceProcess import states
 
-from mttkinter import *
-
-_LOWSTEP   = 0.0001
-_HIGHSTEP  = 1000.0
+_LOWSTEP = 0.0001
+_HIGHSTEP = 1000.0
 _HIGHZSTEP = 10.0
-_LOWFEED   = 10
-_HIGHFEED  = 10000
+_LOWFEED = 10
+_HIGHFEED = 10000
 _NOZSTEP = 'XY'
 _HIGHASTEP = 90.0
 _NOASTEP = 'BC'
@@ -56,9 +51,9 @@ _NOASTEP = 'BC'
 OVERRIDES = ["Feed", "Rapid", "Spindle"]
 
 
-#===============================================================================
+# ===============================================================================
 # Connection Group
-#===============================================================================
+# ===============================================================================
 class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 	def __init__(self, master, app):
 		CNCRibbon.ButtonMenuGroup.__init__(self, master, N_("Connection"), app,
@@ -94,417 +89,542 @@ class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
 
 #===============================================================================
 # User Group
-#===============================================================================
+# ===============================================================================
 class UserGroup(CNCRibbon.ButtonGroup):
-	def __init__(self, master, app):
-		CNCRibbon.ButtonGroup.__init__(self, master, "User", app)
-		self.grid3rows()
+    def __init__(self, master, app):
+        CNCRibbon.ButtonGroup.__init__(self, master, "User", app)
+        self.grid3rows()
 
-		n = Utils.getInt("Buttons","n",7)
-		for i in range(1,n):
-			b = Utils.UserButton(self.frame, self.app, i,
-					anchor=W,
-					background=Ribbon._BACKGROUND)
-			col,row = divmod(i-1,3)
-			b.grid(row=row, column=col, sticky=NSEW)
-			self.addWidget(b)
+        n = Utils.getInt("Buttons", "n", 7)
+        for i in range(1, n):
+            b = Utils.UserButton(self.frame, self.app, i,
+                                 anchor=W,
+                                 background=Ribbon._BACKGROUND)
+            col, row = divmod(i-1, 3)
+            b.grid(row=row, column=col, sticky=NSEW)
+            self.addWidget(b)
+
 
 class SetCompensationDialog(Dialog):
-	def __init__(self, parent, title, app):
-		self.app = app
-		self.compensation = self.app.compensationTable
-		self.compensationTable = self.app.compensationTable.getTable()
-		self.tool = StringVar(value="1")
-		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
-		self.var = [StringVar(value='0'), StringVar(value='0'),
-				StringVar(value='0'), StringVar(value='0'),
-				StringVar(value='0'), StringVar(value='0')]
-		Dialog.__init__(self, parent, title)
+    def __init__(self, parent, title, app):
+        self.app = app
+        self.compensation = self.app.compensationTable
+        self.compensationTable = self.app.compensationTable.getTable()
+        self.tool = StringVar(value="1")
+        self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
+        self.var = [StringVar(value='0'), StringVar(value='0'),
+                    StringVar(value='0'), StringVar(value='0'),
+                    StringVar(value='0'), StringVar(value='0')]
+        Dialog.__init__(self, parent, title)
 
-	def body(self, frame):
-		f = Frame(frame)
-		Label(f, text="Compensate TOOL").pack(side=LEFT, fill=X)
-		cb = Label(f, textvariable=self.tool, font=DROFrame.dro_wpos)
-		cb.pack(side=RIGHT)
-		self.tool.set(CNC.vars["tool"])
-		f.pack(side=TOP, fill=X, expand=TRUE)
+    def body(self, frame):
+        f = Frame(frame)
+        Label(f, text="Compensate TOOL").pack(side=LEFT, fill=X)
+        cb = Label(f, textvariable=self.tool, font=DROFrame.dro_wpos)
+        cb.pack(side=RIGHT)
+        self.tool.set(CNC.vars["tool"])
+        f.pack(side=TOP, fill=X, expand=TRUE)
 
-		f = Frame(frame)
-		vcmd = (self.parent.register(self.valid), '%P')
-		for (id,w) in enumerate(self.axes):
-			f2 = Frame(f)
-			Label(f2, text=w).pack(side=LEFT, fill=X)
-			e = Entry(f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
-			e.pack(side=LEFT, expand=TRUE, fill=X)
-			e.bind("<Return>", lambda x, s=self: s.focus_set())
+        f = Frame(frame)
+        vcmd = (self.parent.register(self.valid), '%P')
+        for (id, w) in enumerate(self.axes):
+            f2 = Frame(f)
+            Label(f2, text=w).pack(side=LEFT, fill=X)
+            e = Entry(
+                f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
+            e.pack(side=LEFT, expand=TRUE, fill=X)
+            e.bind("<Return>", lambda x, s=self: s.focus_set())
 
-			b = Button(f2, text="Zero", command=functools.partial(self.zero, self.var[id]))
-			b.pack(side=RIGHT, fill=X)
-			f2.pack(side=TOP, fill=X, expand=TRUE)
-		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+            b = Button(f2, text="Zero", command=functools.partial(
+                self.zero, self.var[id]))
+            b.pack(side=RIGHT, fill=X)
+            f2.pack(side=TOP, fill=X, expand=TRUE)
+        f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
-		self.onLoadTable()
+        self.onLoadTable()
 
-	def zero(self, strVar: StringVar):
-		strVar.set("0.00")
+    def zero(self, strVar: StringVar):
+        strVar.set("0.00")
 
-	def newCompensation(self, index):
-		return {'index':index, 'x':0, 'y':0,'z':0,'a':0,'b':0,'c':0}
+    def newCompensation(self, index):
+        return {'index': index, 'x': 0, 'y': 0, 'z': 0, 'a': 0, 'b': 0, 'c': 0}
 
-	def getCompensationFromTable(self, index):
-		comp, id = self.compensation.getRow(index)
-		if id==-1:
-			self.compensationTable.append(self.newCompensation(index))
-		return self.compensationTable[id]
+    def getCompensationFromTable(self, index):
+        comp, id = self.compensation.getRow(index)
+        if id == -1:
+            self.compensationTable.append(self.newCompensation(index))
+        return self.compensationTable[id]
 
-	def onLoadTable(self, *args):
-		index = int(self.tool.get())
-		tool = self.getCompensationFromTable(index)
-		for (id, w) in enumerate(self.axes):
-			self.var[id].set("%.03f" % float(tool[w]))
+    def onLoadTable(self, *args):
+        index = int(self.tool.get())
+        tool = self.getCompensationFromTable(index)
+        for (id, w) in enumerate(self.axes):
+            self.var[id].set("%.03f" % float(tool[w]))
 
-	def valid(self, future_value):
-		if len(future_value)==0: return True
-		if future_value == "-": return True
-		try:
-			float(future_value)
-			return True
-		except ValueError:
-			return False
+    def valid(self, future_value):
+        if len(future_value) == 0:
+            return True
+        if future_value == "-":
+            return True
+        try:
+            float(future_value)
+            return True
+        except ValueError:
+            return False
 
-	def getCompensationFromScreen(self):
-		values = {}
-		for (id, w) in enumerate(self.axes):
-			s = self.var[id].get()
-			if s=="" or s=="-": # only cornerCases not treated
-				s = "0"
-			values[w.lower()] = float(s)
-		return values 
+    def getCompensationFromScreen(self):
+        values = {}
+        for (id, w) in enumerate(self.axes):
+            s = self.var[id].get()
+            if s == "" or s == "-":  # only cornerCases not treated
+                s = "0"
+            values[w.lower()] = float(s)
+        return values
 
-	def onOk(self):
-		index = int(self.tool.get())
-		compensate = self.getCompensationFromScreen()
-		self.app.mcontrol._toolCompensate(index, **compensate)
-		self.app.unlock()
+    def onOk(self):
+        index = int(self.tool.get())
+        compensate = self.getCompensationFromScreen()
+        self.app.mcontrol._toolCompensate(index, **compensate)
+        self.app.unlock()
 
-	def onExit(self):
-		self.destroy()
+    def onExit(self):
+        self.destroy()
 
-	def buttonbox(self,*args):
-		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
-		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
-
-class SetToolZeroDialog(Dialog):
-	def __init__(self, parent, title, app):
-		self.app = app
-		self.tool = self.app.toolTable
-		self.toolTable = self.app.toolTable.getTable()
-		self.workTable = self.app.workTable
-		self.wcs = 1
-		self.toolNumber = StringVar(value="1")
-		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
-		self.var = [StringVar(value='0'), StringVar(value='0'),
-				StringVar(value='0'), StringVar(value='0'),
-				StringVar(value='0'), StringVar(value='0')]
-		Dialog.__init__(self, parent, title)
-
-	def body(self, frame):
-		f = Frame(frame)
-		Label(f, text="TOOL").pack(side=LEFT, fill=X)
-		cb = Label(f, textvariable=self.toolNumber, font=DROFrame.dro_wpos)
-		cb.pack(side=RIGHT)
-		self.toolNumber.set(CNC.vars["tool"])
-		self.wcs = WCS.index(CNC.vars["WCS"])+1
-		f.pack(side=TOP, fill=X, expand=TRUE)
-
-		f = Frame(frame)
-		vcmd = (self.parent.register(self.valid), '%P')
-		for (id,w) in enumerate(self.axes):
-			f2 = Frame(f)
-			Label(f2, text=w).pack(side=LEFT, fill=X)
-			e = Entry(f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
-			e.pack(side=LEFT, expand=TRUE, fill=X)
-			e.bind("<Return>", lambda x, s=self: s.focus_set())
-
-			b = Button(f2, text="Zero", command=functools.partial(self.zero, self.var[id]))
-			b.pack(side=RIGHT, fill=X)
-			f2.pack(side=TOP, fill=X, expand=TRUE)
-		f.pack(side=TOP, fill=BOTH, expand=TRUE)
-
-		if Utils.getBool("CNC", "lathe", False):
-			f = Frame(frame)
-			if 'x' in self.axes:
-				Button(f, text="X Diameter", command=functools.partial(self.enterDiameter,'x', f)).pack(side=LEFT, fill=BOTH, expand=TRUE)
-			if 'b' in self.axes:
-				Button(f, text="B Diameter", command=functools.partial(self.enterDiameter,'b', f)).pack(side=LEFT, fill=BOTH, expand=TRUE)
-			f.pack(side=TOP, fill=BOTH, expand=TRUE)
-
-		self.onLoadTable()
-
-	def enterDiameter(self, axis, frame, *args):
-		if axis not in self.axes:
-			return
-		id = self.axes.index(axis)
-		self.var[id].set("%.03f" % askfloat("{} Diameter set".format(axis), "Diameter measured",
-					parent=frame,
-					minvalue=-100000.0, maxvalue=100000.0))
-
-	def zero(self, strVar: StringVar):
-		strVar.set("0.00")
-
-	def newTool(self, index):
-		return {'index':index, 'x':0, 'y':0,'z':0,'a':0,'b':0,'c':0}
-
-	def getTool(self, index):
-		tool, id = self.tool.getRow(index)
-		if id==-1:
-			self.toolTable.append(self.newTool(index))
-		return self.toolTable[id]
-
-	def onLoadTable(self, *args):
-		index = int(self.toolNumber.get())
-		tlo = self.getTool(index)
-		wcs, id = self.workTable.getRow(self.wcs)
-		for (id, w) in enumerate(self.axes):
-			self.var[id].set("%.03f" % float(float(CNC.vars["m"+w]) - float(tlo[w]) - float(wcs[w])))
-
-	def valid(self, future_value):
-		if len(future_value)==0: return True
-		if future_value == "-": return True
-		try:
-			float(future_value)
-			return True
-		except ValueError:
-			return False
-
-	def getTlo(self):
-		values = {}
-		for (id, w) in enumerate(self.axes):
-			s = self.var[id].get()
-			if s=="" or s=="-": # only cornerCases not treated
-				s = "0"
-			values[w.lower()] = float(s)
-		return values 
-
-	def onOk(self):
-		index = int(self.toolNumber.get())
-		tlo = self.getTlo()
-		wcs, id = self.workTable.getRow(self.wcs)
-		for axe in self.axes:
-			tlo[axe] = float(CNC.vars['m{}'.format(axe)]) - tlo[axe] - float(wcs[axe])
-		self.app.mcontrol._tloSet(index, **tlo)
-		self.app.unlock()
-
-	def onExit(self):
-		self.destroy()
-
-	def buttonbox(self,*args):
-		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
-		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
-
-class SetWorkZeroDialog(Dialog):
-	def __init__(self, parent, title, app):
-		self.app = app
-		self.wcs = StringVar(value="G54")
-		self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
-		#if Utils.getBool("CNC", "lathe", False):
-		#	self.axes = [w for w in self.axes if w in "z"]
-		self.var = [StringVar(value='0'), StringVar(value='0'),
-				StringVar(value='0'), StringVar(value='0'),
-				StringVar(value='0'), StringVar(value='0')]
-		Dialog.__init__(self, parent, title)
-	def body(self, frame):
-		f = Frame(frame)
-		Label(f, text="WCS").pack(side=LEFT, fill=X)
-		cb = Label(f, textvariable=self.wcs, font=DROFrame.dro_wpos)
-		cb.pack(side=RIGHT)
-
-		self.wcs.set(CNC.vars['WCS'])
-		f.pack(side=TOP, fill=X, expand=TRUE)
-
-		f = Frame(frame)
-		f.pack(side=TOP, fill=X, expand=TRUE)
-
-		f = Frame(frame)
-		vcmd = (self.parent.register(self.valid), '%P')
-		for (id,w) in enumerate(self.axes):
-			f2 = Frame(f)
-			Label(f2, text=w).pack(side=LEFT, fill=X)
-			e = Entry(f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
-			e.pack(side=LEFT, expand=TRUE, fill=X)
-			e.bind("<Return>", lambda x, s=self: s.focus_set())
-
-			b = Button(f2, text="Zero", command=functools.partial(self.zero, self.var[id]))
-			b.pack(side=RIGHT, fill=X)
-			f2.pack(side=TOP, fill=X, expand=TRUE)
-		f.pack(side=TOP, fill=BOTH, expand=TRUE)
-		self.onWcs() # ComboboxSelected not trigger
-
-	def zero(self, strVar: StringVar):
-		strVar.set("0.00")
-
-	def onWcs(self, *args):
-		for (id, w) in enumerate(self.axes):
-			self.var[id].set("%.03f" % float(CNC.vars["w"+w]))
-
-	def valid(self, future_value):
-		if len(future_value)==0: return True
-		if future_value == "-": return True
-		try:
-			float(future_value)
-			return True
-		except ValueError:
-			return False
-
-	def getWco(self):
-		values = {}
-		for (id, w) in enumerate(self.axes):
-			s = self.var[id].get()
-			if s=="" or s=="-": # only cornerCases not treated
-				s = "0"
-			values[w.lower()] = float(s)
-		return values 
-
-	def onOk(self):
-		index = WCS.index(self.wcs.get())
-		wco = self.getWco()
-		self.app.mcontrol._wcsSet(**wco, wcsIndex=index)
-		self.app.unlock()
-
-	def onExit(self):
-		self.destroy()
-
-	def onClearTable(self):
-		response = tkMessageBox.askokcancel("Clear table warning", "Do you want to continue?")
-		if not response:
-			return
-		table = self.app.workTable
-		rows = table.getTable()
-		allAxis = "xyzabcuvw"
-		for row in rows:
-			for (field, value) in row.items():
-				if field in allAxis:
-					row[field] = '0'
-		table.save(rows)
-		self.app.unlock()
-		self.destroy()
+    def buttonbox(self, *args):
+        Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
+        Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
 
 
-	def buttonbox(self,*args):
-		Button(self, text="Ok", command=self.onOk).pack(side=RIGHT, fill=X, expand=True)
-		Button(self, text="ClearTable", command=self.onClearTable).pack(side=RIGHT, fill=X, expand=True)
-		Button(self, text="Exit", command=self.onExit).pack(side=RIGHT, fill=X, expand=True)
+class SetToolZeroDialog(Dialog):  # TODO: Show all tools on the table
+    def __init__(self, parent, title, app):
+        self.app = app
+        self.tool = self.app.toolTable
+        self.toolTable = self.app.toolTable
+        self.workTable = self.app.workTable
+        self.wcs = 1
+        self.toolNumber = StringVar(value="1")
+        self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
+        self.var = [StringVar(value='0'), StringVar(value='0'),
+                    StringVar(value='0'), StringVar(value='0'),
+                    StringVar(value='0'), StringVar(value='0')]
+        Dialog.__init__(self, parent, title)
+
+    def body(self, frame):
+        f = Frame(frame)
+        Label(f, text="TOOL").pack(side=LEFT, fill=X)
+        cb = Label(f, textvariable=self.toolNumber, font=DROFrame.dro_wpos)
+        cb.pack(side=RIGHT)
+        self.toolNumber.set(CNC.vars["tool"])
+        self.wcs = WCS.index(CNC.vars["WCS"])+1
+        f.pack(side=TOP, fill=X, expand=TRUE)
+
+        f = Frame(frame)
+        vcmd = (self.parent.register(self.valid), '%P')
+        for (id, w) in enumerate(self.axes):
+            f2 = Frame(f)
+            Label(f2, text=w).pack(side=LEFT, fill=X)
+            e = Entry(
+                f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
+            e.pack(side=LEFT, expand=TRUE, fill=X)
+            e.bind("<Return>", lambda x, s=self: s.focus_set())
+
+            b = Button(f2, text="Zero", command=functools.partial(
+                self.zero, self.var[id]))
+            b.pack(side=RIGHT, fill=X)
+            f2.pack(side=TOP, fill=X, expand=TRUE)
+        f.pack(side=TOP, fill=BOTH, expand=TRUE)
+
+        if Utils.getBool("CNC", "lathe", False):
+            f = Frame(frame)
+            if 'x' in self.axes:
+                Button(f, text="X Diameter", command=functools.partial(
+                    self.enterDiameter, 'x', f)).pack(side=LEFT, fill=BOTH, expand=TRUE)
+            if 'b' in self.axes:
+                Button(f, text="B Diameter", command=functools.partial(
+                    self.enterDiameter, 'b', f)).pack(side=LEFT, fill=BOTH, expand=TRUE)
+            f.pack(side=TOP, fill=BOTH, expand=TRUE)
+
+        self.onLoadTable()
+
+    def enterDiameter(self, axis, frame, *args):
+        if axis not in self.axes:
+            return
+        id = self.axes.index(axis)
+        self.var[id].set("%.03f" % askfloat("{} Diameter set".format(axis), "Diameter measured",
+                                            parent=frame,
+                                            minvalue=-100000.0, maxvalue=100000.0))
+
+    def zero(self, strVar: StringVar):
+        strVar.set("0.00")
+
+    def newTool(self, index):
+        return {'index': index, 'x': 0, 'y': 0, 'z': 0, 'a': 0, 'b': 0, 'c': 0}
+
+    def getTool(self, index):
+        tool, id = self.tool.getRow(index)
+        if id == -1:
+            self.toolTable.append(self.newTool(index))
+        return self.toolTable[id]
+
+    def onLoadTable(self, *args):
+        for (id, w) in enumerate(self.axes):
+            self.var[id].set("%.03f" % float(
+                float(CNC.vars["w"+w])))
+
+    def valid(self, future_value):
+        if len(future_value) == 0:
+            return True
+        if future_value == "-":
+            return True
+        try:
+            float(future_value)
+            return True
+        except ValueError:
+            return False
+
+    def getTlo(self):
+        values = {}
+        for (id, w) in enumerate(self.axes):
+            s = self.var[id].get()
+            if s == "" or s == "-":  # only cornerCases not treated
+                s = "0"
+            values[w.lower()] = float(s)
+        return values
+
+    def onOk(self):
+        index = int(self.toolNumber.get())
+        tloEntry = self.getTlo()
+        currentTlo, row = self.toolTable.getRow(index)
+        if row == -1:
+            return
+
+        def dictStrToFloat(x):
+            return (x[0], float(x[1]))
+
+        controlerTlo = dict(map(dictStrToFloat, currentTlo.items()))
+        for axe in self.axes:
+            off = float(tloEntry[axe]) - float(CNC.vars['w'+axe])
+            controlerTlo[axe] -= off
+        controlerTlo.pop('index')
+
+        self.app.mcontrol._tloSet(index, **controlerTlo)
+        self.app.unlock()
+
+    def onExit(self):
+        self.destroy()
+
+    def buttonbox(self, *args):
+        Button(self, text="Ok", command=self.onOk).pack(side=RIGHT)
+        Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+
+class SetWorkZeroDialog(Dialog):  # TODO: Show all WCS on the table
+    def __init__(self, parent, title, app):
+        self.app = app
+        self.wcs = StringVar(value="G54")
+        self.axes = Utils.getStr("CNC", "axis", "XYZABC").lower()
+        # if Utils.getBool("CNC", "lathe", False):
+        # self.axes = [w for w in self.axes if w in "z"]
+        self.var = [StringVar(value='0'), StringVar(value='0'),
+                    StringVar(value='0'), StringVar(value='0'),
+                    StringVar(value='0'), StringVar(value='0')]
+        Dialog.__init__(self, parent, title)
+
+    def body(self, frame):
+        f = Frame(frame)
+        Label(f, text="WCS").pack(side=LEFT, fill=X)
+        cb = Label(f, textvariable=self.wcs, font=DROFrame.dro_wpos)
+        cb.pack(side=RIGHT)
+
+        self.wcs.set(CNC.vars['WCS'])
+        f.pack(side=TOP, fill=X, expand=TRUE)
+
+        f = Frame(frame)
+        f.pack(side=TOP, fill=X, expand=TRUE)
+
+        f = Frame(frame)
+        vcmd = (self.parent.register(self.valid), '%P')
+        for (id, w) in enumerate(self.axes):
+            f2 = Frame(f)
+            Label(f2, text=w).pack(side=LEFT, fill=X)
+            e = Entry(
+                f2, textvariable=self.var[id], validate='all', validatecommand=vcmd)
+            e.pack(side=LEFT, expand=TRUE, fill=X)
+            e.bind("<Return>", lambda x, s=self: s.focus_set())
+
+            b = Button(f2, text="Zero", command=functools.partial(
+                self.zero, self.var[id]))
+            b.pack(side=RIGHT, fill=X)
+            b = Button(f2, text="MachinePos", command=functools.partial(
+                self.machinePos, self.var[id], w))
+            b.pack(side=RIGHT, fill=X)
+            f2.pack(side=TOP, fill=X, expand=TRUE)
+        f.pack(side=TOP, fill=BOTH, expand=TRUE)
+        self.onWcs()  # ComboboxSelected not trigger
+
+    def zero(self, strVar: StringVar):
+        strVar.set("0.00")
+
+    def machinePos(self, strVar: StringVar, axe: str):
+        strVar.set(CNC.vars['m'+axe])
+
+    def onWcs(self, *args):
+        table = self.app.workTable
+        index = WCS.index(self.wcs.get()) + 1
+        row = table.getRow(index)[0]
+        for (id, w) in enumerate(self.axes):
+            value = 0
+            if len(row[w]) > 0:
+                value = float(row[w])
+            self.var[id].set("%.03f" % float(value))
+
+    def valid(self, future_value):
+        if len(future_value) == 0:
+            return True
+        if future_value == "-":
+            return True
+        try:
+            float(future_value)
+            return True
+        except ValueError:
+            return False
+
+    def getWco(self):
+        values = {}
+        for (id, w) in enumerate(self.axes):
+            s = self.var[id].get()
+            if s == "" or s == "-":  # only cornerCases not treated
+                s = "0"
+            values[w.lower()] = float(s)
+        return values
+
+    def onOk(self):
+        index = WCS.index(self.wcs.get())
+        wco = self.getWco()
+        for (id, w) in enumerate(self.axes):
+            wco[w] = CNC.vars['m'+w] - wco[w]
+        self.app.mcontrol._wcsSet(**wco, wcsIndex=index)
+        self.app.unlock()
+
+    def onExit(self):
+        self.destroy()
+
+    def onClearTable(self):
+        response = tkMessageBox.askokcancel(
+            "Clear table warning", "Do you want to continue?")
+        if not response:
+            return
+        table = self.app.workTable
+        rows = table.getTable()
+        allAxis = "xyzabcuvw"
+        for row in rows:
+            for (field, value) in row.items():
+                if field in allAxis:
+                    row[field] = '0'
+        table.save(rows)
+        self.app.unlock()
+        self.destroy()
+
+    def buttonbox(self, *args):
+        Button(self, text="Ok", command=self.onOk).pack(
+            side=RIGHT, fill=X, expand=True)
+        Button(self, text="ClearTable", command=self.onClearTable).pack(
+            side=RIGHT, fill=X, expand=True)
+        Button(self, text="Exit", command=self.onExit).pack(
+            side=RIGHT, fill=X, expand=True)
 
 
 class ZeroGroup(CNCRibbon.ButtonGroup):
-	def __init__(self, master, app):
-		CNCRibbon.ButtonGroup.__init__(self, master, "Zero", app)
-		self.master = master
-		b = Ribbon.LabelButton(self.frame, self, "<<SetWorkOffset>>",
-				image=Utils.icons["WCS"],
-				text=_("Set Work Offset"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
-		tkExtra.Balloon.set(b, _("Set your WCS"))
-		self.addWidget(b)
-		b = Ribbon.LabelButton(self.frame, self, "<<SetToolOffset>>",
-				image=Utils.icons["TOOL"],
-				text=_("Set Tool Offset"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
-		tkExtra.Balloon.set(b, _("Set your TLO"))
-		self.addWidget(b)
-		b = Ribbon.LabelButton(self.frame, self, "<<SetCompensationOffset>>",
-				image=Utils.icons["COMPENSATE"],
-				text=_("Set Compensation"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
-		tkExtra.Balloon.set(b, _("Set your Compensation"))
-		self.addWidget(b)
+    def __init__(self, master, app):
+        CNCRibbon.ButtonGroup.__init__(self, master, "Zero", app)
+        self.master = master
+        b = Ribbon.LabelButton(self.frame, self, "<<SetWorkOffset>>",
+                               image=Utils.icons["WCS"],
+                               text=_("Set Work Offset"),
+                               compound=TOP,
+                               background=Ribbon._BACKGROUND)
+        b.pack(side=LEFT, fill=BOTH)
+        tkExtra.Balloon.set(b, _("Set your WCS"))
+        self.addWidget(b)
+        b = Ribbon.LabelButton(self.frame, self, "<<SetToolOffset>>",
+                               image=Utils.icons["TOOL"],
+                               text=_("Set Tool Offset"),
+                               compound=TOP,
+                               background=Ribbon._BACKGROUND)
+        b.pack(side=LEFT, fill=BOTH)
+        tkExtra.Balloon.set(b, _("Set your TLO"))
+        self.addWidget(b)
+        b = Ribbon.LabelButton(self.frame, self, "<<SetCompensationOffset>>",
+                               image=Utils.icons["COMPENSATE"],
+                               text=_("Set Compensation"),
+                               compound=TOP,
+                               background=Ribbon._BACKGROUND)
+        b.pack(side=LEFT, fill=BOTH)
+        tkExtra.Balloon.set(b, _("Set your Compensation"))
+        self.addWidget(b)
 
-		app.bind("<<SetWorkOffset>>", self.onWorkClick)
-		app.bind("<<SetToolOffset>>", self.onToolClick)
-		app.bind("<<SetCompensationOffset>>", self.onCompensationClick)
+        app.bind("<<SetWorkOffset>>", self.onWorkClick)
+        app.bind("<<SetToolOffset>>", self.onToolClick)
+        app.bind("<<SetCompensationOffset>>", self.onCompensationClick)
 
-	def onWorkClick(self, *args):
-		SetWorkZeroDialog(self.app, "Set WorkSystem", self.app)
-	def onToolClick(self, *args):
-		SetToolZeroDialog(self.app, "Set Tool", self.app)
-	def onCompensationClick(self, *args):
-		SetCompensationDialog(self.app, "Set Compensation", self.app)
+    def onWorkClick(self, *args):
+        SetWorkZeroDialog(self.app, "Set WorkSystem", self.app)
+
+    def onToolClick(self, *args):
+        SetToolZeroDialog(self.app, "Set Tool", self.app)
+
+    def onCompensationClick(self, *args):
+        SetCompensationDialog(self.app, "Set Compensation", self.app)
+
+
+class ViewInputDialog(Dialog):
+    def __init__(self, parent, title, app):
+        self.app = app
+        self.parent = parent
+        self.updateList = []
+        self.th = threading.Thread(target=self.updateVars)
+        self.mtx = threading.Lock()
+        Dialog.__init__(self, parent, title)
+
+    def updateVars(self):
+        while not self.mtx.locked():
+            for (var, values, index) in self.updateList:
+                var.set(values[index])
+
+    def body(self, frame):
+        def makeMember(frame, memberName, memberVariable, *args, **kwargs):
+            f = Frame(frame)
+            Label(f, text=memberName, font=DROFrame.dro_mpos).pack(
+                side=LEFT, fill=X)
+            f2 = Frame(f)
+            for i in range(0, len(memberVariable.pins)):
+                var = IntVar(value=0)
+                f3 = Frame(f2)
+                Label(f3, textvariable=var).pack(side=LEFT, fill=Y, expand=TRUE)
+                f3.pack(side=LEFT, fill=Y, expand=TRUE)
+                self.updateList += [(var, memberVariable.lastValues, i)]
+            f2.pack(side=RIGHT, fill=Y, expand=TRUE)
+            f.pack(*args, **kwargs)  # side=TOP, fill=X, expand=TRUE)
+
+        for member in self.app.panel.members:
+            makeMember(frame, member.memberName, member, side=TOP, fill=X, expand=TRUE)
+        f = Frame(frame)
+        for devId in PINS.i2c.obj.keys():
+            var = IntVar(value=0)
+            self.updateList += [(var, PINS.i2c.obj, devId)]
+            f2 = Frame(f)
+            dev, add = list(map(lambda x: hex(int(x)), devId.split(':')))
+            Label(f2, text=dev+':'+add+'=', font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
+            Label(f2, textvariable=var).pack(side=LEFT)
+            f2.pack(side=TOP)
+        f.pack(side=TOP)
+        self.th.start()
+
+    def onExit(self):
+        self.mtx.acquire()
+        self.destroy()
+
+    def buttonbox(self, *args):
+        Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+    def valid(self, future_value):
+        if len(future_value) == 0:
+            return True
+        try:
+            float(future_value)
+            return True
+        except ValueError:
+            return False
 
 
 class StartLineDialog(Dialog):
-	def __init__(self, parent, title, app, lineNumberVariable):
-		self.app = app
-		self.parent = parent
-		self.lineNumber = lineNumberVariable
-		Dialog.__init__(self, parent, title)
-	def body(self, frame):
-		vcmd = (frame.register(self.valid), '%P')
-		def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
-			f = Frame(frame)
-			Label(f, text=labelText, font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
-			e = Entry(f, width=9, textvariable=entryVariable, validate='all', validatecommand=vcmd)
-			e.pack(side=LEFT, fill=X, expand=TRUE)
-			e.bind("<Return>", lambda x, s=self: s.focus_set())
-			f.pack(*args, **kwargs) #side=TOP, fill=X, expand=TRUE)
+    def __init__(self, parent, title, app, lineNumberVariable):
+        self.app = app
+        self.parent = parent
+        self.lineNumber = lineNumberVariable
+        Dialog.__init__(self, parent, title)
 
-		makeLabelEntry(frame, "Linha de inicio: ", self.lineNumber, side=TOP, fill=BOTH, expand=TRUE)
+    def body(self, frame):
+        vcmd = (frame.register(self.valid), '%P')
 
-	def onExit(self):
-		CNC.vars["beginLine"] = self.lineNumber.get()
-		self.destroy()
+        def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
+            f = Frame(frame)
+            Label(f, text=labelText, font=DROFrame.dro_mpos).pack(
+                side=LEFT, fill=X)
+            e = Entry(f, width=9, textvariable=entryVariable,
+                      validate='all', validatecommand=vcmd)
+            e.pack(side=LEFT, fill=X, expand=TRUE)
+            e.bind("<Return>", lambda x, s=self: s.focus_set())
+            f.pack(*args, **kwargs)  # side=TOP, fill=X, expand=TRUE)
 
-	def buttonbox(self,*args):
-		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+        makeLabelEntry(frame, "Linha de inicio: ",
+                       self.lineNumber, side=TOP, fill=BOTH, expand=TRUE)
 
-	def valid(self, future_value):
-		if len(future_value)==0: return True
-		try:
-			float(future_value)
-			return True
-		except ValueError:
-			return False
+    def onExit(self):
+        CNC.vars["beginLine"] = self.lineNumber.get()
+        self.destroy()
+
+    def buttonbox(self, *args):
+        Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+    def valid(self, future_value):
+        if len(future_value) == 0:
+            return True
+        try:
+            float(future_value)
+            return True
+        except ValueError:
+            return False
+
 
 class RepeatEngineConfigureDialog(Dialog):
-	def __init__(self, parent, title, app):
-		self.app = app
-		self.engine = self.app.gcode.repeatEngine
-		self.parent = parent
-		Dialog.__init__(self, parent, title)
-	def body(self, frame):
-		vcmd = (frame.register(self.valid), '%P')
-		def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
-			f = Frame(frame)
-			Label(f, text=labelText, font=DROFrame.dro_mpos).pack(side=LEFT, fill=X)
-			e = Entry(f, width=9, textvariable=entryVariable, validate='all', validatecommand=vcmd)
-			e.pack(side=LEFT, fill=X, expand=TRUE)
-			e.bind("<Return>", lambda x, s=self: s.focus_set())
-			f.pack(*args, **kwargs) #side=TOP, fill=X, expand=TRUE)
+    def __init__(self, parent, title, app):
+        self.app = app
+        self.engine = self.app.gcode.repeatEngine
+        self.parent = parent
+        Dialog.__init__(self, parent, title)
 
-		makeLabelEntry(frame, "Numero atual de execucoes: ", self.engine.m30Counter, side=TOP, fill=BOTH, expand=TRUE)
-		makeLabelEntry(frame, "Numero final de execucoes: ", self.engine.m30CounterLimit, side=TOP, fill=BOTH, expand=TRUE)
+    def body(self, frame):
+        vcmd = (frame.register(self.valid), '%P')
 
-	def onExit(self):
-		self.destroy()
+        def makeLabelEntry(frame, labelText, entryVariable, *args, **kwargs):
+            f = Frame(frame)
+            Label(f, text=labelText, font=DROFrame.dro_mpos).pack(
+                side=LEFT, fill=X)
+            e = Entry(f, width=9, textvariable=entryVariable,
+                      validate='all', validatecommand=vcmd)
+            e.pack(side=LEFT, fill=X, expand=TRUE)
+            e.bind("<Return>", lambda x, s=self: s.focus_set())
+            f.pack(*args, **kwargs)  # side=TOP, fill=X, expand=TRUE)
 
-	def buttonbox(self,*args):
-		Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+        makeLabelEntry(frame, "Peca do bloco de repeticoes:",
+                       self.engine.m30Counter, side=TOP, fill=BOTH, expand=TRUE)
+        makeLabelEntry(frame, "Tamanho do bloco de repeticoes: ",
+                       self.engine.m30CounterLimit, side=TOP, fill=BOTH, expand=TRUE)
+        makeLabelEntry(frame, "Numero total de execucoes: ",
+                       self.engine.totalM30, side=TOP, fill=BOTH, expand=TRUE)
+        makeLabelEntry(frame, "Numero total de execucoes validas: ",
+                       self.engine.validM30, side=TOP, fill=BOTH, expand=TRUE)
 
-	def valid(self, future_value):
-		if len(future_value)==0: return True
-		try:
-			float(future_value)
-			return True
-		except ValueError:
-			return False
-#===============================================================================
+    def onExit(self):
+        self.destroy()
+
+    def buttonbox(self, *args):
+        Button(self, text="Exit", command=self.onExit).pack(side=LEFT)
+
+    def valid(self, future_value):
+        if len(future_value) == 0:
+            return True
+        try:
+            float(future_value)
+            return True
+        except ValueError:
+            return False
+# ===============================================================================
 # Run Group
-#===============================================================================
+# ===============================================================================
+
+
 class RunGroup(CNCRibbon.ButtonGroup):
 	def __init__(self, master, app):
 		CNCRibbon.ButtonGroup.__init__(self, master, "Run", app)
@@ -675,134 +795,137 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 
 #===============================================================================
 # DRO Frame
-#===============================================================================
+# ===============================================================================
+
+
 class DROFrame(CNCRibbon.PageFrame):
-	dro_status = ('Helvetica',16,'bold')
-	dro_wpos   = ('Helvetica',16,'bold')
-	dro_mpos   = ('Helvetica',16)
+    dro_status = ('Helvetica', 16, 'bold')
+    dro_wpos = ('Helvetica', 16, 'bold')
+    dro_mpos = ('Helvetica', 16)
 
-	def __init__(self, master, app):
-		CNCRibbon.PageFrame.__init__(self, master, "DRO", app)
-		self.isLathe = Utils.getBool("CNC","lathe",False)
-		self.axis = Utils.getStr("CNC", "axis", "XYZ")
+    def __init__(self, master, app):
+        CNCRibbon.PageFrame.__init__(self, master, "DRO", app)
+        self.isLathe = Utils.getBool("CNC", "lathe", False)
+        self.axis = Utils.getStr("CNC", "axis", "XYZ")
 
-		DROFrame.dro_status = Utils.getFont("dro.status", DROFrame.dro_status)
-		DROFrame.dro_wpos   = Utils.getFont("dro.wpos",   DROFrame.dro_wpos)
-		DROFrame.dro_mpos   = Utils.getFont("dro.mpos",   DROFrame.dro_mpos)
-		f = Frame(self)
-		f2 = Frame(f)
-		Label(f2,text=_("Status:")).pack(side=LEFT, fill=X, expand=FALSE)
-		self.state = Button(f2,
-				text=Sender.NOT_CONNECTED,
-				font=DROFrame.dro_status,
-				command=self.showState,
-				cursor="hand1",
-				background=Sender.STATECOLOR[Sender.NOT_CONNECTED],
-				activebackground="LightYellow")
-		self.state.pack(side=RIGHT, fill=X, expand=TRUE)
-		tkExtra.Balloon.set(self.state,
-				_("Show current state of the machine\n"
-				  "Click to see details\n"
-				  "Right-Click to clear alarm/errors"))
-		#self.state.bind("<Button-3>", lambda e,s=self : s.event_generate("<<AlarmClear>>"))
-		self.state.bind("<Button-3>", self.stateMenu)
+        DROFrame.dro_status = Utils.getFont("dro.status", DROFrame.dro_status)
+        DROFrame.dro_wpos = Utils.getFont("dro.wpos",   DROFrame.dro_wpos)
+        DROFrame.dro_mpos = Utils.getFont("dro.mpos",   DROFrame.dro_mpos)
+        f = Frame(self)
+        f2 = Frame(f)
+        Label(f2, text=_("Status:")).pack(side=LEFT, fill=X, expand=FALSE)
+        self.state = Button(f2,
+                            text=Sender.NOT_CONNECTED,
+                            font=DROFrame.dro_status,
+                            command=self.showState,
+                            cursor="hand1",
+                            background=Sender.STATECOLOR[Sender.NOT_CONNECTED],
+                            activebackground="LightYellow")
+        self.state.pack(side=RIGHT, fill=X, expand=TRUE)
+        tkExtra.Balloon.set(self.state,
+                            _("Show current state of the machine\n"
+                              "Click to see details\n"
+                              "Right-Click to clear alarm/errors"))
+        # self.state.bind("<Button-3>", lambda e,s=self : s.event_generate("<<AlarmClear>>"))
+        self.state.bind("<Button-3>", self.stateMenu)
 
-		f2.pack(side=TOP, fill=X, expand=TRUE)
+        f2.pack(side=TOP, fill=X, expand=TRUE)
 
-		self.works = []
-		self.machs = []
-		f2 = Frame(f)
-		Label(f2, text="Machine").pack(side=RIGHT, fill=X,expand=TRUE)
-		Label(f2, text="Work").pack(side=RIGHT, fill=X, expand=TRUE)
-		f2.pack(side=TOP, fill=X, expand=TRUE)
-		for axe in self.axis:
-			f2 = Frame(f)
-			Label(f2, text=_(axe.upper()+":"), font=DROFrame.dro_wpos).pack(side=LEFT)
-			mach = Label(f2, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					anchor=E,width=9)
-			mach.pack(side=RIGHT, fill=X, expand=TRUE)
-			tkExtra.Balloon.set(mach, _(axe+" machine position"))
+        self.works = []
+        self.machs = []
+        f2 = Frame(f)
+        Label(f2, text="Machine").pack(side=RIGHT, fill=X, expand=TRUE)
+        Label(f2, text="Work").pack(side=RIGHT, fill=X, expand=TRUE)
+        f2.pack(side=TOP, fill=X, expand=TRUE)
+        for axe in self.axis:
+            f2 = Frame(f)
+            Label(f2, text=_(axe.upper()+":"),
+                  font=DROFrame.dro_wpos).pack(side=LEFT)
+            mach = Label(f2, font=DROFrame.dro_mpos, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+                         anchor=E, width=9)
+            mach.pack(side=RIGHT, fill=X, expand=TRUE)
+            tkExtra.Balloon.set(mach, _(axe+" machine position"))
 
-			work = Label(f2, font=DROFrame.dro_wpos,
-					background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
-					relief=RAISED, borderwidth=2, justify=RIGHT,
-					width=9)
-			work.pack(side=RIGHT, fill=X, expand=TRUE)
-			tkExtra.Balloon.set(work, _(axe+" work position"))
+            work = Label(f2, font=DROFrame.dro_wpos,
+                         background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+                         relief=RAISED, borderwidth=2, justify=RIGHT,
+                         width=9)
+            work.pack(side=RIGHT, fill=X, expand=TRUE)
+            tkExtra.Balloon.set(work, _(axe+" work position"))
 
-			f2.pack(side=TOP, fill=X, expand=TRUE)
+            f2.pack(side=TOP, fill=X, expand=TRUE)
 
-			self.works += [work]
-			self.machs += [mach]
-		f.pack(side=TOP, fill=BOTH, expand=TRUE)
+            self.works += [work]
+            self.machs += [mach]
+        f.pack(side=TOP, fill=BOTH, expand=TRUE)
 
-	#----------------------------------------------------------------------
-	def stateMenu(self, event=None):
-		menu = Menu(self, tearoff=0)
+    # ----------------------------------------------------------------------
+    def stateMenu(self, event=None):
+        menu = Menu(self, tearoff=0)
 
-		menu.add_command(label=_("Show Info"), image=Utils.icons["info"], compound=LEFT,
-					command=self.showState)
-		menu.add_command(label=_("Clear Message"), image=Utils.icons["clear"], compound=LEFT,
-					command=lambda s=self: s.event_generate("<<AlarmClear>>"))
-		menu.add_separator()
+        menu.add_command(label=_("Show Info"), image=Utils.icons["info"], compound=LEFT,
+                         command=self.showState)
+        menu.add_command(label=_("Clear Message"), image=Utils.icons["clear"], compound=LEFT,
+                         command=lambda s=self: s.event_generate("<<AlarmClear>>"))
+        menu.add_separator()
 
-		menu.add_command(label=_("Feed hold"), image=Utils.icons["pause"], compound=LEFT,
-					command=lambda s=self: s.event_generate("<<FeedHold>>"))
-		menu.add_command(label=_("Resume"), image=Utils.icons["start"], compound=LEFT,
-					command=lambda s=self: s.event_generate("<<Resume>>"))
+        menu.add_command(label=_("Feed hold"), image=Utils.icons["pause"], compound=LEFT,
+                         command=lambda s=self: s.event_generate("<<FeedHold>>"))
+        menu.add_command(label=_("Resume"), image=Utils.icons["start"], compound=LEFT,
+                         command=lambda s=self: s.event_generate("<<Resume>>"))
 
-		menu.tk_popup(event.x_root, event.y_root)
+        menu.tk_popup(event.x_root, event.y_root)
 
-	#----------------------------------------------------------------------
-	def updateState(self):
-		msg = self.app._msg or CNC.vars["state"]
-		if CNC.vars["pins"] is not None and CNC.vars["pins"] != "":
-			msg += " ["+CNC.vars["pins"]+"]"
-		self.state.config(text=msg, background=CNC.vars["color"])
+    # ----------------------------------------------------------------------
+    def updateState(self):
+        msg = self.app._msg.value or CNC.vars["state"]
+        if CNC.vars["pins"] is not None and CNC.vars["pins"] != "":
+            msg += " ["+CNC.vars["pins"]+"]"
+        self.state.config(text=msg, background=CNC.vars["color"])
 
-	#----------------------------------------------------------------------
-	def updateCoords(self):
-		try:
-			focus = self.focus_get()
-		except:
-			focus = None
-		for (axe, work, mach) in zip(self.axis, self.works, self.machs):
-			wv = "%.03f" % CNC.vars["w"+axe]
-			mv = "%.03f" % CNC.vars["m"+axe]
-			work["text"] = wv
-			mach["text"] = mv
+    # ----------------------------------------------------------------------
+    def updateCoords(self):
+        try:
+            focus = self.focus_get()
+        except:
+            focus = None
+        for (axe, work, mach) in zip(self.axis, self.works, self.machs):
+            wv = "%.03f" % CNC.vars["w"+axe]
+            mv = "%.03f" % CNC.vars["m"+axe]
+            work["text"] = wv
+            mach["text"] = mv
 
-	#----------------------------------------------------------------------
-	def padFloat(self, decimals, value):
-		if decimals>0:
-			return "%0.*f"%(decimals, value)
-		else:
-			return value
+    # ----------------------------------------------------------------------
+    def padFloat(self, decimals, value):
+        if decimals > 0:
+            return "%0.*f" % (decimals, value)
+        else:
+            return value
 
-	#----------------------------------------------------------------------
-	# Do not give the focus while we are running
-	#----------------------------------------------------------------------
-	def workFocus(self, event=None):
-		if self.app.running:
-			self.app.focus_set()
+    # ----------------------------------------------------------------------
+    # Do not give the focus while we are running
+    # ----------------------------------------------------------------------
+    def workFocus(self, event=None):
+        if self.app.running.value:
+            self.app.focus_set()
 
-	#----------------------------------------------------------------------
-	def showState(self):
-		err = CNC.vars["errline"]
-		if err:
-			msg  = _("Last error: %s\n")%(CNC.vars["errline"])
-		else:
-			msg = ""
+    # ----------------------------------------------------------------------
+    def showState(self):
+        err = CNC.vars["errline"]
+        if err:
+            msg = _("Last error: %s\n") % (CNC.vars["errline"])
+        else:
+            msg = ""
 
-		state = CNC.vars["state"]
-		msg += ERROR_CODES.get(state,
-				_("No info available.\nPlease contact the author."))
-		tkMessageBox.showinfo(_("State: %s")%(state), msg, parent=self)
+        state = CNC.vars["state"]
+        msg += ERROR_CODES.get(state,
+                               _("No info available.\nPlease contact the author."))
+        tkMessageBox.showinfo(_("State: %s") % (state), msg, parent=self)
 
 
-#===============================================================================
+# ===============================================================================
 # DRO Frame ABC
-#===============================================================================
+# ===============================================================================
 class abcDROFrame(CNCRibbon.PageExLabelFrame):
 	dro_status = ('Helvetica',12,'bold')
 	dro_wpos   = ('Helvetica',12,'bold')
@@ -1034,71 +1157,77 @@ class abcDROFrame(CNCRibbon.PageExLabelFrame):
 
 #===============================================================================
 # ToolGroup
-#===============================================================================
+# ===============================================================================
+
+
 class ToolGroup(CNCRibbon.ButtonGroup):
-	def __init__(self, master, app):
-		CNCRibbon.ButtonGroup.__init__(self, master, "Tool", app)
-		self.master = master
-		b = Ribbon.LabelButton(self.frame, self, "<<ChangeTool>>",
-				image=Utils.icons["config"],
-				text=_("Change Tool"),
-				compound=TOP,
-				background=Ribbon._BACKGROUND)
-		b.pack(side=LEFT, fill=BOTH)
-		tkExtra.Balloon.set(b, _("Change your tool"))
-		self.addWidget(b)
-		self.app.bind("<<ChangeTool>>", self.onChange)
-	def onChange(self, *args):
-		toolNumber = askinteger("Tool change", "Enter the tool number",
-				parent=self.master,
-				minvalue=0, maxvalue=10)
-		self.app.sendGCode("M6T{}G43".format(toolNumber))
+    def __init__(self, master, app):
+        CNCRibbon.ButtonGroup.__init__(self, master, "Tool", app)
+        self.master = master
+        b = Ribbon.LabelButton(self.frame, self, "<<ChangeTool>>",
+                               image=Utils.icons["config"],
+                               text=_("Change Tool"),
+                               compound=TOP,
+                               background=Ribbon._BACKGROUND)
+        b.pack(side=LEFT, fill=BOTH)
+        tkExtra.Balloon.set(b, _("Change your tool"))
+        self.addWidget(b)
+        self.app.bind("<<ChangeTool>>", self.onChange)
 
-#===============================================================================
+    def onChange(self, *args):
+        toolNumber = askinteger("Tool change", "Enter the tool number",
+                                parent=self.master,
+                                minvalue=0, maxvalue=10)
+        self.app.sendGCode("M6T{}G43".format(toolNumber))
+
+# ===============================================================================
 # MdiFrame
-#===============================================================================
+# ===============================================================================
+
+
 class MdiFrame(CNCRibbon.PageLabelFrame):
-	def __init__(self, master, app):
-		CNCRibbon.PageLabelFrame.__init__(self, master, "Mdi", _("Mdi"), app)
-		self.master = master
-		self.app = app
-		f = Frame(self)
-		Label(f, text="MDI:", width=5).pack(side=LEFT, fill=X)
-		self.mdiVar = StringVar(value="")
-		e = Entry(f, textvariable=self.mdiVar, font=DROFrame.dro_mpos)
-		e.pack(side=LEFT, fill=X, expand=TRUE)
-		e.bind("<Return>", self.onEnter)
-		e.bind("<Up>", self.onUp)
-		e.bind("<Down>", self.onDown)
-		f.pack(side=TOP, fill=BOTH, expand=TRUE)
-		self.values = [""]
-		self.counter = 0
+    def __init__(self, master, app):
+        CNCRibbon.PageLabelFrame.__init__(self, master, "Mdi", _("Mdi"), app)
+        self.master = master
+        self.app = app
+        f = Frame(self)
+        Label(f, text="MDI:", width=5).pack(side=LEFT, fill=X)
+        self.mdiVar = StringVar(value="")
+        e = Entry(f, textvariable=self.mdiVar, font=DROFrame.dro_mpos)
+        e.pack(side=LEFT, fill=X, expand=TRUE)
+        e.bind("<Return>", self.onEnter)
+        e.bind("<Up>", self.onUp)
+        e.bind("<Down>", self.onDown)
+        f.pack(side=TOP, fill=BOTH, expand=TRUE)
+        self.values = [""]
+        self.counter = 0
 
-	def updateEntry(self):
-		if self.counter >=0 and self.counter < len(self.values):
-			self.mdiVar.set(self.values[self.counter])
+    def updateEntry(self):
+        if self.counter >= 0 and self.counter < len(self.values):
+            self.mdiVar.set(self.values[self.counter])
 
-	def onUp(self, *args):
-		self.counter = max(self.counter-1,0)
-		self.updateEntry()
+    def onUp(self, *args):
+        self.counter = max(self.counter-1, 0)
+        self.updateEntry()
 
-	def onDown(self, *args):
-		self.counter = min(self.counter+1,len(self.values))
-		self.updateEntry()
+    def onDown(self, *args):
+        self.counter = min(self.counter+1, len(self.values))
+        self.updateEntry()
 
-	def onEnter(self, *args):
-		if len(self.mdiVar.get())==0:
-			self.app.focus_set()
-		self.app.execute(self.mdiVar.get())
-		self.values += [self.mdiVar.get()]
-		self.mdiVar.set("")
-		self.counter = len(self.values)
+    def onEnter(self, *args):
+        if len(self.mdiVar.get()) == 0:
+            self.app.focus_set()
+        self.app.execute(self.mdiVar.get())
+        self.values += [self.mdiVar.get()]
+        self.mdiVar.set("")
+        self.counter = len(self.values)
 
 
-#===============================================================================
+# ===============================================================================
 # ControlFrame
-#===============================================================================
+# ===============================================================================
 class ControlFrame(CNCRibbon.PageLabelFrame):
+
 	def __init__(self, master, app):
 		CNCRibbon.PageLabelFrame.__init__(self, master, "Control", _("Control"), app)
 		#CNCRibbon.PageExLabelFrame.__init__(self, master, "Control", _("Control"), app)
@@ -1390,7 +1519,9 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
 		
 #===============================================================================
 # abc ControlFrame
-#===============================================================================
+# ===============================================================================
+
+
 class abcControlFrame(CNCRibbon.PageExLabelFrame):
 	def __init__(self, master, app):
 		CNCRibbon.PageExLabelFrame.__init__(self, master, "abcControl", _("abcControl"), app)
@@ -1775,7 +1906,8 @@ class abcControlFrame(CNCRibbon.PageExLabelFrame):
 
 class NotebookFrame(CNCRibbon.PageLabelFrame):
     def __init__(self, master, app):
-        CNCRibbon.PageLabelFrame.__init__(self, master, "Notebook", _("Notebook"), app)
+        CNCRibbon.PageLabelFrame.__init__(
+            self, master, "Notebook", _("Notebook"), app)
 
         # --- Canvas ---
         self.notebook = ttk.Notebook(self)
@@ -1788,18 +1920,20 @@ class NotebookFrame(CNCRibbon.PageLabelFrame):
         self.canvasFrame.pack(side=TOP, fill=BOTH, expand=YES)
 
         if Utils.getBool("CNC", "pidLog", False):
-                self.pidLogFrame = PidLog.PidLogFrame(self.notebook, app)
-                self.pidLogFrame.pack(side=TOP, fill=BOTH, expand=YES)
+            self.pidLogFrame = PidLog.PidLogFrame(self.notebook, app)
+            self.pidLogFrame.pack(side=TOP, fill=BOTH, expand=YES)
 
         self.notebook.add(self.gcodeViewFrame.lb, text="GCode")
         self.notebook.add(self.canvasFrame, text="Graph")
 
         if Utils.getBool("CNC", "pidLog", False):
-                self.notebook.add(self.pidLogFrame, text="PidLog")
+            self.notebook.add(self.pidLogFrame, text="PidLog")
 
-#===============================================================================
+# ===============================================================================
 # SpindleFrame
-#===============================================================================
+# ===============================================================================
+
+
 class SpindleFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		self._gUpdate = False
@@ -1859,7 +1993,9 @@ class SpindleFrame(CNCRibbon.PageLabelFrame):
 
 #===============================================================================
 # StateFrame
-#===============================================================================
+# ===============================================================================
+
+
 class StateFrame(CNCRibbon.PageLabelFrame):
 	def __init__(self, master, app):
 		global wcsvar
@@ -2094,53 +2230,53 @@ class StateFrame(CNCRibbon.PageLabelFrame):
 
 #===============================================================================
 # Execution Page
-#===============================================================================
+# ===============================================================================
 class ExecutionPage(CNCRibbon.Page):
-	__doc__ = _("CNC communication and control")
-	_name_  = N_("Execution")
-	_icon_  = "control"
+    __doc__ = _("CNC communication and control")
+    _name_ = N_("Execution")
+    _icon_ = "control"
 
-	#----------------------------------------------------------------------
-	# Add a widget in the widgets list to enable disable during the run
-	#----------------------------------------------------------------------
-	def register(self):
-		global wcsvar
-		wcsvar = IntVar()
-		wcsvar.set(0)
+    # ----------------------------------------------------------------------
+    # Add a widget in the widgets list to enable disable during the run
+    # ----------------------------------------------------------------------
+    def register(self):
+        global wcsvar
+        wcsvar = IntVar()
+        wcsvar.set(0)
 
-		self._register((ConnectionGroup, UserGroup, RunGroup, ProcessGroup),
-			(DROFrame, abcDROFrame, NotebookFrame, StateFrame))
-	def activate(self, **kwargs):
-		CNC.vars["execution"] = True
-		return super().activate()
+		    self._register((ConnectionGroup, UserGroup, RunGroup, ProcessGroup),
+			                  (DROFrame, abcDROFrame, NotebookFrame, StateFrame))
 
-	def release(self, **kwargs):
-		CNC.vars["execution"] = False
-		return super().release()
+    def activate(self, **kwargs):
+        CNC.vars["execution"] = True
+        return super().activate()
+
+    def release(self, **kwargs):
+        CNC.vars["execution"] = False
+        return super().release()
 
 
-
-#===============================================================================
+# ===============================================================================
 # Jog Page
-#===============================================================================
+# ===============================================================================
 class JogPage(CNCRibbon.Page):
-	__doc__ = _("CNC communication and control")
-	_name_  = N_("Jog")
-	_icon_  = "control"
+    __doc__ = _("CNC communication and control")
+    _name_ = N_("Jog")
+    _icon_ = "control"
 
-	#----------------------------------------------------------------------
-	# Add a widget in the widgets list to enable disable during the run
-	#----------------------------------------------------------------------
-	def register(self):
-		global wcsvar
-		wcsvar = IntVar()
-		wcsvar.set(0)
+    # ----------------------------------------------------------------------
+    # Add a widget in the widgets list to enable disable during the run
+    # ----------------------------------------------------------------------
+    def register(self):
+        global wcsvar
+        wcsvar = IntVar()
+        wcsvar.set(0)
 
-		self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup, ToolGroup),
-			(DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, SpindleFrame, MdiFrame))
-	def activate(self, **kwargs):
-		CNC.vars["JogActive"] = True
+        self._register((ConnectionGroup, UserGroup, RunGroup, ZeroGroup, ToolGroup),
+                       (DROFrame, abcDROFrame, ControlFrame, abcControlFrame, StateFrame, SpindleFrame, MdiFrame))
 
-	def release(self, **kwargs):
-		CNC.vars["JogActive"] = False
+    def activate(self, **kwargs):
+        CNC.vars["JogActive"] = True
 
+    def release(self, **kwargs):
+        CNC.vars["JogActive"] = False

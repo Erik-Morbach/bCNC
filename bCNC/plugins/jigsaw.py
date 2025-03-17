@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: Gonzalo Cobos Bergillos
 # Date:	15-Nov-2017
 

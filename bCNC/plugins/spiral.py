@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:	T Marks
 # Date:	2020/04/14
 

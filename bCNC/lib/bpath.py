@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright European Organization for Nuclear Research (CERN)
 # All rights reserved
 #

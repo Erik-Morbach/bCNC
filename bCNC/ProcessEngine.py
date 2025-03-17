@@ -65,8 +65,8 @@ class EvaluateNode(ProcessNode):
 		if isinstance(line, str):
 			line += "\n"
 			response += [Command.Command(line)]
-		else: 
-			self.app._gcount += 1
+		else:
+			self.app._gcount.assign(lambda x: x + 1)
 		return response;
 
 

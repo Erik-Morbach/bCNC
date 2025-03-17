@@ -1,6 +1,7 @@
 import os.path
 import csv
 
+
 class Table:
     def __init__(self, name):
         self.name = name
