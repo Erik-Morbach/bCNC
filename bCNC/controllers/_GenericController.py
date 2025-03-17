@@ -86,8 +86,9 @@ class _GenericController:
             del self.runOnceOnResetFunctions[0]
         self.expectingReset.execute(pollExpectedResets)
         if not self.expectingReset.execute(removeOneExpectedReset):
-            tkinter.messagebox.showerror(
-                "Erro", "Controlador foi resetado sem a devida instrução")
+            #tkinter.messagebox.showerror(
+            #    "Erro", "Controlador foi resetado sem a devida instrução")
+            pass
 
     def hardResetPre(self):
         pass
@@ -144,12 +145,19 @@ class _GenericController:
     def clearError(self):
         self.master.deque.append("?$X?\n")
 
-    # ----------------------------------------------------------------------
+    def disableOutputs(self):
+        self.master.deque.append("M63P0")
+        self.master.deque.append("M63P1")
+        self.master.deque.append("M63P2")
+        self.master.deque.append("M63P3")
+
+    #----------------------------------------------------------------------
     def unlock(self, clearAlarm=True):
         if clearAlarm:
             self.master._alarm.value = False
         self.clearError()
         self.viewParameters()
+        self.disableOutputs()
 
     # ----------------------------------------------------------------------
     def home(self, event=None):

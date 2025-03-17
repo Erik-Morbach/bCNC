@@ -780,6 +780,14 @@ class CNC:
 			"PRB"        : None,
 			"TLO"        : 0.,
 
+			"wait"       : 0,
+			"processState":0,
+			"motor0Low"  : 40,
+			"motor1Low"  : 50,
+			"motor0High"  : 90,
+			"motor1High"  : 80,
+			"endType"     : 1,
+
 			"Sending"	 : False,
 			"version"    : "",
 			"controller" : "",

@@ -75,6 +75,7 @@ except ImportError:
     import tkinter.messagebox as tkMessageBox
 
 from mttkinter import *
+from IteceProcess import IteceProcess
 
 # Load configuration before anything else
 # and if needed replace the  translate function _()
@@ -252,7 +253,7 @@ class Application(Toplevel, Sender):
         self.dro = Page.lframes["DRO"]
         self.abcdro = Page.lframes["abcDRO"]
         self.gstate = Page.lframes["State"]
-        self.spindleState = Page.rframes["Spindle"]
+        self.spindleState = Page.lframes["Spindle"]
         self.control = Page.rframes["Control"]
         self.abccontrol = Page.lframes["abcControl"]
         self.editor = Page.lframes["Editor"].editor
@@ -313,6 +314,8 @@ class Application(Toplevel, Sender):
         self.bind('<<Recent8>>', self._loadRecent8)
         self.bind('<<Recent9>>', self._loadRecent9)
 
+        self.iteceProcess = IteceProcess(self)
+
         self.bind('<<TerminalClear>>', Page.lframes["Terminal"].clear)
         self.bind('<<AlarmClear>>', self.alarmClear)
         self.bind('<<Help>>', self.help)
@@ -323,7 +326,9 @@ class Application(Toplevel, Sender):
         self.bind('<<RunBegin>>', lambda e, s=self: s.run(cleanRepeat=True))
         self.bind('<<Stop>>', self.hardStop)
         self.bind('<<Pause>>', self.pause)
-        # self.bind('<<TabAdded>>',	self.tabAdded)
+        self.bind('<<ProcessInit>>', self.iteceProcess.start)
+        self.bind('<<ProcessEnd>>', self.iteceProcess.end)
+        #		self.bind('<<TabAdded>>',	self.tabAdded)
 
         tkExtra.bindEventData(self, "<<Status>>", self.updateStatus)
         tkExtra.bindEventData(self, "<<Coords>>", self.updateCanvasCoords)
@@ -2664,6 +2669,7 @@ class Application(Toplevel, Sender):
                 Page.lframes["ProbeCommon"].updateTlo()
             self._update = None
 
+        Page.groups["Process"].update()
         if self.running.value:
             self.updateStatusBar()
             self._selectI.lock()
