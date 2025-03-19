@@ -926,3 +926,125 @@ THREADS INITIALIZED Tue Jun 20 10:04:53 2023
 THREADS STOPED Tue Jun 20 10:07:17 2023
 PROGRAM INITIALIZED
 PROGRAM INITIALIZED
+PROGRAM INITIALIZED
+EXCEPTION Tue Mar 18 14:06:46 2025 Main : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/__main__.py", line 2943, in <module>
+    main()
+  File "/home/rpi-cnc/bCNC/bCNC/__main__.py", line 2900, in main
+    application = Application(tk)
+                  ^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/__main__.py", line 219, in __init__
+    page = cls(self.ribbon, self)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/CNCRibbon.py", line 114, in __init__
+    self.register()
+  File "/home/rpi-cnc/bCNC/bCNC/ControlPage.py", line 2247, in register
+    self._register((ConnectionGroup, UserGroup, RunGroup, ProcessGroup), (DROFrame, abcDROFrame, NotebookFrame, StateFrame))
+  File "/home/rpi-cnc/bCNC/bCNC/CNCRibbon.py", line 128, in _register
+    w = g(self.master._ribbonFrame, self.app)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/ControlPage.py", line 665, in __init__
+    Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
+    ^^^^^^^^^
+NameError: name 'Separator' is not defined
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Mar 18 18:27:36 2025
+THREADS STOPED Tue Mar 18 18:27:41 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Tue Mar 18 18:28:02 2025
+EXCEPTION Tue Mar 18 18:28:02 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Tue Mar 18 18:29:56 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 08:44:44 2025
+EXCEPTION Wed Mar 19 08:44:44 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Wed Mar 19 08:45:37 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 08:45:43 2025
+EXCEPTION Wed Mar 19 08:45:43 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Wed Mar 19 08:47:11 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 08:47:31 2025
+EXCEPTION Wed Mar 19 08:47:31 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Wed Mar 19 08:47:56 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 08:48:01 2025
+EXCEPTION Wed Mar 19 08:48:01 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Wed Mar 19 08:48:39 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 08:48:44 2025
+EXCEPTION Wed Mar 19 08:48:44 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Wed Mar 19 08:50:00 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 08:50:27 2025
+EXCEPTION Wed Mar 19 08:50:27 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Wed Mar 19 08:52:14 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 08:56:00 2025
+EXCEPTION Wed Mar 19 08:56:00 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
+THREADS STOPED Wed Mar 19 08:56:33 2025
+PROGRAM INITIALIZED
+THREADS INITIALIZED Wed Mar 19 11:43:59 2025
+EXCEPTION Wed Mar 19 11:43:59 2025 Write : Traceback (most recent call last):
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 1095, in serialIOWrite
+    if self.shouldSkipCommand(toSend):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rpi-cnc/bCNC/bCNC/Sender.py", line 935, in shouldSkipCommand
+    if CNC.vars["safe_door"]:  # .get():
+       ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'safe_door'
