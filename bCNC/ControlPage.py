@@ -662,17 +662,17 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		Label(f1, text="Tempo de espera:").pack(side=LEFT)
 		Label(f1, textvariable=self.timeSt).pack(side=LEFT)
 		f1.pack(side=TOP)
-		Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
+		ttk.Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
 		f1 = Frame(f0)
 		Label(f1, text="Sabre:").pack(side=LEFT)
 		Label(f1, textvariable=self.stateVar).pack(side=TOP)
 		f1.pack(side=TOP)
-		Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
+		ttk.Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
 		f1 = Frame(f0)
 		Label(f1, text="Finalizacao:").pack(side=LEFT)
 		Checkbutton(f1,variable=self.endTypeVar, onvalue=1, offvalue=0, command=self.setEndType, width=2,height=2).pack(side=LEFT)
 		f1.pack(side=TOP)
-		Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
+		ttk.Separator(f0, orient=HORIZONTAL).pack(side=TOP,fill=X, padx=5)
 		f1 = Frame(f0)
 		Label(f1, text="Passo:").pack(side=LEFT)
 		Button(f1,text="1",command=functools.partial(self.setMotorStep,1)).pack(side=LEFT)
@@ -680,7 +680,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		f1.pack(side=TOP)
 		f0.pack(side=LEFT)
 		
-		Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=10)
+		ttk.Separator(frame, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=10)
 
 		motor0 = Frame(frame)
 		Label(motor0,text="Motor 0").pack(side=TOP)
@@ -692,7 +692,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		self.motor0VelocityLow.pack(side=TOP)
 		Button(f0Low, text="M0-", command=self.m0LowMinus).pack(side=TOP)
 		f0Low.pack(side=LEFT)
-		Separator(f0, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
+		ttk.Separator(f0, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
 		f0High = Frame(f0)
 		Label(f0High, text="Alta").pack(side=TOP)
 		Button(f0High, text="M0+", command=self.m0HighPlus).pack(side=TOP)
@@ -703,7 +703,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		f0.pack(side=TOP)
 		motor0.pack(side=LEFT)
 
-		Separator(frame, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+		ttk.Separator(frame, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
 
 		motor1 = Frame(frame)
 		Label(motor1,text="Motor 1").pack(side=TOP)
@@ -715,7 +715,7 @@ class ProcessGroup(CNCRibbon.ButtonGroup):
 		self.motor1VelocityLow.pack(side=TOP)
 		Button(f1Low, text="M1-", command=self.m1LowMinus).pack(side=TOP)
 		f1Low.pack(side=LEFT)
-		Separator(f1, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
+		ttk.Separator(f1, orient=VERTICAL).pack(side=LEFT,fill=Y, padx=5)
 		f1High = Frame(f1)
 		Label(f1High, text="Alta").pack(side=TOP)
 		Button(f1High, text="M1+", command=self.m1HighPlus).pack(side=TOP)
@@ -2244,8 +2244,7 @@ class ExecutionPage(CNCRibbon.Page):
         wcsvar = IntVar()
         wcsvar.set(0)
 
-		    self._register((ConnectionGroup, UserGroup, RunGroup, ProcessGroup),
-			                  (DROFrame, abcDROFrame, NotebookFrame, StateFrame))
+        self._register((ConnectionGroup, UserGroup, RunGroup, ProcessGroup), (DROFrame, abcDROFrame, NotebookFrame, StateFrame))
 
     def activate(self, **kwargs):
         CNC.vars["execution"] = True
