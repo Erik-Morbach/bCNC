@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: Vasilis Vlachoudis
 #  Email: vvlachoudis@gmail.com
 #   Date: 18-Jun-2015
@@ -30,6 +27,8 @@ import Ribbon
 import tkExtra
 
 import CNCRibbon
+
+from mttkinter import *
 
 PROBE_CMD = [	_("G38.2 stop on contact else error"),
 		_("G38.3 stop on contact"),

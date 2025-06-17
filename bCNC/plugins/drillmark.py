@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:  Attila Kolinger
 # Date:	   26.feb.2018.
 

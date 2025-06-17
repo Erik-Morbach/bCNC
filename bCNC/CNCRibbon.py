@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: vvlachoudis@gmail.com
 # Date: 18-Jun-2015
 
@@ -17,6 +14,7 @@ except ImportError:
 import Ribbon
 import tkExtra
 
+from mttkinter import *
 
 #===============================================================================
 # Link to main app

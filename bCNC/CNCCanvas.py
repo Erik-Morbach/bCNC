@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id: CNCCanvas.py,v 1.7 2014/10/15 15:04:06 bnv Exp $
-#
 # Author:       vvlachoudis@gmail.com
 # Date: 24-Aug-2014
 
@@ -32,6 +29,8 @@ try:
 except:
 	numpy    = None
 	RESAMPLE = None
+
+from mttkinter import *
 
 ANTIALIAS_CHEAP = False
 

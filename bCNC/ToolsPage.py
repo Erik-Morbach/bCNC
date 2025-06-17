@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:       vvlachoudis@gmail.com
 # Date: 24-Aug-2014
 
@@ -30,6 +27,8 @@ import Unicode
 import CNCRibbon
 
 from CNC import CNC
+
+from mttkinter import *
 
 _EXE_FONT = ("Helvetica",12,"bold")
 

@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author:	Filippo Rivato
 # Date:	26 September 2015
 # special thanks to my wonderful wife Giulia.

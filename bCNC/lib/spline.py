@@ -1,5 +1,3 @@
-# -*- coding: latin1 -*-
-#
 # Author: vvlachoudis@gmail.com
 # Date: 20-Oct-2015
 

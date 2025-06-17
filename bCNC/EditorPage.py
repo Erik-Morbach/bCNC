@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: vvlachoudis@gmail.com
 # Date: 18-Jun-2015
 
@@ -22,6 +19,7 @@ import CNCRibbon
 
 from CNCCanvas import ACTION_MOVE, ACTION_ORIGIN
 
+from mttkinter import *
 
 #===============================================================================
 # Clipboard Group

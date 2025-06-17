@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: vvlachoudis@gmail.com
 # Date: 18-Jun-2015
 
@@ -29,7 +26,9 @@ except:
 	print("Using fallback Utils.comports()!")
 	from Utils import comports
 
-BAUDS = [2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 576000, 921600]
+from mttkinter import *
+
+BAUDS = [2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 576000, 921600]
 
 #===============================================================================
 # Recent Menu button
@@ -370,10 +369,7 @@ class SerialFrame(CNCRibbon.PageLabelFrame):
 	#-----------------------------------------------------------------------
 	def saveConfig(self):
 		# Connection
-		Utils.setStr("Connection", "controller",  self.app.controller)
-		Utils.setStr("Connection", "port",        self.portCombo.get().split("\t")[0])
-		Utils.setStr("Connection", "baud",        self.baudCombo.get())
-		Utils.setBool("Connection", "openserial", self.autostart.get())
+		pass
 
 
 #===============================================================================

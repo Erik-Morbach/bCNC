@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id$
-#
 # Author: vvlachoudis@gmail.com
 # Date: 18-Jun-2015
 
@@ -20,6 +17,7 @@ import tkExtra
 
 import CNCRibbon
 
+from mttkinter import *
 
 #===============================================================================
 # Terminal Group

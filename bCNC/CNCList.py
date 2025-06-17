@@ -1,6 +1,3 @@
-# -*- coding: ascii -*-
-# $Id: CNCEditor.py,v 1.9 2014/10/15 15:04:38 bnv Exp $
-#
 # Author:       vvlachoudis@gmail.com
 # Date: 24-Aug-2014
 
@@ -26,6 +23,8 @@ import tkExtra
 import re
 import json
 #import tkDialogs
+
+from mttkinter import *
 
 BLOCK_COLOR   = "LightYellow"
 COMMENT_COLOR = "Blue"

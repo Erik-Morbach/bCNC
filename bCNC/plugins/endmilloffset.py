@@ -1,5 +1,3 @@
-# -*- coding: ascii -*-
-
 # Author: @DodoLaSaumure Pierre KLein
 # Date: 9 feb 2021
 

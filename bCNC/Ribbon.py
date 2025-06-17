@@ -1,5 +1,3 @@
-# -*- coding: ascii -*-
-#
 # Author: vvlachoudis@gmail.com
 # Date: 18-Jun-2015
 
@@ -15,6 +13,8 @@ except ImportError:
 
 import Utils
 import tkExtra
+
+from mttkinter import *
 
 _TABFONT    = ("Sans","-14","bold")
 _FONT       = ("Sans","-11")
