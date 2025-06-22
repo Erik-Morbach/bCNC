@@ -84,6 +84,7 @@ class JogController:
         for curKey in keys:
             if curKey[0] in mergedKeys: continue
             mergedKeys += curKey
+        mergedKeys = "XYZABCXYZABC"[CNC.vars["currentJogAxisNumber"].get()-1] + mergedKeys[1:]
         self.app.control.move(mergedKeys[::2], mergedKeys[1::2], event)
 
     def jogEvent(self, eventData=None, simulatedData=None):

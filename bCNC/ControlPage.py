@@ -9,6 +9,7 @@ import GCodeViewer
 from CNC import WCS, DISTANCE_MODE, FEED_MODE, UNITS, PLANE
 from Sender import ERROR_CODES
 import CNCRibbon
+from CNCRibbon import Page
 import Unicode
 import tkExtra
 import Sender
@@ -2089,6 +2090,15 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		f2.pack(side=TOP, fill=NONE, expand=False)
 		f.pack(side=LEFT, fill=Y, expand=False)
 		ttk.Separator(self, orient=VERTICAL).pack(side=LEFT, padx=5)
+
+		f = Frame(self, highlightbackground="black", highlightthickness=2)
+		Label(f, text="Control").pack(side=TOP, fill=BOTH)
+		f2 = Frame(f)
+		b = Button(f2, text="Zera Motor",
+			 command=self.motorZero, activebackground="LightYellow")
+		b.pack(side=TOP, fill=BOTH, expand=FALSE)
+		f2.pack(side=TOP, fill=Y, expand=False)
+		f.pack(side=LEFT, fill=Y, expand=False)
 		f = Frame(self, highlightbackground="black", highlightthickness=2)
 		Label(f, text="Programa").pack(side=TOP, fill=BOTH)
 		f2 = Frame(f)
@@ -2139,19 +2149,24 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		position = CNC.vars["w{}".format(axis.lower())]
 		return axis, position
 
+	def motorZero(self):
+		self.prepareMove()
+		motorNumber = CNC.vars["currentJogAxisNumber"].get()
+		cmd = "M11%02d (Zerando motor %d)" % (motorNumber, motorNumber)
+		self.app.gcode._addLine(cmd)
+		self.reloadProgram()
+
 	def goToPosition(self):
 		axis, position = self.prepareMove()
 		cmd = "G0 {} {} (Movimento rapido com motor {})".format(axis, position, CNC.vars["currentJogAxisNumber"].get())
 		self.app.gcode._addLine(cmd)
-		Page.lframes["Notebook"].gcodeViewFrame.reload()
-		Page.lframes["Notebook"].gcodeViewFrame.seeLastElement()
+		self.reloadProgram()
 
 	def traverseToPosition(self):
 		axis, position = self.prepareMove()
 		cmd = "G1 {} {} F{} (Movimento controlado com motor {})".format(axis, position, self.getFeed(), CNC.vars["currentJogAxisNumber"].get())
 		self.app.gcode._addLine(cmd)
-		Page.lframes["Notebook"].gcodeViewFrame.reload()
-		Page.lframes["Notebook"].gcodeViewFrame.seeLastElement()
+		self.reloadProgram()
 
 #===============================================================================
 # SpindleFrame
