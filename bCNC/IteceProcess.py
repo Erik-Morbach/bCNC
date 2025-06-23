@@ -102,6 +102,7 @@ class IteceProcess:
         self.angularVelocity = Utils.getFloat("Itece", "defaultAngularVelocity", 125.66) # rad/s
         self.iterationDistance = Utils.getFloat("Itece", "iterationDistance", 0.2) # mm
         self.iterationFeed = Utils.getFloat("Itece", "iterationFeed", 20) # mm/min
+        self.invertMotor = [Utils.getBool("Itece", "invertM"+ind, False) for ind in ['0', '1']]
         
         self.bufferedIoMaxBlock = Utils.getFloat("Itece", "ioBufferMaxBlock", 0.1)
         self.bufferedIoDelay = Utils.getFloat("Itece", "ioBufferDelay", 0.03)
@@ -119,12 +120,10 @@ class IteceProcess:
 
         def sendVelocity(ind,vel):
             self.app.sendGCode("M67E{}Q{}".format(ind, vel))
-        self.state.createVariable("motor0",
-                                  CNC.vars["motor0High"]/100 * self.pwmResolution,
-                                  functools.partial(sendVelocity, 0))
-        self.state.createVariable("motor1",
-                                  CNC.vars["motor1High"]/100 * self.pwmResolution,
-                                  functools.partial(sendVelocity, 1))
+
+        for i in range(0,2):
+            startVelocity = self._getDesiredPwmForMotor(0, "High")
+            self.state.createVariable("motor"+i, startVelocity, functools.partial(sendVelocity, 0))
 
     def isRunning(self) -> bool:
         return self.mutex.locked()
@@ -238,21 +237,23 @@ class IteceProcess:
         self.state.setValue("motor0", 0)
         self.state.setValue("motor1", 0)
 
+    def _getBasePwmValueForMotor(self, index, motorType):
+        percentage = float(CNC.vars[f"motor{index}{motorType}"])/100
+        return int(self.pwmResolution * percentage)
+
+    def _getDesiredPwmForMotor(self, index, motorType):
+        value = self._getBasePwmValueForMotor(index, motorType)
+        if self.invertMotor[index]:
+            value = abs(self.pwmResolution - value)
+        return value
+
     def _updateToLowSpeed(self):
-        m0Low = float(CNC.vars["motor0Low"])/100 * self.pwmResolution
-        m1Low = float(CNC.vars["motor1Low"])/100 * self.pwmResolution
-        if m0Low != self.state.getValue("motor0"):
-            self.state.setValue("motor0", m0Low)
-        if m1Low != self.state.getValue("motor1"):
-            self.state.setValue("motor1", m1Low)
+        for i in range(0,2):
+            self.state.setValue(f"motor{i}", self._getDesiredPwmForMotor(i, "Low"))
 
     def _updateToHighSpeed(self):
-        m0High = float(CNC.vars["motor0High"])/100 * self.pwmResolution
-        m1High = float(CNC.vars["motor1High"])/100 * self.pwmResolution
-        if m0High != self.state.getValue("motor0"):
-            self.state.setValue("motor0", m0High)
-        if m1High != self.state.getValue("motor1"):
-            self.state.setValue("motor1", m1High)
+        for i in range(0,2):
+            self.state.setValue(f"motor{i}", self._getDesiredPwmForMotor(i, "High"))
 
     def _setLowSpeed(self) -> None:
         self._updateToLowSpeed()
@@ -329,4 +330,5 @@ class IteceProcess:
         if self.currentState == states.Exiting:
             if s2 == 0: self._setState(states.Waiting)
             return
+
 
