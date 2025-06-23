@@ -2154,6 +2154,7 @@ class ProgramCreateFrame(CNCRibbon.PageLabelFrame):
 		motorNumber = CNC.vars["currentJogAxisNumber"].get()
 		cmd = "M11%02d (Zerando motor %d)" % (motorNumber, motorNumber)
 		self.app.gcode._addLine(cmd)
+		self.app.executeGcode(cmd)
 		self.reloadProgram()
 
 	def goToPosition(self):
