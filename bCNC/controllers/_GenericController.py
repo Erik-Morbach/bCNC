@@ -146,10 +146,10 @@ class _GenericController:
         self.master.deque.append("?$X?\n")
 
     def disableOutputs(self):
-        self.master.deque.append("M63P0")
-        self.master.deque.append("M63P1")
-        self.master.deque.append("M63P2")
-        self.master.deque.append("M63P3")
+        self.master.deque.append("M63P0\n")
+        self.master.deque.append("M63P1\n")
+        self.master.deque.append("M63P2\n")
+        self.master.deque.append("M63P3\n")
 
     #----------------------------------------------------------------------
     def unlock(self, clearAlarm=True):
