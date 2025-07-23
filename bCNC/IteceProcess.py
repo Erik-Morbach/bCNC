@@ -123,7 +123,7 @@ class IteceProcess:
 
         for i in range(0,2):
             startVelocity = self._getDesiredPwmForMotor(0, "High")
-            self.state.createVariable("motor"+str(i), startVelocity, functools.partial(sendVelocity, 0))
+            self.state.createVariable("motor"+str(i), startVelocity, functools.partial(sendVelocity, i))
 
     def isRunning(self) -> bool:
         return self.mutex.locked()
