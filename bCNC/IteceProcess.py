@@ -93,13 +93,17 @@ class IteceProcess:
         self.mutex = threading.Lock()
         self.app = app
         self.currentState = states.Waiting
-        self.spindleDeadBand = Utils.getFloat("Itece", "spindleDeadBand", 50)
-        self.pwmResolution = Utils.getFloat("Itece", "pwmResolution", 1024)
-        self.radiusZeroPosition = Utils.getFloat("Itece", "radiusZero", 0) # mm
         self.processLimitPosition = Utils.getFloat("Itece", "processLimitPosition", -100) # mm
         self.beginWaitTime = Utils.getFloat("Itece", "processBeginWait", 10) # segundos
+
         self.beginRpm = Utils.getFloat("Itece", "beginRpm", 4000) # rpm
-        self.angularVelocity = Utils.getFloat("Itece", "defaultAngularVelocity", 125.66) # rad/s
+        self.rpmDistChange = Utils.getFloat("Itece", "rpmDistChange", 10) # mm
+        self.rpmCoeficientChange = Utils.getFloat("Itece", "rpmCoefChange", 1) # mm
+        self.rpmMaxLimit = Utils.getFloat("Itece", "rpmMaxLimit", 6000) # mm
+        self.spindleDeadBand = Utils.getFloat("Itece", "spindleDeadBand", 50)
+
+        self.pwmResolution = Utils.getFloat("Itece", "pwmResolution", 1024)
+
         self.iterationDistance = Utils.getFloat("Itece", "iterationDistance", 0.2) # mm
         self.iterationFeed = Utils.getFloat("Itece", "iterationFeed", 20) # mm/min
         self.invertMotor = [Utils.getBool("Itece", "invertM"+ind, False) for ind in ['0', '1']]
@@ -125,6 +129,8 @@ class IteceProcess:
             startVelocity = self._getDesiredPwmForMotor(0, "High")
             self.state.createVariable("motor"+str(i), startVelocity, functools.partial(sendVelocity, i))
 
+        self._lastRpmChange = CNC.vars["mx"]
+
     def isRunning(self) -> bool:
         return self.mutex.locked()
 
@@ -142,9 +148,6 @@ class IteceProcess:
         if not self.mutex.locked():
             return
         self.mutex.release()
-
-    def setNewRpm(self, rpm) -> None:
-        self._updateAngular(rpm)
 
     def bufferedIoUpdate(self) -> None:
         inps = CNC.vars['inputs']
@@ -175,7 +178,7 @@ class IteceProcess:
             self.updateVelocityMethod()
             self.state.executeUpdateMethods()
 
-            if CNC.vars['mx']==self.getMaxPosition():
+            if CNC.vars['mx']>=self.getMaxPosition():
                 if CNC.vars['endType']==1: # wait till end current cycle
                     if self.currentState == states.Waiting:
                         self.mutex.release()
@@ -197,8 +200,6 @@ class IteceProcess:
         self.app.sendGCode("G4P{}".format(int(self.beginWaitTime))) # wait mainSpindle
         self.sleep(self.beginWaitTime)
 
-        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(),
-                                                               self.beginRpm)
         self.app.sendGCode("M62P2") # presser
         self.app.sendGCode("G4P0.5") #  wait Presser
         self._setHighSpeed()
@@ -208,6 +209,7 @@ class IteceProcess:
         self.app.sendGCode("M8")
         self.app.sendGCode("G4P0.5")
         self.sleep(1)
+        self._lastRpmChange = CNC.vars["mx"]
 
     def _endProcess(self) -> None:
         self.app.sendGCode("M5")
@@ -263,15 +265,6 @@ class IteceProcess:
         self._updateToHighSpeed()
         self.updateVelocityMethod = self._updateToHighSpeed
 
-    def _getDesiredRpm(self, radius, angularVelocity) -> float:
-        return angularVelocity / (2 * np.pi * radius)
-
-    def _getDesiredAngularVelocity(self, radius, rpm) -> float:
-        return rpm * 2 * np.pi * radius
-
-    def _getCurrentRadius(self) -> float:
-        return abs(CNC.vars["mx"] - self.radiusZeroPosition)
-
     def sleep(self, t) -> None:
         while t > 0:
             if not self.mutex.locked():
@@ -283,12 +276,15 @@ class IteceProcess:
         CNC.vars["wait"] = 0
 
     def _rpmCompensation(self) -> None:
-        newRpm = self._getDesiredRpm(self._getCurrentRadius(), self.angularVelocity)
-        if abs(newRpm - self.state.getValue("rpm")) > self.spindleDeadBand:
-            self.state.setValue("rpm", newRpm)
-
-    def _updateAngular(self,rpm) -> None:
-        self.angularVelocity = self._getDesiredAngularVelocity(self._getCurrentRadius(), rpm)
+        diff = abs(CNC.vars["mx"] - self._lastRpmChange)
+        if diff >= self.rpmDistChange:
+            coefValue = diff / self.rpmDistChange
+            coefValue *= self.rpmCoefChange
+            newRpm = CNC.vars["curspindle"] * coefValue
+            newRpm = min(newRpm, self.rpmMaxLimit)
+            if abs(newRpm - CNC.vars["curspindle"]) > self.spindleDeadBand:
+                self.state.setValue("rpm", newRpm)
+                self._lastRpmChange = CNC.vars["mx"]
 
     def _iteration(self) -> None:
         if self.currentState == states.Waiting: return

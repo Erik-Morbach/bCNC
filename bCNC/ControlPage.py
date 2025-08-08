@@ -1987,7 +1987,6 @@ class SpindleFrame(CNCRibbon.PageLabelFrame):
 		if CNC.vars["state"] in (Sender.CONNECTED, Sender.NOT_CONNECTED): return
 		if self.spindle.get():
 			self.sendGCode("M3 S%d"%(self.spindleSpeed.get()))
-			self.app.iteceProcess.setNewRpm(self.spindleSpeed.get())
 		else:
 			self.sendGCode("M5")
 
