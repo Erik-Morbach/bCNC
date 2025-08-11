@@ -98,7 +98,7 @@ class IteceProcess:
 
         self.beginRpm = Utils.getFloat("Itece", "beginRpm", 4000) # rpm
         self.rpmDistChange = Utils.getFloat("Itece", "rpmDistChange", 10) # mm
-        self.rpmCoeficientChange = Utils.getFloat("Itece", "rpmCoefChange", 1) # mm
+        self.rpmCoefChange = Utils.getFloat("Itece", "rpmCoefChange", 1) # mm
         self.rpmMaxLimit = Utils.getFloat("Itece", "rpmMaxLimit", 6000) # mm
         self.spindleDeadBand = Utils.getFloat("Itece", "spindleDeadBand", 50)
 
