@@ -278,9 +278,7 @@ class IteceProcess:
     def _rpmCompensation(self) -> None:
         diff = abs(CNC.vars["mx"] - self._lastRpmChange)
         if diff >= self.rpmDistChange:
-            coefValue = diff / self.rpmDistChange
-            coefValue *= self.rpmCoefChange
-            newRpm = CNC.vars["curspindle"] * coefValue
+            newRpm = CNC.vars["curspindle"] + ((self.rpmCoefChange / 100) * self.rpmMaxLimit)
             newRpm = min(newRpm, self.rpmMaxLimit)
             if abs(newRpm - CNC.vars["curspindle"]) > self.spindleDeadBand:
                 self.state.setValue("rpm", newRpm)
