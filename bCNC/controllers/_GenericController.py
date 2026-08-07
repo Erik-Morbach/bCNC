@@ -7,6 +7,7 @@ from __future__ import print_function
 from CNC import CNC, WCS
 from CNCRibbon import Page
 import Utils
+import logging
 import os.path
 import time
 import re
@@ -14,6 +15,9 @@ import threading
 
 import tkinter
 from mttkinter import *
+
+logHoming = logging.getLogger("Homing")
+logHoming.setLevel(logging.INFO)
 # GRBLv1
 SPLITPAT = re.compile(r"[:,]")
 TOOLSPLITPAT = re.compile(r"[:|,]")
@@ -152,13 +156,69 @@ class _GenericController:
         self.viewParameters()
 
     # ----------------------------------------------------------------------
+    # Homing.
+    #
+    # If a UserHome script is installed it defines the per-axis pull-off
+    # moves. Otherwise homing falls back to plain "$H", which uses the
+    # controller's single $27 pull-off distance for every axis.
+    #
+    # That fallback must never happen silently: if UserHome is installed but
+    # could not be loaded, homing with $27 moves the machine by the wrong
+    # distances. In that case refuse to home and tell the operator.
+    # ----------------------------------------------------------------------
     def home(self, event=None):
         self.master._alarm.value = False
 
-        if self.master.scripts.find("UserHome"):
+        scripts = getattr(self.master, "scripts", None)
+
+        if scripts is None:
+            logHoming.error(
+                "Script engine unavailable, homing aborted")
+            tkinter.messagebox.showerror(
+                _("Homing aborted"),
+                _("Internal error: script engine is not available.\n"
+                  "Homing was NOT started."))
+            return
+
+        if scripts.find("UserHome"):
+            logHoming.info("Homing using UserHome script (%s)",
+                           scripts.scriptsDir)
             self.master.executeCommand("UserHome")
-        else:
-            self.master.sendGCode("$H")
+            return
+
+        # Installed on disk but missing from the loaded scripts => load failure.
+        if scripts.hasScriptFile("UserHome"):
+            reason = scripts.loadError("UserHome") or _("script was not loaded")
+            logHoming.error(
+                "UserHome script present on disk but not loaded (%s); "
+                "refusing to home with $27 pull-off", reason)
+            tkinter.messagebox.showerror(
+                _("Homing aborted"),
+                _("A UserHome script exists but could not be loaded:\n"
+                  "%s\n\n"
+                  "Homing now would use the controller $27 pull-off distance "
+                  "for every axis instead of your per-axis distances.\n\n"
+                  "Homing was NOT started. Fix the script and restart bCNC.")
+                % (reason,))
+            return
+
+        # No UserHome script installed at all.
+        if Utils.getBool("CNC", "require_user_home", False):
+            logHoming.error(
+                "No UserHome script found and require_user_home is set; "
+                "homing aborted. Searched: %s",
+                ", ".join(scripts.candidateDirs()))
+            tkinter.messagebox.showerror(
+                _("Homing aborted"),
+                _("No UserHome script was found, and require_user_home is "
+                  "enabled.\n\n"
+                  "Homing was NOT started."))
+            return
+
+        logHoming.info(
+            "No UserHome script found, homing with $H "
+            "($27 pull-off for all axes)")
+        self.master.sendGCode("$H")
 
     def viewStatusReport(self):
         self.master.serial_write(b'\x80')
