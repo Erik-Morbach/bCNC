@@ -31,6 +31,9 @@ class JogController:
         self.plannerLimit = Utils.getInt("Jog","planner", 90)
         self.period = Utils.getFloat("Jog", "period", 0.05)
         self.releasePeriod = Utils.getFloat("Jog", "beginPeriod", 0.05)
+        # How long a jog this program issued stays "ours" to cancel. Past it,
+        # anything still moving belongs to somebody else (an MPG handwheel).
+        self.ownTimeout = Utils.getFloat("Jog", "ownTimeout", 1.0)
         self.lastTime = ThreadVar.ThreadVar(0.0)
         self.lastStop = ThreadVar.ThreadVar(0.0)
         self.mutex = threading.Lock()
@@ -38,6 +41,10 @@ class JogController:
         self.active = Utils.getBool("Jog", "keyboard", False)
         #self.app.bind("<KeyRelease>", self.jogEvent)
         self.currentKeys = {}
+        # True while a jog *this* program issued is still outstanding.
+        # Motion started elsewhere (a firmware MPG handwheel) is not ours
+        # to cancel.
+        self.owned = False
         if self.active:
             self.app.bind("<Key>", self.jogEvent)
             #for (key,codeSyms) in self.mapKeyToCode.items():
@@ -62,12 +69,24 @@ class JogController:
         if self.app.running.val:
             return
         t = time.time()
+        if self.owned and (t - self.lastTime.value) > self.ownTimeout:
+            # Our jog is long finished, whatever the controller still reports.
+            # Releasing ownership here keeps a stuck flag from locking the
+            # handwheel out for the rest of the session.
+            self.owned = False
         if t - self.lastTime.value >= self.period:
+            # A handwheel driven by the controller firmware also puts the
+            # machine in state "Jog". Without this guard the watchdog
+            # would fire JogStop (clearSendBuffer + 20x 0x85) every period
+            # for as long as the operator keeps turning the wheel.
+            if CNC.vars["mpgAxis"] and not self.owned:
+                return
             if not self.mutex.locked() or CNC.vars["state"] == "Jog":
                 self.app.event_generate("<<JogStop>>", when="tail")
                 self.lastStop.value = time.time()
                 if CNC.vars["state"] != "Jog":
                     self.mutex.acquire()
+                    self.owned = False
 
             
         #if t - self.lastTime.value >= self.period:
@@ -109,5 +128,6 @@ class JogController:
             return
         currentKey = self.mapCodeToKey[keycode]
         #self.currentKeys[currentKey] = time.time()
+        self.owned = True
         self.moveKeys(currentKey, eventData)
 

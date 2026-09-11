@@ -460,6 +460,8 @@ class Application(Toplevel, Sender):
                 'C-': self.control.moveCdown}
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
+        self._mpgInReset = False
+        self.mpgRegisterReset()
 
         for x in self.widgets:
             if isinstance(x, Entry):
@@ -534,6 +536,78 @@ class Application(Toplevel, Sender):
         self.statusx["text"] = "X: " + x
         self.statusy["text"] = "Y: " + y
         self.statusz["text"] = "Z: " + z
+
+    # ----------------------------------------------------------------------
+    # MPG (handwheel)
+    #
+    # The controller firmware counts the encoder and generates the jog.
+    # bCNC only owns which axis the wheel drives and how far one detent
+    # moves it, and mirrors that to the controller whenever it changes.
+    #
+    # The commands are configuration, not a protocol baked in here: both
+    # templates default to empty, in which case nothing is ever sent.
+    # Placeholders are str.format fields, NOT %-style: configparser's
+    # interpolation would eat a %(name)s before bCNC ever saw it.
+    #   [Mpg]
+    #   axisCommand  = $MPGAXIS={index}
+    #   scaleCommand = $MPGSCALE={scale:g}
+    # Fields: {axis} {index} {scale}
+    # ----------------------------------------------------------------------
+    def mpgEnabled(self):
+        return bool(CNC.vars["mpgAxis"])
+
+    def mpgPush(self, *args):
+        self.mpgRegisterReset()
+        # Reachable from ControlFrame during Application.__init__,
+        # before the serial attribute necessarily exists.
+        if getattr(self, "serial", None) is None:
+            return
+        axis = CNC.vars["mpgAxis"]
+        axes = Utils.getStr("Mpg", "axes", "") or \
+            Utils.getStr("CNC", "axis", "XYZ")
+        fields = {
+            "axis": axis if axis else Utils.getStr("Mpg", "offValue", "N"),
+            "index": axes.find(axis) if axis else -1,
+            "scale": CNC.vars["mpgScale"],
+        }
+        for key in ("axisCommand", "scaleCommand"):
+            template = Utils.getStr("Mpg", key, "")
+            if not template:
+                continue
+            try:
+                cmd = template.format(**fields)
+            except Exception:
+                self.event_generate(
+                    "<<Status>>",
+                    data=_("Bad [Mpg] %s template") % (key))
+                continue
+            self.sendGCode(cmd)
+
+    def mpgOnReset(self):
+        # Called while _GenericController.onReset() is draining its
+        # run-once list, so re-arming has to be deferred: appending to that
+        # list from inside the drain loop would re-enter this immediately.
+        self._mpgInReset = True
+        try:
+            if Utils.getBool("Mpg", "clearOnReset", True):
+                # The firmware's MPG state is unknown after a reset. Drop
+                # back to OFF so the wheel cannot move an axis until the
+                # operator deliberately selects one again.
+                self.control.mpgOff()
+            self.mpgPush()
+        finally:
+            self._mpgInReset = False
+        self.after(0, self.mpgRegisterReset)
+
+    def mpgRegisterReset(self):
+        if getattr(self, "_mpgInReset", False):
+            return
+        try:
+            pending = self.mcontrol.runOnceOnResetFunctions
+        except AttributeError:
+            return
+        if self.mpgOnReset not in pending:
+            self.mcontrol.registerRunOnceOnReset(self.mpgOnReset)
 
     # ----------------------------------------------------------------------
     # Accept the user key if not editing any text

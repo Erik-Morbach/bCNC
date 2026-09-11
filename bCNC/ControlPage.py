@@ -53,6 +53,9 @@ OVERRIDES = ["Feed", "Rapid", "Spindle"]
 # ===============================================================================
 # Connection Group
 # ===============================================================================
+MPG_OFF = "OFF"
+
+
 class ConnectionGroup(CNCRibbon.ButtonMenuGroup):
     def __init__(self, master, app):
         CNCRibbon.ButtonMenuGroup.__init__(self, master, N_("Connection"), app,
@@ -1169,9 +1172,14 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
     def __init__(self, master, app):
         CNCRibbon.PageLabelFrame.__init__(
             self, master, "Control", _("Control"), app)
+        # tkExtra.Combobox.set() invokes the widget command, and the
+        # step box is built before the MPG widgets exist. Nothing MPG
+        # related may run until the frame is fully constructed.
+        self._mpgReady = False
         self.isLathe = Utils.getBool("CNC", "lathe", False)
         self.axis = Utils.getStr("CNC", "axis", "XYZ")
         self.crossAxis = Utils.getStr("CNC", "jogCross", "YX")
+        self.mpgAxes = Utils.getStr("Mpg", "axes", "") or self.axis
         self.jogSpeeds = []
         i = 0
         while 1:
@@ -1202,7 +1210,8 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
         self.addWidget(b)
 
         self.step = tkExtra.Combobox(
-            f3, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, font="Helvetica, 14")
+            f3, width=6, background=tkExtra.GLOBAL_CONTROL_BACKGROUND, font="Helvetica, 14",
+            command=self.stepChanged)
         self.step.pack(side=LEFT)
         self.step.set(Utils.config.get("Control", "step"))
         self.step.fill(map(float, Utils.config.get(
@@ -1259,6 +1268,27 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
             self.addWidget(b)
             buttonSpeed += [b]
         f3.pack(side=TOP, fill=X, expand=TRUE)
+
+        # ---- MPG (handwheel) ----------------------------------------
+        # The axis and the scale live in CNC.vars so that the GUI and the
+        # optional I2C panel drive one single state. The scale IS the step
+        # value above, so nothing new has to be selected twice.
+        f3 = Frame(f2)
+        Label(f3, text=_("MPG: "), font=DROFrame.dro_mpos).pack(side=LEFT)
+        self.mpgAxisBox = tkExtra.Combobox(
+            f3, width=5, background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+            font="Helvetica, 14", command=self.mpgAxisChanged)
+        self.mpgAxisBox.fill([MPG_OFF] + [a for a in self.mpgAxes])
+        self.mpgAxisBox.set(MPG_OFF)
+        self.mpgAxisBox.pack(side=LEFT)
+        tkExtra.Balloon.set(
+            self.mpgAxisBox,
+            _("Axis driven by the handwheel. OFF disables the MPG."))
+        self.addWidget(self.mpgAxisBox)
+        self.mpgStatus = Label(f3, text="", font=DROFrame.dro_mpos)
+        self.mpgStatus.pack(side=LEFT, padx=6)
+        f3.pack(side=TOP, fill=X, expand=TRUE)
+
         # A+        C+
         #    B+ crossAxis   B-
         # A-        C-
@@ -1309,6 +1339,13 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
         # -- Separate zstep --
         self.zstep = self.step
 
+        # MPG starts disabled on every launch; the operator has to pick an
+        # axis deliberately before a handwheel can move anything.
+        CNC.vars["mpgAxis"] = ""
+        self._mpgReady = True
+        self.setMpgScale(self.step.get())
+        self.updateMpgStatus()
+
         # Default steppings
         try:
             self.step1 = Utils.getFloat("Control", "step1")
@@ -1339,7 +1376,60 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
             Utils.setFloat("Control", "zstep", self.zstep.get())
 
     # ----------------------------------------------------------------------
-    # Jogging
+    # MPG (handwheel)
+    #
+    # bCNC does not count the handwheel: the controller firmware does, and
+    # generates the jog itself. All bCNC owns is *which* axis and *how much
+    # per detent*, which it mirrors to the firmware whenever either changes.
+    # ----------------------------------------------------------------------
+    def mpgAxisChanged(self, *args):
+        if not self._mpgReady:
+            return
+        axis = self.mpgAxisBox.get()
+        CNC.vars["mpgAxis"] = "" if axis == MPG_OFF else axis
+        self.updateMpgStatus()
+        self.app.mpgPush()
+
+    def mpgOff(self):
+        """Force the MPG back to OFF (controller reset, fault, shutdown)."""
+        CNC.vars["mpgAxis"] = ""
+        if not self._mpgReady:
+            return
+        try:
+            self.mpgAxisBox.set(MPG_OFF)
+        except Exception:
+            pass
+        self.updateMpgStatus()
+
+    def setMpgScale(self, s):
+        try:
+            s = float(s)
+        except (TypeError, ValueError):
+            return False
+        if s == CNC.vars["mpgScale"]:
+            return False
+        CNC.vars["mpgScale"] = s
+        return True
+
+    def stepChanged(self, *args):
+        """Called when the step combobox is changed directly by the user."""
+        if not self._mpgReady:
+            return
+        if self.setMpgScale(self.step.get()):
+            self.updateMpgStatus()
+            self.app.mpgPush()
+
+    def updateMpgStatus(self):
+        if not self._mpgReady:
+            return
+        axis = CNC.vars["mpgAxis"]
+        if not axis:
+            self.mpgStatus.config(text=_("off"), foreground="Gray")
+        else:
+            self.mpgStatus.config(
+                text="%s  %.4g/detent" % (axis, CNC.vars["mpgScale"]),
+                foreground="DarkGreen")
+
     # ----------------------------------------------------------------------
     def setJogSpeed(self, data=None):
         try:
@@ -1479,6 +1569,11 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
     # ----------------------------------------------------------------------
     def setStep(self, s, zs=None):
         self.step.set("%.4g" % (s))
+        # Panel StepSelector and the +/-/x10 buttons both land here, so this
+        # is where the MPG scale follows the step for every input source.
+        if self._mpgReady and self.setMpgScale(s):
+            self.updateMpgStatus()
+            self.app.mpgPush()
         if self.zstep is self.step or zs is None:
             self.event_generate("<<Status>>",
                                 data=_("Step: %g") % (s))

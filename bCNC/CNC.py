@@ -751,6 +751,9 @@ class CNC:
 			"JogSpeed"   : 3000.0,
 			"jogOldStep" : -1,
 			"JogActive"  : False,
+			"mpgAxis"    : "",	# axis driven by the handwheel, "" = disabled
+			"mpgScale"   : 0.0,	# mm (or inch) per handwheel detent
+			"panelFault" : False,	# external panel I/O is not answering
 			"execution"  : False,
 			"debug"      : False,
 

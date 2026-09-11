@@ -54,14 +54,19 @@ class gpio:
 class i2c:
     def __init__(self) -> None:
         self.obj = {}
+        self.bus = None
+        self.fault = False
         retries = 3
         while retries > 0:
             try:
                 self.bus = smbus2.SMBus(1)
                 break
-            except:
+            except BaseException:
                 retries -= 1
                 time.sleep(0.01)
+        if self.bus is None:
+            self.fault = True
+            logPanel.error("I2C bus 1 unavailable; panel inputs are dead")
         self.pollPeriod = {}
         self.lastTime = {}
 
@@ -104,16 +109,31 @@ class i2c:
         if time.time() - lastTime < pollPeriod:
             return lastValue
         
+        if self.bus is None:
+            self.fault = True
+            return lastValue
+
         retries = 3
         while retries > 0:
             try:
                 value = self.bus.read_byte_data(dev, addr)
                 self.set(devId, value, time.time())
-                break
-            except:
+                if self.fault:
+                    self.fault = False
+                    logPanel.info("I2C recovered")
+                return value
+            except BaseException:
                 retries -= 1
                 time.sleep(0.01)
-        return value
+
+        # Every retry failed. Hold the last known value rather than raising
+        # out of the member thread: an exception here used to kill the
+        # thread outright and the whole panel went dead with no indication.
+        if not self.fault:
+            logPanel.error(
+                "I2C read failed dev=0x%02x addr=0x%02x" % (dev, addr))
+        self.fault = True
+        return lastValue
 
 
 class Pins:
@@ -155,6 +175,7 @@ class Pins:
         if st[0] == 2:
             value = CNC.vars["inputs"] & (1 << st[1])
             return 1 if value else 0
+        return 0
 
 
 PINS = Pins()
@@ -176,6 +197,7 @@ class Member:
         self.pins = []
         self.debounce = 0
         self.active = False
+        self.errorCount = 0
 
     def setup(self, pins, inversion, debounce, callback, active):
         infoStr = "Member: "
@@ -232,27 +254,41 @@ class Member:
         logPanel.info(self.memberName + " thread begin")
         while self.th_mtx.locked():
             time.sleep(debouncer_period)
-            pinValues = [PINS.read(pin) for pin in self.pins]
-            current_sum = [(a - b)
-                           for (a, b) in zip(current_sum, window[index])]
-            window[index] = pinValues
-            current_sum = [(a + b)
-                           for (a, b) in zip(current_sum, window[index])]
+            try:
+                pinValues = [PINS.read(pin) for pin in self.pins]
+                current_sum = [(a - b)
+                               for (a, b) in zip(current_sum, window[index])]
+                window[index] = pinValues
+                current_sum = [(a + b)
+                               for (a, b) in zip(current_sum, window[index])]
 
-            index += 1
-            index %= len(window)
+                index += 1
+                index %= len(window)
 
-            haveErro = any([(a != 0 and a != debouncer_qnt)
-                           for a in current_sum])
+                haveErro = any([(a != 0 and a != debouncer_qnt)
+                               for a in current_sum])
 
-            values = []
-            for (id, w) in enumerate(current_sum):
-                values += [1 if w == debouncer_qnt else 0]
-                values[-1] ^= (1 if (self.inversion & (1 << id)) else 0)
+                values = []
+                for (id, w) in enumerate(current_sum):
+                    values += [1 if w == debouncer_qnt else 0]
+                    values[-1] ^= (1 if (self.inversion & (1 << id)) else 0)
 
-            if not haveErro:
-                self.lastValues[:] = values[:]
-                self.callback(values)
+                if not haveErro:
+                    self.lastValues[:] = values[:]
+                    self.callback(values)
+                if self.errorCount:
+                    self.errorCount = 0
+                    CNC.vars["panelFault"] = PINS.i2c.fault
+            except BaseException:
+                # A dead member thread means buttons and selectors stop
+                # responding with nothing on screen to say so. Keep the
+                # thread alive, flag the fault, and rate limit the noise.
+                self.errorCount += 1
+                CNC.vars["panelFault"] = True
+                if self.errorCount == 1 or self.errorCount % 200 == 0:
+                    logPanel.exception(
+                        "%s thread error (%d so far)"
+                        % (self.memberName, self.errorCount))
         logPanel.info(self.memberName + " thread end")
 
     def callback(self, pinValues):
