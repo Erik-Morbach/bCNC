@@ -927,6 +927,9 @@ class Sender:
     def hasNewCommand(self):
         return len(self.deque) != 0
 
+    def spindleIsOn(self):
+    	return CNC.vars.get("spindle") in ("M3", "M4")
+
     def shouldSkipCommand(self, cmd):
         line = cmd.src
         if not isinstance(line, str):
