@@ -461,6 +461,7 @@ class Application(Toplevel, Sender):
         self.jogController = JogController(self, keys)
         self.panel = Panel(self)
         self._mpgInReset = False
+        self._mpgDirty = False
         self.mpgRegisterReset()
 
         for x in self.widgets:
@@ -550,26 +551,54 @@ class Application(Toplevel, Sender):
     # interpolation would eat a %(name)s before bCNC ever saw it.
     #   [Mpg]
     #   axisCommand  = $MPGAXIS={index}
-    #   scaleCommand = $MPGSCALE={scale:g}
-    # Fields: {axis} {index} {scale}
+    #   scaleCommand = $MPGSCALE={scale:.4f}   (.4f: grblHAL can't parse 5e-05)
+    # Fields: {axis} letter, {index} controller axis number (X=0 Y=1 Z=2
+    # A=3 B=4 C=5, -1 = off), {scale} mm per detent
     # ----------------------------------------------------------------------
     def mpgEnabled(self):
         return bool(CNC.vars["mpgAxis"])
 
     def mpgPush(self, *args):
+        """Mark the MPG state as changed and send it when possible."""
         self.mpgRegisterReset()
+        self._mpgDirty = True
+        self.mpgFlush()
+        # Callers refresh the label before calling here, so refresh it
+        # again: if the send was deferred it must now read "pending".
+        try:
+            self.control.updateMpgStatus()
+        except AttributeError:
+            pass
+
+    def mpgFlush(self):
+        """Send pending MPG state, but only when the controller can take it.
+
+        sendGCode() silently drops anything while a program is running,
+        and grblHAL rejects $ commands outside Idle (error:8). Either way
+        the change would be lost and the wheel would move by a different
+        amount than the screen shows. So the change stays pending and is
+        retried from the monitor loop until the controller is Idle.
+        """
+        if not getattr(self, "_mpgDirty", False):
+            return
         # Reachable from ControlFrame during Application.__init__,
-        # before the serial attribute necessarily exists.
+        # before these attributes necessarily exist.
         if getattr(self, "serial", None) is None:
             return
+        running = getattr(self, "running", None)
+        if running is not None and running.value:
+            return
+        if CNC.vars["state"] != "Idle":
+            return
         axis = CNC.vars["mpgAxis"]
-        axes = Utils.getStr("Mpg", "axes", "") or \
-            Utils.getStr("CNC", "axis", "XYZ")
         fields = {
             "axis": axis if axis else Utils.getStr("Mpg", "offValue", "N"),
-            "index": axes.find(axis) if axis else -1,
+            # The controller's axis number, NOT the position in the axes
+            # bCNC happens to show: with [CNC] axis = XZ, Z must still be 2.
+            "index": "XYZABC".find(axis) if axis else -1,
             "scale": CNC.vars["mpgScale"],
         }
+        sent = True
         for key in ("axisCommand", "scaleCommand"):
             template = Utils.getStr("Mpg", key, "")
             if not template:
@@ -577,11 +606,20 @@ class Application(Toplevel, Sender):
             try:
                 cmd = template.format(**fields)
             except Exception:
+                # A broken template will never succeed; retrying it
+                # every 33 ms would only spam the status bar.
                 self.event_generate(
                     "<<Status>>",
                     data=_("Bad [Mpg] %s template") % (key))
                 continue
-            self.sendGCode(cmd)
+            if not self.sendGCode(cmd):
+                sent = False
+        if sent:
+            self._mpgDirty = False
+        try:
+            self.control.updateMpgStatus()
+        except AttributeError:
+            pass
 
     def mpgOnReset(self):
         # Called while _GenericController.onReset() is draining its
@@ -2689,6 +2727,9 @@ class Application(Toplevel, Sender):
         if self._pendantFileUploaded != None:
             self.load(self._pendantFileUploaded)
             self._pendantFileUploaded = None
+
+        # MPG state changed while the controller could not accept it
+        self.mpgFlush()
 
         # Update position if needed
         if self._posUpdate:

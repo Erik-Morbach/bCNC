@@ -294,11 +294,161 @@ def test_controlpage_guards():
         check("%s() checks the ready flag" % name, "_mpgReady" in body)
 
 
+# --------------------------------------------- Application.mpgFlush gating
+def _load_app_methods(*names):
+    """Compile selected Application methods straight out of __main__.py.
+
+    Importing __main__ builds the whole GUI, so instead the real source of
+    just these methods is extracted with ast and bound to a fake object.
+    """
+    import ast
+    src = io.open(os.path.join(PKG, "__main__.py"), encoding="utf-8").read()
+    tree = ast.parse(src)
+    app_cls = next(n for n in tree.body
+                   if isinstance(n, ast.ClassDef) and n.name == "Application")
+    funcs = [n for n in app_cls.body
+             if isinstance(n, ast.FunctionDef) and n.name in names]
+    missing = set(names) - set(f.name for f in funcs)
+    if missing:
+        raise AssertionError("methods not found: %s" % sorted(missing))
+    return funcs
+
+
+class _FakeUtils:
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+    def getStr(self, section, name, default=""):
+        return self.cfg.get(section, {}).get(name, default)
+
+    def getBool(self, section, name, default=False):
+        v = self.cfg.get(section, {}).get(name)
+        return default if v is None else bool(int(v))
+
+
+class _FakeControl:
+    def __init__(self):
+        self.refreshes = 0
+
+    def updateMpgStatus(self):
+        self.refreshes += 1
+
+
+def test_mpg_flush():
+    print("mpgFlush: MPG state must reach the controller, or stay pending")
+    import ast
+
+    cfg = {
+        "Mpg": {"axisCommand": "$MPGAXIS={index}",
+                "scaleCommand": "$MPGSCALE={scale:.4f}",
+                "axes": "", "offValue": "N"},
+        "CNC": {"axis": "XYZ"},
+    }
+    ns = {"CNC": _CNC, "Utils": _FakeUtils(cfg), "_": lambda s: s}
+    module = ast.Module(
+        body=_load_app_methods("mpgPush", "mpgFlush", "mpgRegisterReset"),
+        type_ignores=[])
+    exec(compile(module, "__main__.py:mpg", "exec"), ns)
+
+    class App(object):
+        mpgPush = ns["mpgPush"]
+        mpgFlush = ns["mpgFlush"]
+        mpgRegisterReset = ns["mpgRegisterReset"]
+
+        def __init__(self):
+            self.serial = object()
+            self.running = _FakeVar(False)
+            self._mpgDirty = False
+            self._mpgInReset = False
+            self.control = _FakeControl()
+            self.sent = []
+            self.accept = True
+
+        def sendGCode(self, cmd):
+            if self.accept:
+                self.sent.append(cmd)
+            return self.accept
+
+        def event_generate(self, *args, **kwargs):
+            pass
+
+    def fresh(state="Idle", axis="X", scale=0.1):
+        _CNC.vars["state"] = state
+        _CNC.vars["mpgAxis"] = axis
+        _CNC.vars["mpgScale"] = scale
+        return App()
+
+    app = fresh()
+    app.mpgPush()
+    check("Idle: axis and scale are sent",
+          app.sent == ["$MPGAXIS=0", "$MPGSCALE=0.1000"], "sent %r" % app.sent)
+    check("Idle: nothing left pending", app._mpgDirty is False)
+
+    app = fresh()
+    app.running.value = True
+    app.mpgPush()
+    check("running program: nothing is sent", app.sent == [])
+    check("running program: change stays pending", app._mpgDirty is True)
+    app.running.value = False
+    app.mpgFlush()
+    check("after the program ends it is delivered",
+          app.sent == ["$MPGAXIS=0", "$MPGSCALE=0.1000"] and not app._mpgDirty)
+
+    for state in ("Jog", "Alarm", "Hold:0", "Home"):
+        app = fresh(state=state)
+        app.mpgPush()
+        check("%s: deferred, not sent" % state,
+              app.sent == [] and app._mpgDirty is True)
+
+    app = fresh(state="Jog")
+    app.mpgPush()
+    _CNC.vars["state"] = "Idle"
+    app.mpgFlush()
+    check("deferred change is delivered once Idle",
+          app.sent == ["$MPGAXIS=0", "$MPGSCALE=0.1000"])
+
+    app = fresh()
+    app.accept = False
+    app.mpgPush()
+    check("refused by sendGCode: stays pending", app._mpgDirty is True)
+
+    app = fresh(axis="")
+    app.mpgPush()
+    check("OFF sends index -1", app.sent[:1] == ["$MPGAXIS=-1"],
+          "sent %r" % app.sent)
+
+    app = fresh(axis="Z", scale=0.01)
+    app.mpgPush()
+    check("index and scale formatting",
+          app.sent == ["$MPGAXIS=2", "$MPGSCALE=0.0100"], "sent %r" % app.sent)
+
+    # {index} is the controller's axis number, independent of which axes bCNC
+    # shows. A lathe config with [CNC] axis = XZ must still send Z as 2, or
+    # selecting Z on screen would jog Y.
+    ns["Utils"].cfg["CNC"]["axis"] = "XZ"
+    app = fresh(axis="Z", scale=0.05)
+    app.mpgPush()
+    check("index is the controller axis number, not the GUI position",
+          app.sent[:1] == ["$MPGAXIS=2"], "sent %r" % app.sent)
+    ns["Utils"].cfg["CNC"]["axis"] = "XYZ"
+
+    app = fresh()
+    app.serial = None
+    app.mpgPush()
+    check("not connected: stays pending until a controller is there",
+          app.sent == [] and app._mpgDirty is True)
+
+    app = fresh(state="Jog")
+    app.mpgPush()
+    check("deferred push still refreshes the label",
+          app.control.refreshes >= 1)
+
+
 if __name__ == "__main__":
-    import io  # noqa: F401 - used by test_controlpage_guards
     test_panel()
     test_jog_gating()
     test_controlpage_guards()
+    test_mpg_flush()
     print()
     if FAILURES:
         print("%d FAILED: %s" % (len(FAILURES), ", ".join(FAILURES)))

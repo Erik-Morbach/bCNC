@@ -1425,6 +1425,13 @@ class ControlFrame(CNCRibbon.PageLabelFrame):
         axis = CNC.vars["mpgAxis"]
         if not axis:
             self.mpgStatus.config(text=_("off"), foreground="Gray")
+        elif getattr(self.app, "_mpgDirty", False):
+            # Shown until the controller has actually been told: the
+            # screen must never claim a scale the wheel is not using.
+            self.mpgStatus.config(
+                text="%s  %.4g/detent  (sync pending)"
+                % (axis, CNC.vars["mpgScale"]),
+                foreground="DarkOrange")
         else:
             self.mpgStatus.config(
                 text="%s  %.4g/detent" % (axis, CNC.vars["mpgScale"]),
